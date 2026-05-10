@@ -7,16 +7,16 @@
 
   <!--
     ============================================================
-    INDIA STOCK TRACKER — Phase 1 (with Auth)
+    INDIA STOCK TRACKER — Phase 2 (Live Prices + XIRR)
     ============================================================
     Author      : Built with Claude (Anthropic)
     Project     : https://github.com/sriramshanmugamsourcecode/india-stock-tracker
     Backend     : Supabase (PostgreSQL + Auth)
-    Last updated: 2026-05-10 (exchange column + inline dropdown added)
+    Last updated: 2026-05-10 (Phase 2 — live prices, unrealised P&L, XIRR)
 
     PHASES:
-      Phase 1 (current) — Portfolio viewer, Trade Log, WoW Tracker + Auth
-      Phase 2 (next)    — Live NSE prices via Yahoo Finance
+      Phase 1 (done)    — Portfolio viewer, Trade Log, WoW Tracker + Auth
+      Phase 2 (current) — Live NSE/BSE prices via Yahoo Finance + XIRR
       Phase 3           — WoW Tracker multi-stock, web-native
       Phase 4           — Momentum + Fundamentals screener (Nifty 500)
 
@@ -626,6 +626,10 @@
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
+  // CORS proxy for Yahoo Finance (swap URL here if proxy changes)
+  const PROXY = 'https://corsproxy.io/?';
+  const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
   const { createClient } = supabase;
   const db = createClient(SUPA_URL, SUPA_KEY);
 
@@ -635,6 +639,7 @@
   const fmt     = n => '₹' + Math.round(n).toLocaleString('en-IN');
   const fmtPct  = n => (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+  const fmtPrice = n => n != null ? '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
   // ============================================================
   // AUTH
@@ -644,13 +649,10 @@
     const password = document.getElementById('login-password').value;
     const btn      = document.getElementById('login-btn');
     const errBox   = document.getElementById('login-error');
-
     errBox.style.display = 'none';
     btn.disabled = true;
     btn.textContent = 'Signing in...';
-
     const { error } = await db.auth.signInWithPassword({ email, password });
-
     if (error) {
       errBox.textContent = error.message;
       errBox.style.display = 'block';
@@ -659,18 +661,12 @@
     }
   }
 
-  async function handleLogout() {
-    await db.auth.signOut();
-  }
+  async function handleLogout() { await db.auth.signOut(); }
 
-  // Enter key on login screen
   document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
-      handleLogin();
-    }
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') handleLogin();
   });
 
-  // Auth state listener — fires on page load (restores session) and login/logout
   db.auth.onAuthStateChange((event, session) => {
     if (session) {
       document.getElementById('login-screen').style.display = 'none';
@@ -687,10 +683,97 @@
   // STATE
   // ============================================================
   let trades = [], wow = [];
+  let livePrices = {}; // { 'NSE:APARINDS': 7800.50, ... }
 
   // ============================================================
-  // LOAD DATA
-  // RLS automatically filters rows by logged-in user_id
+  // LIVE PRICE FETCHING — Yahoo Finance via CORS proxy
+  // Fetches in batches of 10 to avoid rate limiting
+  // Ticker format: strip exchange prefix, append .NS or .BO
+  // ============================================================
+  function toYFSymbol(ticker, exchange) {
+    const symbol = ticker.includes(':') ? ticker.split(':')[1] : ticker;
+    return symbol + (exchange === 'BSE' ? '.BO' : '.NS');
+  }
+
+  async function fetchPrice(yfSymbol) {
+    try {
+      const url = PROXY + encodeURIComponent(YF_BASE + yfSymbol + '?interval=1d&range=1d');
+      const r   = await fetch(url);
+      if (!r.ok) return null;
+      const data = await r.json();
+      const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      return price ?? null;
+    } catch { return null; }
+  }
+
+  async function fetchAllPrices(holdings) {
+    const BATCH = 8;
+    const results = {};
+    for (let i = 0; i < holdings.length; i += BATCH) {
+      const batch = holdings.slice(i, i + BATCH);
+      await Promise.all(batch.map(async h => {
+        const yfSym = toYFSymbol(h.ticker, h.exchange);
+        const price = await fetchPrice(yfSym);
+        results[h.ticker] = price;
+      }));
+      // Small delay between batches to be kind to the API
+      if (i + BATCH < holdings.length) await new Promise(r => setTimeout(r, 300));
+    }
+    return results;
+  }
+
+  // ============================================================
+  // XIRR — Newton-Raphson method
+  // cashflows: [{ amount, date }] where amount is negative for outflows
+  // ============================================================
+  function xirr(cashflows) {
+    if (cashflows.length < 2) return null;
+    const d0   = cashflows[0].date;
+    const days = cashflows.map(cf => (cf.date - d0) / (1000 * 60 * 60 * 24));
+    const amounts = cashflows.map(cf => cf.amount);
+
+    function npv(rate) {
+      return amounts.reduce((sum, a, i) => sum + a / Math.pow(1 + rate, days[i] / 365), 0);
+    }
+    function dnpv(rate) {
+      return amounts.reduce((sum, a, i) =>
+        sum - (days[i] / 365) * a / Math.pow(1 + rate, days[i] / 365 + 1), 0);
+    }
+
+    let rate = 0.1; // initial guess 10%
+    for (let iter = 0; iter < 100; iter++) {
+      const n = npv(rate);
+      const d = dnpv(rate);
+      if (Math.abs(d) < 1e-10) break;
+      const newRate = rate - n / d;
+      if (Math.abs(newRate - rate) < 1e-7) { rate = newRate; break; }
+      rate = newRate;
+      if (rate <= -1) return null; // diverged
+    }
+    return isFinite(rate) && rate > -1 ? rate * 100 : null;
+  }
+
+  // Build cashflows for a set of trades + current value
+  function buildCashflows(stockTrades, livePrice) {
+    const cfs = [];
+    stockTrades.forEach(t => {
+      const brok  = Number(t.brokerage || 0);
+      const total = t.action === 'BUY'
+        ? -(t.qty * t.price + brok)   // money out → negative
+        :  (t.qty * t.price - brok);  // money in  → positive
+      cfs.push({ amount: total, date: new Date(t.date) });
+    });
+    // Add current value as final positive cashflow (today)
+    if (livePrice != null) {
+      const netQty = stockTrades.reduce((s, t) =>
+        t.action === 'BUY' ? s + t.qty : s - t.qty, 0);
+      if (netQty > 0) cfs.push({ amount: livePrice * netQty, date: new Date() });
+    }
+    return cfs.sort((a, b) => a.date - b.date);
+  }
+
+  // ============================================================
+  // LOAD ALL DATA
   // ============================================================
   async function loadAll() {
     document.getElementById('last-updated').textContent = 'loading...';
@@ -704,9 +787,19 @@
       if (wowRes.error)    throw wowRes.error;
       trades = tradesRes.data;
       wow    = wowRes.data;
+
+      // Render with placeholders first so UI feels fast
       renderPortfolio();
       renderTrades();
       renderWow();
+      document.getElementById('last-updated').textContent = 'fetching live prices...';
+
+      // Fetch live prices for active holdings
+      const { holdings } = calcPortfolio();
+      livePrices = await fetchAllPrices(holdings);
+
+      // Re-render with live prices
+      renderPortfolio();
       document.getElementById('last-updated').textContent =
         'updated ' + new Date().toLocaleTimeString('en-IN');
     } catch(e) {
@@ -719,17 +812,18 @@
 
   // ============================================================
   // PORTFOLIO CALCULATION
-  // Phase 2: add livePrice, currentValue, unrealisedPnl per holding
   // ============================================================
   function calcPortfolio() {
     const stocks = {};
     trades.forEach(t => {
       if (!stocks[t.ticker]) stocks[t.ticker] = {
         name: t.stock_name, ticker: t.ticker, exchange: t.exchange || 'NSE',
-        buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0
+        buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0,
+        allTrades: []
       };
       const s    = stocks[t.ticker];
       const brok = Number(t.brokerage || 0);
+      s.allTrades.push(t);
       if (t.action === 'BUY') {
         s.buyQty += t.qty; s.totalCost += t.qty * t.price + brok; s.totalBrokerage += brok;
       } else {
@@ -739,6 +833,7 @@
 
     const holdings = [];
     let totalInvested = 0, totalBrokerage = 0, realisedPnl = 0, sellProceeds = 0;
+    let totalCurrentValue = 0, totalUnrealisedPnl = 0;
 
     Object.values(stocks).forEach(s => {
       const netQty   = s.buyQty - s.sellQty;
@@ -747,11 +842,45 @@
       totalInvested  += invested;
       totalBrokerage += s.totalBrokerage;
       if (s.sellQty > 0) { realisedPnl += s.totalSell - s.sellQty * avgBuy; sellProceeds += s.totalSell; }
-      if (netQty > 0) holdings.push({ name: s.name, ticker: s.ticker, exchange: s.exchange, netQty, avgBuy, invested });
+
+      if (netQty > 0) {
+        const livePrice     = livePrices[s.ticker] ?? null;
+        const currentValue  = livePrice != null ? livePrice * netQty : null;
+        const unrealisedPnl = currentValue != null ? currentValue - invested : null;
+        const unrealisedPct = unrealisedPnl != null ? (unrealisedPnl / invested) * 100 : null;
+
+        // XIRR per stock
+        let stockXirr = null;
+        if (livePrice != null) {
+          const cfs = buildCashflows(s.allTrades, livePrice);
+          stockXirr = xirr(cfs);
+        }
+
+        if (currentValue != null)  totalCurrentValue   += currentValue;
+        if (unrealisedPnl != null) totalUnrealisedPnl  += unrealisedPnl;
+
+        holdings.push({ name: s.name, ticker: s.ticker, exchange: s.exchange,
+          netQty, avgBuy, invested, livePrice, currentValue, unrealisedPnl, unrealisedPct, stockXirr,
+          allTrades: s.allTrades });
+      }
     });
 
+    // Overall portfolio XIRR
+    let portfolioXirr = null;
+    const allCfs = [];
+    trades.forEach(t => {
+      const brok  = Number(t.brokerage || 0);
+      const total = t.action === 'BUY' ? -(t.qty * t.price + brok) : (t.qty * t.price - brok);
+      allCfs.push({ amount: total, date: new Date(t.date) });
+    });
+    if (totalCurrentValue > 0) {
+      allCfs.push({ amount: totalCurrentValue, date: new Date() });
+      portfolioXirr = xirr(allCfs.sort((a,b) => a.date - b.date));
+    }
+
     holdings.sort((a, b) => b.invested - a.invested);
-    return { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds };
+    return { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds,
+             totalCurrentValue, totalUnrealisedPnl, portfolioXirr };
   }
 
   // ============================================================
@@ -763,6 +892,10 @@
   function sortData(arr, col, dir) {
     return [...arr].sort((a, b) => {
       let av = a[col], bv = b[col];
+      // nulls sort last regardless of direction
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
       if (typeof av === 'string') av = av.toLowerCase();
       if (typeof bv === 'string') bv = bv.toLowerCase();
       if (av < bv) return dir === 'asc' ? -1 : 1;
@@ -794,7 +927,14 @@
   // RENDER: PORTFOLIO
   // ============================================================
   function renderPortfolio() {
-    const { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds } = calcPortfolio();
+    const { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds,
+            totalCurrentValue, totalUnrealisedPnl, portfolioXirr } = calcPortfolio();
+
+    const hasLive     = totalCurrentValue > 0;
+    const unrlCls     = totalUnrealisedPnl >= 0 ? 'positive' : 'negative';
+    const xirrDisplay = portfolioXirr != null
+      ? `<div class="stat-value ${portfolioXirr >= 0 ? 'positive' : 'negative'}">${fmtPct(portfolioXirr)}</div><div class="stat-sub">annualised</div>`
+      : `<div class="stat-value" style="color:var(--muted);font-size:15px">—</div><div class="stat-sub">needs live prices</div>`;
 
     document.getElementById('summary-grid').innerHTML = `
       <div class="stat-card">
@@ -803,9 +943,18 @@
         <div class="stat-sub">active holdings</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Active Holdings</div>
-        <div class="stat-value">${holdings.length}</div>
-        <div class="stat-sub">stocks</div>
+        <div class="stat-label">Current Value</div>
+        <div class="stat-value ${hasLive ? 'neutral' : ''}" style="${hasLive ? '' : 'color:var(--muted);font-size:15px'}">
+          ${hasLive ? fmt(totalCurrentValue) : '—'}
+        </div>
+        <div class="stat-sub">${hasLive ? 'live prices' : 'fetching...'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unrealised P&L</div>
+        <div class="stat-value ${hasLive ? unrlCls : ''}" style="${hasLive ? '' : 'color:var(--muted);font-size:15px'}">
+          ${hasLive ? fmt(totalUnrealisedPnl) : '—'}
+        </div>
+        <div class="stat-sub">${hasLive ? fmtPct(totalUnrealisedPnl / totalInvested * 100) : 'fetching...'}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Realised P&L</div>
@@ -813,9 +962,13 @@
         <div class="stat-sub">net of brokerage</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Unrealised P&L</div>
-        <div class="stat-value" style="color:var(--muted);font-size:15px">Phase 2</div>
-        <div class="stat-sub">needs live prices</div>
+        <div class="stat-label">Portfolio XIRR</div>
+        ${xirrDisplay}
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Holdings</div>
+        <div class="stat-value">${holdings.length}</div>
+        <div class="stat-sub">stocks</div>
       </div>`;
 
     renderHoldingsTable(holdings);
@@ -845,10 +998,7 @@
       return;
     }
 
-    // Add sort keys for Phase 2 placeholders (treat — as null → sort last)
-    const enriched = holdings.map(h => ({ ...h, livePrice: null, unrealisedPnl: null, unrealisedPct: null }));
-    const sorted   = sortData(enriched, holdingsSort.col, holdingsSort.dir);
-
+    const sorted = sortData(holdings, holdingsSort.col, holdingsSort.dir);
     const si = col => sortIndicator(col, holdingsSort.col, holdingsSort.dir);
     const th = (col, label) =>
       `<th class="sortable-th" onclick="toggleHoldingsSort('${col}')">${label}${si(col)}</th>`;
@@ -856,21 +1006,20 @@
     document.getElementById('holdings-table').innerHTML = `
       <table>
         <thead><tr>
-          ${th('name',     'Stock')}
-          ${th('ticker',   'Ticker')}
+          ${th('name',          'Stock')}
+          ${th('ticker',        'Ticker')}
           <th>Exchange</th>
-          ${th('netQty',   'Net Qty')}
-          ${th('avgBuy',   'Avg Buy Price')}
-          ${th('invested', 'Invested')}
-          ${th('livePrice',      'Live Price')}
-          ${th('unrealisedPnl',  'Unrealised P&L')}
-          ${th('unrealisedPct',  'Unrealised P&L %')}
+          ${th('netQty',        'Net Qty')}
+          ${th('avgBuy',        'Avg Buy')}
+          ${th('invested',      'Invested')}
+          ${th('livePrice',     'Live Price')}
+          ${th('unrealisedPnl', 'Unrealised P&L')}
+          ${th('unrealisedPct', 'P&L %')}
+          ${th('stockXirr',     'XIRR %')}
         </tr></thead>
         <tbody>${sorted.map(h => {
-          const hasPnl = h.unrealisedPnl !== null;
-          const pnlCls = hasPnl ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
-          const pnlVal = hasPnl ? fmt(h.unrealisedPnl) : '—';
-          const pctVal = hasPnl ? fmtPct(h.unrealisedPct) : '—';
+          const pnlCls  = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
+          const xirrCls = h.stockXirr    != null ? (h.stockXirr    >= 0 ? 'positive-text' : 'negative-text') : '';
           return `<tr>
             <td style="font-weight:500">${h.name}</td>
             <td><span class="ticker-pill">${h.ticker}</span></td>
@@ -883,9 +1032,10 @@
             <td class="mono">${h.netQty}</td>
             <td class="mono">${fmt(h.avgBuy)}</td>
             <td class="mono">${fmt(h.invested)}</td>
-            <td class="mono" style="color:var(--muted)">—</td>
-            <td class="mono ${pnlCls}">${pnlVal}</td>
-            <td class="mono ${pnlCls}">${pctVal}</td>
+            <td class="mono">${fmtPrice(h.livePrice)}</td>
+            <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
+            <td class="mono ${pnlCls}">${h.unrealisedPct != null ? fmtPct(h.unrealisedPct) : '—'}</td>
+            <td class="mono ${xirrCls}">${h.stockXirr != null ? fmtPct(h.stockXirr) : '—'}</td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -895,23 +1045,18 @@
   // ============================================================
   // RENDER: TRADE LOG
   // ============================================================
-  function renderTrades() {
-    renderTradesTable();
-  }
+  function renderTrades() { renderTradesTable(); }
 
   function renderTradesTable() {
     if (!trades.length) {
       document.getElementById('trades-table').innerHTML = '<div class="loading">No trades found</div>';
       return;
     }
-
-    // Enrich trades with computed total for sorting
     const enriched = trades.map(t => {
       const brok  = Number(t.brokerage || 0);
       const total = t.action === 'BUY' ? t.qty * t.price + brok : t.qty * t.price - brok;
       return { ...t, total };
     });
-
     const sorted = sortData(enriched, tradesSort.col, tradesSort.dir);
     const si = col => sortIndicator(col, tradesSort.col, tradesSort.dir);
     const th = (col, label) =>
@@ -920,14 +1065,9 @@
     document.getElementById('trades-table').innerHTML = `
       <table>
         <thead><tr>
-          ${th('date',       'Date')}
-          ${th('stock_name', 'Stock')}
-          ${th('ticker',     'Ticker')}
-          ${th('action',     'Action')}
-          ${th('qty',        'Qty')}
-          ${th('price',      'Price')}
-          ${th('brokerage',  'Brokerage')}
-          ${th('total',      'Total')}
+          ${th('date','Date')} ${th('stock_name','Stock')} ${th('ticker','Ticker')}
+          ${th('action','Action')} ${th('qty','Qty')} ${th('price','Price')}
+          ${th('brokerage','Brokerage')} ${th('total','Total')}
         </tr></thead>
         <tbody>${sorted.map(t => `
           <tr>
