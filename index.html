@@ -7,15 +7,15 @@
 
   <!--
     ============================================================
-    INDIA STOCK TRACKER — Phase 1
+    INDIA STOCK TRACKER — Phase 1 (with Auth)
     ============================================================
     Author      : Built with Claude (Anthropic)
     Project     : https://github.com/sriramshanmugamsourcecode/india-stock-tracker
-    Backend     : Supabase (PostgreSQL)
+    Backend     : Supabase (PostgreSQL + Auth)
     Last updated: 2026-05-10
 
     PHASES:
-      Phase 1 (current) — Portfolio viewer, Trade Log, WoW Tracker
+      Phase 1 (current) — Portfolio viewer, Trade Log, WoW Tracker + Auth
       Phase 2 (next)    — Live NSE prices via Yahoo Finance
       Phase 3           — WoW Tracker multi-stock, web-native
       Phase 4           — Momentum + Fundamentals screener (Nifty 500)
@@ -26,19 +26,20 @@
       watchlist    — stocks with entry/exit conditions (Phase 4)
       imports      — CSV import history for delta tracking (planned)
 
-    NOTES:
-      - Portfolio P&L is calculated live from trades table
-      - Unrealised P&L requires live prices (Phase 2)
-      - Brokerage = 0 for holdings imported from Zerodha statement
-      - Auth lockdown (email login) planned after Phase 1 finalised
+    AUTH:
+      - Supabase email/password auth
+      - RLS policies enforce user_id filtering on all tables
+      - Each user only sees their own data
     ============================================================
   -->
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* ── Reset & Variables ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -69,10 +70,97 @@
       line-height: 1.6;
     }
 
-    /* ── Layout ── */
+    /* ── Login Screen ── */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 0.5px solid var(--border2);
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-logo {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      margin-bottom: 32px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus { border-color: var(--accent); }
+
+    .login-btn {
+      width: 100%;
+      background: var(--accent2);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 11px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.15s;
+    }
+
+    .login-btn:hover { opacity: 0.9; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .login-error {
+      background: rgba(248,113,113,0.08);
+      border: 0.5px solid rgba(248,113,113,0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--red);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    /* ── Main App ── */
     .app { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
 
-    /* ── Header ── */
     .header {
       display: flex;
       align-items: center;
@@ -80,36 +168,55 @@
       margin-bottom: 28px;
       padding-bottom: 20px;
       border-bottom: 0.5px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
     }
+
     .header-left h1 {
       font-family: var(--font-display);
       font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.3px;
     }
+
     .header-left p {
       font-size: 12px;
       color: var(--muted);
       margin-top: 2px;
       font-family: var(--font-mono);
     }
-    .refresh-btn {
+
+    .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    .user-pill {
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .btn {
       display: flex;
       align-items: center;
       gap: 6px;
       background: var(--bg3);
       border: 0.5px solid var(--border2);
       color: var(--muted);
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-family: var(--font-body);
       transition: color 0.15s;
     }
-    .refresh-btn:hover { color: var(--text); }
 
-    /* ── Tab Navigation ── */
+    .btn:hover { color: var(--text); }
+    .btn-danger:hover { color: var(--red); border-color: rgba(248,113,113,0.3); }
+
+    /* ── Tabs ── */
     .nav {
       display: flex;
       gap: 4px;
@@ -119,6 +226,7 @@
       border-radius: 10px;
       padding: 4px;
     }
+
     .nav-btn {
       flex: 1;
       padding: 9px 12px;
@@ -132,25 +240,28 @@
       border-radius: 7px;
       transition: all 0.15s;
     }
+
     .nav-btn.active {
       background: var(--bg3);
       color: var(--text);
       border: 0.5px solid var(--border2);
     }
 
-    /* ── Summary Cards ── */
+    /* ── Cards ── */
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
       margin-bottom: 24px;
     }
+
     .stat-card {
       background: var(--card);
       border: 0.5px solid var(--border);
       border-radius: 12px;
       padding: 16px;
     }
+
     .stat-label {
       font-size: 11px;
       color: var(--muted);
@@ -159,15 +270,18 @@
       margin-bottom: 6px;
       font-family: var(--font-mono);
     }
+
     .stat-value {
       font-size: 22px;
       font-weight: 600;
       font-family: var(--font-display);
       color: var(--text);
     }
+
     .stat-value.positive { color: var(--accent); }
     .stat-value.negative { color: var(--red); }
     .stat-value.neutral  { color: var(--blue); }
+
     .stat-sub {
       font-size: 11px;
       color: var(--muted);
@@ -175,7 +289,6 @@
       font-family: var(--font-mono);
     }
 
-    /* ── Section Title ── */
     .section-title {
       font-family: var(--font-display);
       font-size: 12px;
@@ -194,8 +307,10 @@
       overflow: hidden;
       margin-bottom: 24px;
     }
+
     table { width: 100%; border-collapse: collapse; }
     thead tr { background: var(--bg3); border-bottom: 0.5px solid var(--border); }
+
     th {
       padding: 10px 14px;
       text-align: left;
@@ -206,16 +321,17 @@
       letter-spacing: 0.5px;
       font-weight: 500;
     }
+
     td {
       padding: 13px 14px;
       font-size: 13px;
       border-bottom: 0.5px solid var(--border);
       vertical-align: middle;
     }
+
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(255,255,255,0.02); }
 
-    /* ── Badges ── */
     .ticker-pill {
       display: inline-block;
       background: var(--bg3);
@@ -226,6 +342,7 @@
       padding: 2px 8px;
       border-radius: 5px;
     }
+
     .action-buy {
       display: inline-block;
       background: rgba(74,222,128,0.1);
@@ -237,6 +354,7 @@
       border-radius: 5px;
       border: 0.5px solid rgba(74,222,128,0.25);
     }
+
     .action-sell {
       display: inline-block;
       background: rgba(248,113,113,0.1);
@@ -249,12 +367,10 @@
       border: 0.5px solid rgba(248,113,113,0.25);
     }
 
-    /* ── Utility ── */
     .positive-text { color: var(--accent); }
     .negative-text { color: var(--red); }
     .mono { font-family: var(--font-mono); }
 
-    /* ── Realised P&L Card ── */
     .realised-card {
       background: var(--card);
       border: 0.5px solid var(--border);
@@ -265,6 +381,7 @@
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 16px;
     }
+
     .realised-item .label {
       font-size: 11px;
       color: var(--muted);
@@ -273,13 +390,14 @@
       letter-spacing: 0.4px;
       margin-bottom: 5px;
     }
+
     .realised-item .val {
       font-size: 18px;
       font-weight: 600;
       font-family: var(--font-display);
     }
 
-    /* ── WoW Tracker ── */
+    /* ── WoW ── */
     .wow-grid {
       background: var(--card);
       border: 0.5px solid var(--border);
@@ -287,6 +405,7 @@
       overflow: hidden;
       margin-bottom: 24px;
     }
+
     .wow-header {
       display: flex;
       align-items: center;
@@ -297,14 +416,15 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+
     .wow-stat { text-align: right; }
     .wow-stat .label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
     .wow-stat .val   { font-size: 18px; font-weight: 600; font-family: var(--font-display); }
+
     .trend-up      { color: var(--accent); }
     .trend-down    { color: var(--red); }
     .trend-neutral { color: var(--muted); }
 
-    /* ── Bar Chart ── */
     .chart-bars {
       padding: 16px 16px 8px;
       display: flex;
@@ -312,6 +432,7 @@
       gap: 6px;
       height: 130px;
     }
+
     .bar-wrap {
       flex: 1;
       display: flex;
@@ -321,6 +442,7 @@
       height: 100%;
       gap: 4px;
     }
+
     .bar {
       width: 100%;
       border-radius: 3px 3px 0 0;
@@ -328,7 +450,9 @@
       transition: opacity 0.15s;
       cursor: pointer;
     }
+
     .bar:hover { opacity: 1 !important; }
+
     .bar-label {
       font-size: 9px;
       color: var(--muted);
@@ -337,7 +461,7 @@
       white-space: nowrap;
     }
 
-    /* ── Loading & Error ── */
+    /* ── Loading & Errors ── */
     .loading {
       display: flex;
       align-items: center;
@@ -348,6 +472,7 @@
       font-family: var(--font-mono);
       font-size: 13px;
     }
+
     .spinner {
       width: 16px; height: 16px;
       border: 2px solid var(--border2);
@@ -355,7 +480,9 @@
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
+
     .error-box {
       background: rgba(248,113,113,0.08);
       border: 0.5px solid rgba(248,113,113,0.25);
@@ -367,7 +494,6 @@
       margin-bottom: 16px;
     }
 
-    /* ── Footer ── */
     .footer {
       text-align: center;
       font-size: 11px;
@@ -378,140 +504,182 @@
       margin-top: 8px;
     }
 
-    /* ── Mobile Responsive ── */
     @media (max-width: 600px) {
-      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .login-card { padding: 28px 20px; }
+      .header { flex-direction: column; align-items: flex-start; }
       th, td { padding: 10px 10px; font-size: 12px; }
       .stat-value { font-size: 18px; }
     }
   </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="header-left">
-      <h1>🇮🇳 India Stock Tracker</h1>
-      <p id="last-updated">connecting to supabase...</p>
+  <!-- ── Login Screen ── -->
+  <div id="login-screen" class="login-wrap" style="display:none">
+    <div class="login-card">
+      <div class="login-logo">🇮🇳 India Stock Tracker</div>
+      <div class="login-sub">Sign in to your portfolio</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="login-email" class="form-input" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="login-password" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="login-btn" id="login-btn" onclick="handleLogin()">Sign In</button>
+      <div id="login-error" style="display:none" class="login-error"></div>
     </div>
-    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
   </div>
 
-  <!-- Tab Navigation -->
-  <div class="nav">
-    <button class="nav-btn active" onclick="switchTab('portfolio', this)">Portfolio</button>
-    <button class="nav-btn" onclick="switchTab('trades', this)">Trade Log</button>
-    <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
-  </div>
+  <!-- ── Main App ── -->
+  <div id="main-app" style="display:none">
+    <div class="app">
 
-  <!-- Error Area -->
-  <div id="error-area"></div>
+      <div class="header">
+        <div class="header-left">
+          <h1>🇮🇳 India Stock Tracker</h1>
+          <p id="last-updated">loading...</p>
+        </div>
+        <div class="header-right">
+          <div class="user-pill" id="user-email">—</div>
+          <button class="btn" onclick="loadAll()">&#8635; Refresh</button>
+          <button class="btn btn-danger" onclick="handleLogout()">Sign Out</button>
+        </div>
+      </div>
 
-  <!-- ── Portfolio Tab ── -->
-  <div id="tab-portfolio">
-    <div id="summary-grid" class="summary-grid">
-      <div class="stat-card">
-        <div class="stat-label">Status</div>
-        <div class="stat-value" style="font-size:14px;color:var(--muted)">Loading...</div>
+      <div class="nav">
+        <button class="nav-btn active" onclick="switchTab('portfolio', this)">Portfolio</button>
+        <button class="nav-btn" onclick="switchTab('trades', this)">Trade Log</button>
+        <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
+      </div>
+
+      <div id="error-area"></div>
+
+      <!-- Portfolio Tab -->
+      <div id="tab-portfolio">
+        <div id="summary-grid" class="summary-grid">
+          <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size:14px;color:var(--muted)">Loading...</div>
+          </div>
+        </div>
+        <p class="section-title">Holdings</p>
+        <div class="table-wrap" id="holdings-table">
+          <div class="loading"><div class="spinner"></div>Fetching holdings...</div>
+        </div>
+        <p class="section-title">Realised P&L</p>
+        <div class="realised-card" id="realised-card">
+          <div style="color:var(--muted);font-family:var(--font-mono);font-size:12px">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Trade Log Tab -->
+      <div id="tab-trades" style="display:none">
+        <p class="section-title">All Trades</p>
+        <div class="table-wrap" id="trades-table">
+          <div class="loading"><div class="spinner"></div>Fetching trades...</div>
+        </div>
+      </div>
+
+      <!-- WoW Tracker Tab -->
+      <div id="tab-wow" style="display:none">
+        <div class="wow-grid" id="wow-section">
+          <div class="loading"><div class="spinner"></div>Fetching WoW data...</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Phase 1 &mdash; Portfolio data from Supabase &mdash; Live NSE prices coming in Phase 2
       </div>
     </div>
-    <p class="section-title">Holdings</p>
-    <div class="table-wrap" id="holdings-table">
-      <div class="loading"><div class="spinner"></div>Fetching holdings...</div>
-    </div>
-    <p class="section-title">Realised P&L</p>
-    <div class="realised-card" id="realised-card">
-      <div style="color:var(--muted);font-family:var(--font-mono);font-size:12px">Loading...</div>
-    </div>
   </div>
-
-  <!-- ── Trade Log Tab ── -->
-  <div id="tab-trades" style="display:none">
-    <p class="section-title">All Trades</p>
-    <div class="table-wrap" id="trades-table">
-      <div class="loading"><div class="spinner"></div>Fetching trades...</div>
-    </div>
-  </div>
-
-  <!-- ── WoW Tracker Tab ── -->
-  <div id="tab-wow" style="display:none">
-    <div class="wow-grid" id="wow-section">
-      <div class="loading"><div class="spinner"></div>Fetching WoW data...</div>
-    </div>
-  </div>
-
-  <div class="footer">
-    Phase 1 &mdash; Portfolio data from Supabase &mdash; Live NSE prices coming in Phase 2
-  </div>
-</div>
 
 <script>
   // ============================================================
   // CONFIGURATION
-  // Phase 2: replace live price fetching here when ready
   // ============================================================
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
-  // ============================================================
-  // UTILITY FUNCTIONS
-  // ============================================================
-
-  // Format number as Indian Rupees
-  function fmt(n) {
-    return '₹' + Math.round(n).toLocaleString('en-IN');
-  }
-
-  // Format percentage with sign
-  function fmtPct(n) {
-    return (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
-  }
-
-  // Format date as DD Mon YYYY
-  function fmtDate(d) {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-  }
+  const { createClient } = supabase;
+  const db = createClient(SUPA_URL, SUPA_KEY);
 
   // ============================================================
-  // SUPABASE FETCH
+  // UTILITIES
   // ============================================================
-  async function supaFetch(table, params) {
-    const url = `${SUPA_URL}/rest/v1/${table}?${params}&apikey=${SUPA_KEY}`;
-    const r = await fetch(url, {
-      headers: {
-        'Authorization': 'Bearer ' + SUPA_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    if (!r.ok) {
-      const txt = await r.text();
-      throw new Error(`Supabase ${r.status}: ${txt}`);
+  const fmt     = n => '₹' + Math.round(n).toLocaleString('en-IN');
+  const fmtPct  = n => (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+
+  // ============================================================
+  // AUTH
+  // ============================================================
+  async function handleLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const btn      = document.getElementById('login-btn');
+    const errBox   = document.getElementById('login-error');
+
+    errBox.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    const { error } = await db.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errBox.textContent = error.message;
+      errBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
     }
-    return r.json();
   }
+
+  async function handleLogout() {
+    await db.auth.signOut();
+  }
+
+  // Enter key on login screen
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+      handleLogin();
+    }
+  });
+
+  // Auth state listener — fires on page load (restores session) and login/logout
+  db.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      document.getElementById('user-email').textContent = session.user.email;
+      loadAll();
+    } else {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+    }
+  });
 
   // ============================================================
   // STATE
   // ============================================================
-  let trades = [];
-  let wow    = [];
+  let trades = [], wow = [];
 
   // ============================================================
-  // LOAD ALL DATA
+  // LOAD DATA
+  // RLS automatically filters rows by logged-in user_id
   // ============================================================
   async function loadAll() {
     document.getElementById('last-updated').textContent = 'loading...';
     document.getElementById('error-area').innerHTML = '';
     try {
-      [trades, wow] = await Promise.all([
-        supaFetch('trades', 'order=date.asc'),
-        supaFetch('wow_tracker', 'order=week_date.asc')
+      const [tradesRes, wowRes] = await Promise.all([
+        db.from('trades').select('*').order('date', { ascending: true }),
+        db.from('wow_tracker').select('*').order('week_date', { ascending: true })
       ]);
+      if (tradesRes.error) throw tradesRes.error;
+      if (wowRes.error)    throw wowRes.error;
+      trades = tradesRes.data;
+      wow    = wowRes.data;
       renderPortfolio();
       renderTrades();
       renderWow();
@@ -520,91 +688,54 @@
     } catch(e) {
       document.getElementById('last-updated').textContent = 'error — see below';
       document.getElementById('error-area').innerHTML =
-        `<div class="error-box">Error: ${e.message}<br><br>
-         Check your Supabase URL, API key, and that RLS policies are set.</div>`;
+        `<div class="error-box">Error: ${e.message}</div>`;
       console.error(e);
     }
   }
 
   // ============================================================
   // PORTFOLIO CALCULATION
-  // Calculates holdings and P&L from raw trades array.
-  // Phase 2: enrich each holding with livePrice, currentValue,
-  // unrealisedPnl, unrealisedPct after fetching from Yahoo Finance.
+  // Phase 2: add livePrice, currentValue, unrealisedPnl per holding
   // ============================================================
   function calcPortfolio() {
     const stocks = {};
-
     trades.forEach(t => {
-      const k = t.ticker;
-      if (!stocks[k]) {
-        stocks[k] = {
-          name: t.stock_name,
-          ticker: t.ticker,
-          buyQty: 0,
-          sellQty: 0,
-          totalCost: 0,   // includes brokerage
-          totalSell: 0,   // net of brokerage
-          totalBrokerage: 0
-        };
-      }
+      if (!stocks[t.ticker]) stocks[t.ticker] = {
+        name: t.stock_name, ticker: t.ticker,
+        buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0
+      };
+      const s    = stocks[t.ticker];
       const brok = Number(t.brokerage || 0);
       if (t.action === 'BUY') {
-        stocks[k].buyQty        += t.qty;
-        stocks[k].totalCost     += t.qty * t.price + brok;
-        stocks[k].totalBrokerage += brok;
+        s.buyQty += t.qty; s.totalCost += t.qty * t.price + brok; s.totalBrokerage += brok;
       } else {
-        stocks[k].sellQty        += t.qty;
-        stocks[k].totalSell      += t.qty * t.price - brok;
-        stocks[k].totalBrokerage += brok;
+        s.sellQty += t.qty; s.totalSell += t.qty * t.price - brok; s.totalBrokerage += brok;
       }
     });
 
     const holdings = [];
-    let totalInvested  = 0;
-    let totalBrokerage = 0;
-    let realisedPnl    = 0;
-    let sellProceeds   = 0;
+    let totalInvested = 0, totalBrokerage = 0, realisedPnl = 0, sellProceeds = 0;
 
     Object.values(stocks).forEach(s => {
-      const netQty  = s.buyQty - s.sellQty;
-      const avgBuy  = s.buyQty > 0 ? s.totalCost / s.buyQty : 0;
+      const netQty   = s.buyQty - s.sellQty;
+      const avgBuy   = s.buyQty > 0 ? s.totalCost / s.buyQty : 0;
       const invested = netQty * avgBuy;
-
       totalInvested  += invested;
       totalBrokerage += s.totalBrokerage;
-
-      if (s.sellQty > 0) {
-        const costOfSold = s.sellQty * avgBuy;
-        realisedPnl  += s.totalSell - costOfSold;
-        sellProceeds += s.totalSell;
-      }
-
-      if (netQty > 0) {
-        holdings.push({
-          name: s.name,
-          ticker: s.ticker,
-          netQty,
-          avgBuy,
-          invested
-          // Phase 2: livePrice, currentValue, unrealisedPnl, unrealisedPct added here
-        });
-      }
+      if (s.sellQty > 0) { realisedPnl += s.totalSell - s.sellQty * avgBuy; sellProceeds += s.totalSell; }
+      if (netQty > 0) holdings.push({ name: s.name, ticker: s.ticker, netQty, avgBuy, invested });
     });
 
-    // Sort by invested value descending
     holdings.sort((a, b) => b.invested - a.invested);
-
     return { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds };
   }
 
   // ============================================================
-  // RENDER: PORTFOLIO TAB
+  // RENDER: PORTFOLIO
   // ============================================================
   function renderPortfolio() {
     const { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds } = calcPortfolio();
 
-    // Summary cards
     document.getElementById('summary-grid').innerHTML = `
       <div class="stat-card">
         <div class="stat-label">Total Invested</div>
@@ -625,22 +756,14 @@
         <div class="stat-label">Unrealised P&L</div>
         <div class="stat-value" style="color:var(--muted);font-size:15px">Phase 2</div>
         <div class="stat-sub">needs live prices</div>
-      </div>
-    `;
+      </div>`;
 
-    // Holdings table
-    if (holdings.length === 0) {
-      document.getElementById('holdings-table').innerHTML =
-        '<div class="loading">No active holdings found</div>';
-    } else {
-      document.getElementById('holdings-table').innerHTML = `
-        <table>
+    document.getElementById('holdings-table').innerHTML = holdings.length === 0
+      ? '<div class="loading">No active holdings found</div>'
+      : `<table>
           <thead><tr>
-            <th>Stock</th>
-            <th>Ticker</th>
-            <th>Net Qty</th>
-            <th>Avg Buy Price</th>
-            <th>Invested</th>
+            <th>Stock</th><th>Ticker</th><th>Net Qty</th>
+            <th>Avg Buy Price</th><th>Invested</th>
             <th style="color:var(--muted)">Live Price</th>
             <th style="color:var(--muted)">Unrealised P&L</th>
           </tr></thead>
@@ -653,12 +776,10 @@
               <td class="mono">${fmt(h.invested)}</td>
               <td class="mono" style="color:var(--muted)">—</td>
               <td class="mono" style="color:var(--muted)">Phase 2</td>
-            </tr>
-          `).join('')}</tbody>
+            </tr>`).join('')}
+          </tbody>
         </table>`;
-    }
 
-    // Realised P&L card
     document.getElementById('realised-card').innerHTML = `
       <div class="realised-item">
         <div class="label">Sell Proceeds</div>
@@ -675,37 +796,26 @@
       <div class="realised-item">
         <div class="label">Total Trades</div>
         <div class="val">${trades.length}</div>
-      </div>
-    `;
+      </div>`;
   }
 
   // ============================================================
-  // RENDER: TRADE LOG TAB
+  // RENDER: TRADE LOG
   // ============================================================
   function renderTrades() {
-    if (trades.length === 0) {
-      document.getElementById('trades-table').innerHTML =
-        '<div class="loading">No trades found</div>';
+    if (!trades.length) {
+      document.getElementById('trades-table').innerHTML = '<div class="loading">No trades found</div>';
       return;
     }
-    const sorted = [...trades].reverse(); // most recent first
     document.getElementById('trades-table').innerHTML = `
       <table>
         <thead><tr>
-          <th>Date</th>
-          <th>Stock</th>
-          <th>Ticker</th>
-          <th>Action</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Brokerage</th>
-          <th>Total</th>
+          <th>Date</th><th>Stock</th><th>Ticker</th><th>Action</th>
+          <th>Qty</th><th>Price</th><th>Brokerage</th><th>Total</th>
         </tr></thead>
-        <tbody>${sorted.map(t => {
+        <tbody>${[...trades].reverse().map(t => {
           const brok  = Number(t.brokerage || 0);
-          const total = t.action === 'BUY'
-            ? t.qty * t.price + brok
-            : t.qty * t.price - brok;
+          const total = t.action === 'BUY' ? t.qty * t.price + brok : t.qty * t.price - brok;
           return `<tr>
             <td class="mono" style="color:var(--muted)">${fmtDate(t.date)}</td>
             <td style="font-weight:500">${t.stock_name}</td>
@@ -721,51 +831,43 @@
   }
 
   // ============================================================
-  // RENDER: WoW TRACKER TAB
+  // RENDER: WoW TRACKER
   // ============================================================
   function renderWow() {
-    const validWow = wow.filter(w => w.close_price > 0);
-    if (validWow.length === 0) {
+    const v = wow.filter(w => w.close_price > 0);
+    if (!v.length) {
       document.getElementById('wow-section').innerHTML =
         '<div class="loading">No WoW data found. Add weekly prices via Supabase.</div>';
       return;
     }
+    const latest = v[v.length - 1];
+    const totalReturn = ((latest.close_price - v[0].close_price) / v[0].close_price * 100);
+    const maxPrice    = Math.max(...v.map(w => w.close_price));
 
-    const latest      = validWow[validWow.length - 1];
-    const first       = validWow[0];
-    const totalReturn = ((latest.close_price - first.close_price) / first.close_price * 100);
-    const maxPrice    = Math.max(...validWow.map(w => w.close_price));
-
-    // Bar chart
-    const bars = validWow.map((w, i) => {
-      const heightPct = Math.round((w.close_price / maxPrice) * 90) + 10;
-      const prev  = i > 0 ? validWow[i-1].close_price : w.close_price;
-      const isUp  = w.close_price >= prev;
-      const lbl   = new Date(w.week_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+    const bars = v.map((w, i) => {
+      const h    = Math.round((w.close_price / maxPrice) * 90) + 10;
+      const isUp = i === 0 || w.close_price >= v[i-1].close_price;
+      const lbl  = new Date(w.week_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
       return `<div class="bar-wrap">
-        <div class="bar"
-          style="height:${heightPct}%;background:${isUp ? 'var(--accent2)' : 'var(--red)'};opacity:0.75"
-          title="Wk ${i+1}: ${fmt(w.close_price)}">
-        </div>
+        <div class="bar" style="height:${h}%;background:${isUp ? 'var(--accent2)' : 'var(--red)'};opacity:0.75"
+          title="Wk ${i+1}: ${fmt(w.close_price)}"></div>
         <div class="bar-label">${lbl}</div>
       </div>`;
     }).join('');
 
-    // Weekly rows
-    const rows = validWow.map((w, i) => {
-      const prev      = i > 0 ? validWow[i-1].close_price : null;
-      const chg       = prev ? w.close_price - prev : 0;
-      const pct       = prev ? (chg / prev * 100) : 0;
-      const trend     = i === 0 ? '—' : chg > 0 ? '↑ Up' : '↓ Down';
-      const trendCls  = i === 0 ? 'trend-neutral' : chg > 0 ? 'trend-up' : 'trend-down';
-      const chgCls    = i === 0 ? '' : chg >= 0 ? 'positive-text' : 'negative-text';
+    const rows = v.map((w, i) => {
+      const prev = i > 0 ? v[i-1].close_price : null;
+      const chg  = prev ? w.close_price - prev : 0;
+      const pct  = prev ? chg / prev * 100 : 0;
+      const tCls = i === 0 ? 'trend-neutral' : chg > 0 ? 'trend-up' : 'trend-down';
+      const cCls = i === 0 ? '' : chg >= 0 ? 'positive-text' : 'negative-text';
       return `<tr>
         <td class="mono" style="color:var(--muted)">Wk ${i+1}</td>
         <td class="mono" style="color:var(--muted)">${fmtDate(w.week_date)}</td>
         <td class="mono">${fmt(w.close_price)}</td>
-        <td class="mono ${chgCls}">${i === 0 ? '—' : (chg >= 0 ? '+' : '') + fmt(chg)}</td>
-        <td class="mono ${chgCls}">${i === 0 ? '—' : fmtPct(pct)}</td>
-        <td class="${trendCls}">${trend}</td>
+        <td class="mono ${cCls}">${i === 0 ? '—' : (chg >= 0 ? '+' : '') + fmt(chg)}</td>
+        <td class="mono ${cCls}">${i === 0 ? '—' : fmtPct(pct)}</td>
+        <td class="${tCls}">${i === 0 ? '—' : chg > 0 ? '↑ Up' : '↓ Down'}</td>
       </tr>`;
     }).join('');
 
@@ -773,7 +875,7 @@
       <div class="wow-header">
         <div>
           <div class="section-title" style="margin-bottom:3px">${latest.ticker} — Week on Week</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${validWow.length} weeks tracked</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${v.length} weeks tracked</div>
         </div>
         <div style="display:flex;gap:24px">
           <div class="wow-stat">
@@ -789,30 +891,22 @@
       <div class="chart-bars">${bars}</div>
       <div style="border-top:0.5px solid var(--border)">
         <table>
-          <thead><tr>
-            <th>Week</th><th>Date</th><th>Close</th><th>Chg ₹</th><th>Chg %</th><th>Trend</th>
-          </tr></thead>
+          <thead><tr><th>Week</th><th>Date</th><th>Close</th><th>Chg ₹</th><th>Chg %</th><th>Trend</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-    `;
+      </div>`;
   }
 
   // ============================================================
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio', 'trades', 'wow'].forEach(t => {
-      document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
-    });
+    ['portfolio','trades','wow'].forEach(t =>
+      document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
+    );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
-
-  // ============================================================
-  // INIT
-  // ============================================================
-  loadAll();
 </script>
 </body>
 </html>
