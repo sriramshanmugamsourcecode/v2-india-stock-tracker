@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🇮🇳 India Stock Tracker</title>
+
+  <!--
+    ============================================================
+    INDIA STOCK TRACKER — Phase 1
+    ============================================================
+    Author      : Built with Claude (Anthropic)
+    Project     : https://github.com/sriramshanmugamsourcecode/india-stock-tracker
+    Backend     : Supabase (PostgreSQL)
+    Last updated: 2026-05-10
+
+    PHASES:
+      Phase 1 (current) — Portfolio viewer, Trade Log, WoW Tracker
+      Phase 2 (next)    — Live NSE prices via Yahoo Finance
+      Phase 3           — WoW Tracker multi-stock, web-native
+      Phase 4           — Momentum + Fundamentals screener (Nifty 500)
+
+    SUPABASE TABLES:
+      trades       — all BUY/SELL entries (source of truth)
+      wow_tracker  — week-on-week price entries per stock
+      watchlist    — stocks with entry/exit conditions (Phase 4)
+      imports      — CSV import history for delta tracking (planned)
+
+    NOTES:
+      - Portfolio P&L is calculated live from trades table
+      - Unrealised P&L requires live prices (Phase 2)
+      - Brokerage = 0 for holdings imported from Zerodha statement
+      - Auth lockdown (email login) planned after Phase 1 finalised
+    ============================================================
+  -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --bg2:      #13161e;
+      --bg3:      #1a1e2a;
+      --border:   rgba(255,255,255,0.07);
+      --border2:  rgba(255,255,255,0.13);
+      --text:     #e8eaf0;
+      --muted:    #7a7f94;
+      --accent:   #4ade80;
+      --accent2:  #22c55e;
+      --red:      #f87171;
+      --amber:    #fbbf24;
+      --blue:     #60a5fa;
+      --card:     #161a24;
+      --font-display: 'Syne', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .app { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .header-left h1 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .header-left p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+      font-family: var(--font-mono);
+    }
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: var(--font-body);
+      transition: color 0.15s;
+    }
+    .refresh-btn:hover { color: var(--text); }
+
+    /* ── Tab Navigation ── */
+    .nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: var(--bg2);
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.15s;
+    }
+    .nav-btn.active {
+      background: var(--bg3);
+      color: var(--text);
+      border: 0.5px solid var(--border2);
+    }
+
+    /* ── Summary Cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      font-family: var(--font-mono);
+    }
+    .stat-value {
+      font-size: 22px;
+      font-weight: 600;
+      font-family: var(--font-display);
+      color: var(--text);
+    }
+    .stat-value.positive { color: var(--accent); }
+    .stat-value.negative { color: var(--red); }
+    .stat-value.neutral  { color: var(--blue); }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+      font-family: var(--font-mono);
+    }
+
+    /* ── Section Title ── */
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Tables ── */
+    .table-wrap {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--bg3); border-bottom: 0.5px solid var(--border); }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+    td {
+      padding: 13px 14px;
+      font-size: 13px;
+      border-bottom: 0.5px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── Badges ── */
+    .ticker-pill {
+      display: inline-block;
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      color: var(--blue);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 5px;
+    }
+    .action-buy {
+      display: inline-block;
+      background: rgba(74,222,128,0.1);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 5px;
+      border: 0.5px solid rgba(74,222,128,0.25);
+    }
+    .action-sell {
+      display: inline-block;
+      background: rgba(248,113,113,0.1);
+      color: var(--red);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 5px;
+      border: 0.5px solid rgba(248,113,113,0.25);
+    }
+
+    /* ── Utility ── */
+    .positive-text { color: var(--accent); }
+    .negative-text { color: var(--red); }
+    .mono { font-family: var(--font-mono); }
+
+    /* ── Realised P&L Card ── */
+    .realised-card {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 16px;
+    }
+    .realised-item .label {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 5px;
+    }
+    .realised-item .val {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--font-display);
+    }
+
+    /* ── WoW Tracker ── */
+    .wow-grid {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .wow-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 0.5px solid var(--border);
+      background: var(--bg3);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .wow-stat { text-align: right; }
+    .wow-stat .label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+    .wow-stat .val   { font-size: 18px; font-weight: 600; font-family: var(--font-display); }
+    .trend-up      { color: var(--accent); }
+    .trend-down    { color: var(--red); }
+    .trend-neutral { color: var(--muted); }
+
+    /* ── Bar Chart ── */
+    .chart-bars {
+      padding: 16px 16px 8px;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 130px;
+    }
+    .bar-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+      gap: 4px;
+    }
+    .bar {
+      width: 100%;
+      border-radius: 3px 3px 0 0;
+      min-height: 4px;
+      transition: opacity 0.15s;
+      cursor: pointer;
+    }
+    .bar:hover { opacity: 1 !important; }
+    .bar-label {
+      font-size: 9px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* ── Loading & Error ── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 16px;
+      color: var(--muted);
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      background: rgba(248,113,113,0.08);
+      border: 0.5px solid rgba(248,113,113,0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      color: var(--red);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      padding-top: 16px;
+      border-top: 0.5px solid var(--border);
+      margin-top: 8px;
+    }
+
+    /* ── Mobile Responsive ── */
+    @media (max-width: 600px) {
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      th, td { padding: 10px 10px; font-size: 12px; }
+      .stat-value { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>🇮🇳 India Stock Tracker</h1>
+      <p id="last-updated">connecting to supabase...</p>
+    </div>
+    <button class="refresh-btn" onclick="loadAll()">&#8635; Refresh</button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('portfolio', this)">Portfolio</button>
+    <button class="nav-btn" onclick="switchTab('trades', this)">Trade Log</button>
+    <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
+  </div>
+
+  <!-- Error Area -->
+  <div id="error-area"></div>
+
+  <!-- ── Portfolio Tab ── -->
+  <div id="tab-portfolio">
+    <div id="summary-grid" class="summary-grid">
+      <div class="stat-card">
+        <div class="stat-label">Status</div>
+        <div class="stat-value" style="font-size:14px;color:var(--muted)">Loading...</div>
+      </div>
+    </div>
+    <p class="section-title">Holdings</p>
+    <div class="table-wrap" id="holdings-table">
+      <div class="loading"><div class="spinner"></div>Fetching holdings...</div>
+    </div>
+    <p class="section-title">Realised P&L</p>
+    <div class="realised-card" id="realised-card">
+      <div style="color:var(--muted);font-family:var(--font-mono);font-size:12px">Loading...</div>
+    </div>
+  </div>
+
+  <!-- ── Trade Log Tab ── -->
+  <div id="tab-trades" style="display:none">
+    <p class="section-title">All Trades</p>
+    <div class="table-wrap" id="trades-table">
+      <div class="loading"><div class="spinner"></div>Fetching trades...</div>
+    </div>
+  </div>
+
+  <!-- ── WoW Tracker Tab ── -->
+  <div id="tab-wow" style="display:none">
+    <div class="wow-grid" id="wow-section">
+      <div class="loading"><div class="spinner"></div>Fetching WoW data...</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Phase 1 &mdash; Portfolio data from Supabase &mdash; Live NSE prices coming in Phase 2
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION
+  // Phase 2: replace live price fetching here when ready
+  // ============================================================
+  const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
+  const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
+
+  // ============================================================
+  // UTILITY FUNCTIONS
+  // ============================================================
+
+  // Format number as Indian Rupees
+  function fmt(n) {
+    return '₹' + Math.round(n).toLocaleString('en-IN');
+  }
+
+  // Format percentage with sign
+  function fmtPct(n) {
+    return (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
+  }
+
+  // Format date as DD Mon YYYY
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  }
+
+  // ============================================================
+  // SUPABASE FETCH
+  // ============================================================
+  async function supaFetch(table, params) {
+    const url = `${SUPA_URL}/rest/v1/${table}?${params}&apikey=${SUPA_KEY}`;
+    const r = await fetch(url, {
+      headers: {
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      throw new Error(`Supabase ${r.status}: ${txt}`);
+    }
+    return r.json();
+  }
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let trades = [];
+  let wow    = [];
+
+  // ============================================================
+  // LOAD ALL DATA
+  // ============================================================
+  async function loadAll() {
+    document.getElementById('last-updated').textContent = 'loading...';
+    document.getElementById('error-area').innerHTML = '';
+    try {
+      [trades, wow] = await Promise.all([
+        supaFetch('trades', 'order=date.asc'),
+        supaFetch('wow_tracker', 'order=week_date.asc')
+      ]);
+      renderPortfolio();
+      renderTrades();
+      renderWow();
+      document.getElementById('last-updated').textContent =
+        'updated ' + new Date().toLocaleTimeString('en-IN');
+    } catch(e) {
+      document.getElementById('last-updated').textContent = 'error — see below';
+      document.getElementById('error-area').innerHTML =
+        `<div class="error-box">Error: ${e.message}<br><br>
+         Check your Supabase URL, API key, and that RLS policies are set.</div>`;
+      console.error(e);
+    }
+  }
+
+  // ============================================================
+  // PORTFOLIO CALCULATION
+  // Calculates holdings and P&L from raw trades array.
+  // Phase 2: enrich each holding with livePrice, currentValue,
+  // unrealisedPnl, unrealisedPct after fetching from Yahoo Finance.
+  // ============================================================
+  function calcPortfolio() {
+    const stocks = {};
+
+    trades.forEach(t => {
+      const k = t.ticker;
+      if (!stocks[k]) {
+        stocks[k] = {
+          name: t.stock_name,
+          ticker: t.ticker,
+          buyQty: 0,
+          sellQty: 0,
+          totalCost: 0,   // includes brokerage
+          totalSell: 0,   // net of brokerage
+          totalBrokerage: 0
+        };
+      }
+      const brok = Number(t.brokerage || 0);
+      if (t.action === 'BUY') {
+        stocks[k].buyQty        += t.qty;
+        stocks[k].totalCost     += t.qty * t.price + brok;
+        stocks[k].totalBrokerage += brok;
+      } else {
+        stocks[k].sellQty        += t.qty;
+        stocks[k].totalSell      += t.qty * t.price - brok;
+        stocks[k].totalBrokerage += brok;
+      }
+    });
+
+    const holdings = [];
+    let totalInvested  = 0;
+    let totalBrokerage = 0;
+    let realisedPnl    = 0;
+    let sellProceeds   = 0;
+
+    Object.values(stocks).forEach(s => {
+      const netQty  = s.buyQty - s.sellQty;
+      const avgBuy  = s.buyQty > 0 ? s.totalCost / s.buyQty : 0;
+      const invested = netQty * avgBuy;
+
+      totalInvested  += invested;
+      totalBrokerage += s.totalBrokerage;
+
+      if (s.sellQty > 0) {
+        const costOfSold = s.sellQty * avgBuy;
+        realisedPnl  += s.totalSell - costOfSold;
+        sellProceeds += s.totalSell;
+      }
+
+      if (netQty > 0) {
+        holdings.push({
+          name: s.name,
+          ticker: s.ticker,
+          netQty,
+          avgBuy,
+          invested
+          // Phase 2: livePrice, currentValue, unrealisedPnl, unrealisedPct added here
+        });
+      }
+    });
+
+    // Sort by invested value descending
+    holdings.sort((a, b) => b.invested - a.invested);
+
+    return { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds };
+  }
+
+  // ============================================================
+  // RENDER: PORTFOLIO TAB
+  // ============================================================
+  function renderPortfolio() {
+    const { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds } = calcPortfolio();
+
+    // Summary cards
+    document.getElementById('summary-grid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Total Invested</div>
+        <div class="stat-value neutral">${fmt(totalInvested)}</div>
+        <div class="stat-sub">active holdings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Holdings</div>
+        <div class="stat-value">${holdings.length}</div>
+        <div class="stat-sub">stocks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Realised P&L</div>
+        <div class="stat-value ${realisedPnl >= 0 ? 'positive' : 'negative'}">${fmt(realisedPnl)}</div>
+        <div class="stat-sub">net of brokerage</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unrealised P&L</div>
+        <div class="stat-value" style="color:var(--muted);font-size:15px">Phase 2</div>
+        <div class="stat-sub">needs live prices</div>
+      </div>
+    `;
+
+    // Holdings table
+    if (holdings.length === 0) {
+      document.getElementById('holdings-table').innerHTML =
+        '<div class="loading">No active holdings found</div>';
+    } else {
+      document.getElementById('holdings-table').innerHTML = `
+        <table>
+          <thead><tr>
+            <th>Stock</th>
+            <th>Ticker</th>
+            <th>Net Qty</th>
+            <th>Avg Buy Price</th>
+            <th>Invested</th>
+            <th style="color:var(--muted)">Live Price</th>
+            <th style="color:var(--muted)">Unrealised P&L</th>
+          </tr></thead>
+          <tbody>${holdings.map(h => `
+            <tr>
+              <td style="font-weight:500">${h.name}</td>
+              <td><span class="ticker-pill">${h.ticker}</span></td>
+              <td class="mono">${h.netQty}</td>
+              <td class="mono">${fmt(h.avgBuy)}</td>
+              <td class="mono">${fmt(h.invested)}</td>
+              <td class="mono" style="color:var(--muted)">—</td>
+              <td class="mono" style="color:var(--muted)">Phase 2</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>`;
+    }
+
+    // Realised P&L card
+    document.getElementById('realised-card').innerHTML = `
+      <div class="realised-item">
+        <div class="label">Sell Proceeds</div>
+        <div class="val" style="color:var(--blue)">${fmt(sellProceeds)}</div>
+      </div>
+      <div class="realised-item">
+        <div class="label">Total Brokerage</div>
+        <div class="val" style="color:var(--amber)">${fmt(totalBrokerage)}</div>
+      </div>
+      <div class="realised-item">
+        <div class="label">Realised P&L</div>
+        <div class="val ${realisedPnl >= 0 ? 'positive-text' : 'negative-text'}">${fmt(realisedPnl)}</div>
+      </div>
+      <div class="realised-item">
+        <div class="label">Total Trades</div>
+        <div class="val">${trades.length}</div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // RENDER: TRADE LOG TAB
+  // ============================================================
+  function renderTrades() {
+    if (trades.length === 0) {
+      document.getElementById('trades-table').innerHTML =
+        '<div class="loading">No trades found</div>';
+      return;
+    }
+    const sorted = [...trades].reverse(); // most recent first
+    document.getElementById('trades-table').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Stock</th>
+          <th>Ticker</th>
+          <th>Action</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Brokerage</th>
+          <th>Total</th>
+        </tr></thead>
+        <tbody>${sorted.map(t => {
+          const brok  = Number(t.brokerage || 0);
+          const total = t.action === 'BUY'
+            ? t.qty * t.price + brok
+            : t.qty * t.price - brok;
+          return `<tr>
+            <td class="mono" style="color:var(--muted)">${fmtDate(t.date)}</td>
+            <td style="font-weight:500">${t.stock_name}</td>
+            <td><span class="ticker-pill">${t.ticker}</span></td>
+            <td><span class="${t.action === 'BUY' ? 'action-buy' : 'action-sell'}">${t.action}</span></td>
+            <td class="mono">${t.qty}</td>
+            <td class="mono">${fmt(t.price)}</td>
+            <td class="mono" style="color:var(--muted)">${fmt(brok)}</td>
+            <td class="mono">${fmt(total)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  }
+
+  // ============================================================
+  // RENDER: WoW TRACKER TAB
+  // ============================================================
+  function renderWow() {
+    const validWow = wow.filter(w => w.close_price > 0);
+    if (validWow.length === 0) {
+      document.getElementById('wow-section').innerHTML =
+        '<div class="loading">No WoW data found. Add weekly prices via Supabase.</div>';
+      return;
+    }
+
+    const latest      = validWow[validWow.length - 1];
+    const first       = validWow[0];
+    const totalReturn = ((latest.close_price - first.close_price) / first.close_price * 100);
+    const maxPrice    = Math.max(...validWow.map(w => w.close_price));
+
+    // Bar chart
+    const bars = validWow.map((w, i) => {
+      const heightPct = Math.round((w.close_price / maxPrice) * 90) + 10;
+      const prev  = i > 0 ? validWow[i-1].close_price : w.close_price;
+      const isUp  = w.close_price >= prev;
+      const lbl   = new Date(w.week_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+      return `<div class="bar-wrap">
+        <div class="bar"
+          style="height:${heightPct}%;background:${isUp ? 'var(--accent2)' : 'var(--red)'};opacity:0.75"
+          title="Wk ${i+1}: ${fmt(w.close_price)}">
+        </div>
+        <div class="bar-label">${lbl}</div>
+      </div>`;
+    }).join('');
+
+    // Weekly rows
+    const rows = validWow.map((w, i) => {
+      const prev      = i > 0 ? validWow[i-1].close_price : null;
+      const chg       = prev ? w.close_price - prev : 0;
+      const pct       = prev ? (chg / prev * 100) : 0;
+      const trend     = i === 0 ? '—' : chg > 0 ? '↑ Up' : '↓ Down';
+      const trendCls  = i === 0 ? 'trend-neutral' : chg > 0 ? 'trend-up' : 'trend-down';
+      const chgCls    = i === 0 ? '' : chg >= 0 ? 'positive-text' : 'negative-text';
+      return `<tr>
+        <td class="mono" style="color:var(--muted)">Wk ${i+1}</td>
+        <td class="mono" style="color:var(--muted)">${fmtDate(w.week_date)}</td>
+        <td class="mono">${fmt(w.close_price)}</td>
+        <td class="mono ${chgCls}">${i === 0 ? '—' : (chg >= 0 ? '+' : '') + fmt(chg)}</td>
+        <td class="mono ${chgCls}">${i === 0 ? '—' : fmtPct(pct)}</td>
+        <td class="${trendCls}">${trend}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('wow-section').innerHTML = `
+      <div class="wow-header">
+        <div>
+          <div class="section-title" style="margin-bottom:3px">${latest.ticker} — Week on Week</div>
+          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${validWow.length} weeks tracked</div>
+        </div>
+        <div style="display:flex;gap:24px">
+          <div class="wow-stat">
+            <div class="label">Latest Close</div>
+            <div class="val positive-text">${fmt(latest.close_price)}</div>
+          </div>
+          <div class="wow-stat">
+            <div class="label">Total Return</div>
+            <div class="val ${totalReturn >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(totalReturn)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-bars">${bars}</div>
+      <div style="border-top:0.5px solid var(--border)">
+        <table>
+          <thead><tr>
+            <th>Week</th><th>Date</th><th>Close</th><th>Chg ₹</th><th>Chg %</th><th>Trend</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // TAB SWITCHING
+  // ============================================================
+  function switchTab(tab, btn) {
+    ['portfolio', 'trades', 'wow'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  loadAll();
+</script>
+</body>
+</html>
