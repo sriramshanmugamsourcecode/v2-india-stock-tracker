@@ -12,7 +12,7 @@
     Author      : Built with Claude (Anthropic)
     Project     : https://github.com/sriramshanmugamsourcecode/india-stock-tracker
     Backend     : Supabase (PostgreSQL + Auth)
-    Last updated: 2026-05-10
+    Last updated: 2026-05-10 (exchange column + inline dropdown added)
 
     PHASES:
       Phase 1 (current) — Portfolio viewer, Trade Log, WoW Tracker + Auth
@@ -371,6 +371,22 @@
     .negative-text { color: var(--red); }
     .mono { font-family: var(--font-mono); }
 
+    /* ── Exchange dropdown ── */
+    .exchange-select {
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      border-radius: 5px;
+      color: var(--amber);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .exchange-select:hover { border-color: var(--amber); }
+    .exchange-select:focus { border-color: var(--accent); }
+
     .realised-card {
       background: var(--card);
       border: 0.5px solid var(--border);
@@ -701,7 +717,7 @@
     const stocks = {};
     trades.forEach(t => {
       if (!stocks[t.ticker]) stocks[t.ticker] = {
-        name: t.stock_name, ticker: t.ticker,
+        name: t.stock_name, ticker: t.ticker, exchange: t.exchange || 'NSE',
         buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0
       };
       const s    = stocks[t.ticker];
@@ -723,7 +739,7 @@
       totalInvested  += invested;
       totalBrokerage += s.totalBrokerage;
       if (s.sellQty > 0) { realisedPnl += s.totalSell - s.sellQty * avgBuy; sellProceeds += s.totalSell; }
-      if (netQty > 0) holdings.push({ name: s.name, ticker: s.ticker, netQty, avgBuy, invested });
+      if (netQty > 0) holdings.push({ name: s.name, ticker: s.ticker, exchange: s.exchange, netQty, avgBuy, invested });
     });
 
     holdings.sort((a, b) => b.invested - a.invested);
@@ -762,7 +778,7 @@
       ? '<div class="loading">No active holdings found</div>'
       : `<table>
           <thead><tr>
-            <th>Stock</th><th>Ticker</th><th>Net Qty</th>
+            <th>Stock</th><th>Ticker</th><th>Exchange</th><th>Net Qty</th>
             <th>Avg Buy Price</th><th>Invested</th>
             <th style="color:var(--muted)">Live Price</th>
             <th style="color:var(--muted)">Unrealised P&L</th>
@@ -771,6 +787,12 @@
             <tr>
               <td style="font-weight:500">${h.name}</td>
               <td><span class="ticker-pill">${h.ticker}</span></td>
+              <td>
+                <select class="exchange-select" onchange="updateExchange('${h.ticker}', this.value)" title="Change exchange">
+                  <option value="NSE" ${h.exchange === 'NSE' ? 'selected' : ''}>NSE</option>
+                  <option value="BSE" ${h.exchange === 'BSE' ? 'selected' : ''}>BSE</option>
+                </select>
+              </td>
               <td class="mono">${h.netQty}</td>
               <td class="mono">${fmt(h.avgBuy)}</td>
               <td class="mono">${fmt(h.invested)}</td>
@@ -895,6 +917,26 @@
           <tbody>${rows}</tbody>
         </table>
       </div>`;
+  }
+
+  // ============================================================
+  // UPDATE EXCHANGE
+  // Updates exchange for all trades of a given ticker
+  // ============================================================
+  async function updateExchange(ticker, newExchange) {
+    try {
+      const { error } = await db
+        .from('trades')
+        .update({ exchange: newExchange })
+        .eq('ticker', ticker);
+      if (error) throw error;
+      // Refresh local state silently
+      trades = trades.map(t => t.ticker === ticker ? { ...t, exchange: newExchange } : t);
+    } catch(e) {
+      alert('Failed to update exchange: ' + e.message);
+      // Re-render to reset dropdown to previous value
+      renderPortfolio();
+    }
   }
 
   // ============================================================
