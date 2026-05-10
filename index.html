@@ -371,6 +371,14 @@
     .negative-text { color: var(--red); }
     .mono { font-family: var(--font-mono); }
 
+    /* ── Sortable column headers ── */
+    .sortable-th {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .sortable-th:hover { color: var(--text); }
+
     /* ── Exchange dropdown ── */
     .exchange-select {
       background: var(--bg3);
@@ -747,6 +755,42 @@
   }
 
   // ============================================================
+  // SORT STATE
+  // ============================================================
+  const holdingsSort = { col: 'invested', dir: 'desc' };
+  const tradesSort   = { col: 'date',     dir: 'desc' };
+
+  function sortData(arr, col, dir) {
+    return [...arr].sort((a, b) => {
+      let av = a[col], bv = b[col];
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+      if (av < bv) return dir === 'asc' ? -1 : 1;
+      if (av > bv) return dir === 'asc' ?  1 : -1;
+      return 0;
+    });
+  }
+
+  function sortIndicator(col, activeCol, dir) {
+    if (col !== activeCol) return '<span style="color:var(--border2);margin-left:4px">⇅</span>';
+    return dir === 'asc'
+      ? '<span style="color:var(--accent);margin-left:4px">↑</span>'
+      : '<span style="color:var(--accent);margin-left:4px">↓</span>';
+  }
+
+  function toggleHoldingsSort(col) {
+    if (holdingsSort.col === col) holdingsSort.dir = holdingsSort.dir === 'asc' ? 'desc' : 'asc';
+    else { holdingsSort.col = col; holdingsSort.dir = 'asc'; }
+    renderHoldingsTable(calcPortfolio().holdings);
+  }
+
+  function toggleTradesSort(col) {
+    if (tradesSort.col === col) tradesSort.dir = tradesSort.dir === 'asc' ? 'desc' : 'asc';
+    else { tradesSort.col = col; tradesSort.dir = 'asc'; }
+    renderTradesTable();
+  }
+
+  // ============================================================
   // RENDER: PORTFOLIO
   // ============================================================
   function renderPortfolio() {
@@ -774,33 +818,7 @@
         <div class="stat-sub">needs live prices</div>
       </div>`;
 
-    document.getElementById('holdings-table').innerHTML = holdings.length === 0
-      ? '<div class="loading">No active holdings found</div>'
-      : `<table>
-          <thead><tr>
-            <th>Stock</th><th>Ticker</th><th>Exchange</th><th>Net Qty</th>
-            <th>Avg Buy Price</th><th>Invested</th>
-            <th style="color:var(--muted)">Live Price</th>
-            <th style="color:var(--muted)">Unrealised P&L</th>
-          </tr></thead>
-          <tbody>${holdings.map(h => `
-            <tr>
-              <td style="font-weight:500">${h.name}</td>
-              <td><span class="ticker-pill">${h.ticker}</span></td>
-              <td>
-                <select class="exchange-select" onchange="updateExchange('${h.ticker}', this.value)" title="Change exchange">
-                  <option value="NSE" ${h.exchange === 'NSE' ? 'selected' : ''}>NSE</option>
-                  <option value="BSE" ${h.exchange === 'BSE' ? 'selected' : ''}>BSE</option>
-                </select>
-              </td>
-              <td class="mono">${h.netQty}</td>
-              <td class="mono">${fmt(h.avgBuy)}</td>
-              <td class="mono">${fmt(h.invested)}</td>
-              <td class="mono" style="color:var(--muted)">—</td>
-              <td class="mono" style="color:var(--muted)">Phase 2</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
+    renderHoldingsTable(holdings);
 
     document.getElementById('realised-card').innerHTML = `
       <div class="realised-item">
@@ -821,34 +839,103 @@
       </div>`;
   }
 
+  function renderHoldingsTable(holdings) {
+    if (!holdings.length) {
+      document.getElementById('holdings-table').innerHTML = '<div class="loading">No active holdings found</div>';
+      return;
+    }
+
+    // Add sort keys for Phase 2 placeholders (treat — as null → sort last)
+    const enriched = holdings.map(h => ({ ...h, livePrice: null, unrealisedPnl: null, unrealisedPct: null }));
+    const sorted   = sortData(enriched, holdingsSort.col, holdingsSort.dir);
+
+    const si = col => sortIndicator(col, holdingsSort.col, holdingsSort.dir);
+    const th = (col, label) =>
+      `<th class="sortable-th" onclick="toggleHoldingsSort('${col}')">${label}${si(col)}</th>`;
+
+    document.getElementById('holdings-table').innerHTML = `
+      <table>
+        <thead><tr>
+          ${th('name',     'Stock')}
+          ${th('ticker',   'Ticker')}
+          <th>Exchange</th>
+          ${th('netQty',   'Net Qty')}
+          ${th('avgBuy',   'Avg Buy Price')}
+          ${th('invested', 'Invested')}
+          ${th('livePrice',      'Live Price')}
+          ${th('unrealisedPnl',  'Unrealised P&L')}
+          ${th('unrealisedPct',  'Unrealised P&L %')}
+        </tr></thead>
+        <tbody>${sorted.map(h => `
+          <tr>
+            <td style="font-weight:500">${h.name}</td>
+            <td><span class="ticker-pill">${h.ticker}</span></td>
+            <td>
+              <select class="exchange-select" onchange="updateExchange('${h.ticker}', this.value)" title="Change exchange">
+                <option value="NSE" ${h.exchange === 'NSE' ? 'selected' : ''}>NSE</option>
+                <option value="BSE" ${h.exchange === 'BSE' ? 'selected' : ''}>BSE</option>
+              </select>
+            </td>
+            <td class="mono">${h.netQty}</td>
+            <td class="mono">${fmt(h.avgBuy)}</td>
+            <td class="mono">${fmt(h.invested)}</td>
+            <td class="mono" style="color:var(--muted)">—</td>
+            <td class="mono" style="color:var(--muted)">—</td>
+            <td class="mono" style="color:var(--muted)">—</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
   // ============================================================
   // RENDER: TRADE LOG
   // ============================================================
   function renderTrades() {
+    renderTradesTable();
+  }
+
+  function renderTradesTable() {
     if (!trades.length) {
       document.getElementById('trades-table').innerHTML = '<div class="loading">No trades found</div>';
       return;
     }
+
+    // Enrich trades with computed total for sorting
+    const enriched = trades.map(t => {
+      const brok  = Number(t.brokerage || 0);
+      const total = t.action === 'BUY' ? t.qty * t.price + brok : t.qty * t.price - brok;
+      return { ...t, total };
+    });
+
+    const sorted = sortData(enriched, tradesSort.col, tradesSort.dir);
+    const si = col => sortIndicator(col, tradesSort.col, tradesSort.dir);
+    const th = (col, label) =>
+      `<th class="sortable-th" onclick="toggleTradesSort('${col}')">${label}${si(col)}</th>`;
+
     document.getElementById('trades-table').innerHTML = `
       <table>
         <thead><tr>
-          <th>Date</th><th>Stock</th><th>Ticker</th><th>Action</th>
-          <th>Qty</th><th>Price</th><th>Brokerage</th><th>Total</th>
+          ${th('date',       'Date')}
+          ${th('stock_name', 'Stock')}
+          ${th('ticker',     'Ticker')}
+          ${th('action',     'Action')}
+          ${th('qty',        'Qty')}
+          ${th('price',      'Price')}
+          ${th('brokerage',  'Brokerage')}
+          ${th('total',      'Total')}
         </tr></thead>
-        <tbody>${[...trades].reverse().map(t => {
-          const brok  = Number(t.brokerage || 0);
-          const total = t.action === 'BUY' ? t.qty * t.price + brok : t.qty * t.price - brok;
-          return `<tr>
+        <tbody>${sorted.map(t => `
+          <tr>
             <td class="mono" style="color:var(--muted)">${fmtDate(t.date)}</td>
             <td style="font-weight:500">${t.stock_name}</td>
             <td><span class="ticker-pill">${t.ticker}</span></td>
             <td><span class="${t.action === 'BUY' ? 'action-buy' : 'action-sell'}">${t.action}</span></td>
             <td class="mono">${t.qty}</td>
             <td class="mono">${fmt(t.price)}</td>
-            <td class="mono" style="color:var(--muted)">${fmt(brok)}</td>
-            <td class="mono">${fmt(total)}</td>
-          </tr>`;
-        }).join('')}</tbody>
+            <td class="mono" style="color:var(--muted)">${fmt(t.brokerage || 0)}</td>
+            <td class="mono">${fmt(t.total)}</td>
+          </tr>`).join('')}
+        </tbody>
       </table>`;
   }
 
