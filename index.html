@@ -834,8 +834,8 @@
         <div class="val ${realisedPnl >= 0 ? 'positive-text' : 'negative-text'}">${fmt(realisedPnl)}</div>
       </div>
       <div class="realised-item">
-        <div class="label">Total Trades</div>
-        <div class="val">${trades.length}</div>
+        <div class="label">Total Stocks</div>
+        <div class="val">${holdings.length}</div>
       </div>`;
   }
 
@@ -866,8 +866,12 @@
           ${th('unrealisedPnl',  'Unrealised P&L')}
           ${th('unrealisedPct',  'Unrealised P&L %')}
         </tr></thead>
-        <tbody>${sorted.map(h => `
-          <tr>
+        <tbody>${sorted.map(h => {
+          const hasPnl = h.unrealisedPnl !== null;
+          const pnlCls = hasPnl ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
+          const pnlVal = hasPnl ? fmt(h.unrealisedPnl) : '—';
+          const pctVal = hasPnl ? fmtPct(h.unrealisedPct) : '—';
+          return `<tr>
             <td style="font-weight:500">${h.name}</td>
             <td><span class="ticker-pill">${h.ticker}</span></td>
             <td>
@@ -880,9 +884,10 @@
             <td class="mono">${fmt(h.avgBuy)}</td>
             <td class="mono">${fmt(h.invested)}</td>
             <td class="mono" style="color:var(--muted)">—</td>
-            <td class="mono" style="color:var(--muted)">—</td>
-            <td class="mono" style="color:var(--muted)">—</td>
-          </tr>`).join('')}
+            <td class="mono ${pnlCls}">${pnlVal}</td>
+            <td class="mono ${pnlCls}">${pctVal}</td>
+          </tr>`;
+        }).join('')}
         </tbody>
       </table>`;
   }
