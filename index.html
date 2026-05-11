@@ -528,6 +528,117 @@
       margin-top: 8px;
     }
 
+    /* ── Phase 3: WoW Tracker ── */
+    .wow-controls {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .wow-controls-left { display: flex; gap: 16px; align-items: flex-end; }
+    .wow-controls-right { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+
+    .pnl-floor-select {
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      border-radius: 8px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 7px 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .wow-date-input {
+      background: var(--bg3);
+      border: 0.5px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 7px 12px;
+      outline: none;
+      cursor: pointer;
+    }
+    .wow-date-input:focus { border-color: var(--accent); }
+
+    .wow-fetch-btn {
+      background: var(--accent2);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    .wow-fetch-btn:hover { opacity: 0.85; }
+    .wow-fetch-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .wow-summary-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .wow-week-card {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .wow-week-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg3);
+      border-bottom: 0.5px solid var(--border);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .wow-week-title {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .wow-delete-btn {
+      background: transparent;
+      border: 0.5px solid rgba(248,113,113,0.3);
+      color: var(--red);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .wow-delete-btn:hover { background: rgba(248,113,113,0.1); }
+
+    .signal-add  { color: var(--accent); font-weight: 600; }
+    .signal-hold { color: var(--amber);  font-weight: 600; }
+    .signal-pass { color: var(--red);    font-weight: 600; }
+    .floor-above { color: var(--accent); }
+    .floor-near  { color: var(--amber);  }
+    .floor-below { color: var(--red);    }
+
     @media (max-width: 600px) {
       .login-card { padding: 28px 20px; }
       .header { flex-direction: column; align-items: flex-start; }
@@ -608,13 +719,46 @@
 
       <!-- WoW Tracker Tab -->
       <div id="tab-wow" style="display:none">
-        <div class="wow-grid" id="wow-section">
-          <div class="loading"><div class="spinner"></div>Fetching WoW data...</div>
+
+        <!-- Controls Bar -->
+        <div class="wow-controls">
+          <div class="wow-controls-left">
+            <div>
+              <div class="stat-label" style="margin-bottom:4px">Target P&L Floor</div>
+              <select id="pnl-floor-select" class="pnl-floor-select" onchange="savePnlFloor(this.value)">
+                <option value="30">30%</option>
+                <option value="40" selected>40%</option>
+                <option value="50">50%</option>
+                <option value="60">60%</option>
+              </select>
+            </div>
+          </div>
+          <div class="wow-controls-right">
+            <div>
+              <div class="stat-label" style="margin-bottom:4px">Week Date (Friday)</div>
+              <input type="date" id="wow-date-picker" class="wow-date-input">
+            </div>
+            <button class="wow-fetch-btn" id="wow-fetch-btn" onclick="fetchAndSaveWow()">
+              ⬇ Fetch & Save Week
+            </button>
+          </div>
         </div>
+
+        <!-- Portfolio Summary -->
+        <div id="wow-summary" class="wow-summary-bar"></div>
+
+        <!-- Error -->
+        <div id="wow-error"></div>
+
+        <!-- Weekly History Table -->
+        <div id="wow-section">
+          <div class="loading"><div class="spinner"></div>Loading WoW data...</div>
+        </div>
+
       </div>
 
       <div class="footer">
-        Phase 2 &mdash; Live prices via Yahoo Finance &mdash; XIRR powered by Newton-Raphson
+        Phase 3 &mdash; WoW Tracker with pyramiding signals &mdash; Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -688,7 +832,7 @@
   // ============================================================
   // STATE
   // ============================================================
-  let trades = [], wow = [];
+  let trades = [];
   let livePrices = {}; // { 'NSE:APARINDS': 7800.50, ... }
 
   // ============================================================
@@ -786,19 +930,15 @@
     document.getElementById('last-updated').textContent = 'loading...';
     document.getElementById('error-area').innerHTML = '';
     try {
-      const [tradesRes, wowRes] = await Promise.all([
+      const [tradesRes] = await Promise.all([
         db.from('trades').select('*').order('date', { ascending: true }),
-        db.from('wow_tracker').select('*').order('week_date', { ascending: true })
       ]);
       if (tradesRes.error) throw tradesRes.error;
-      if (wowRes.error)    throw wowRes.error;
       trades = tradesRes.data;
-      wow    = wowRes.data;
 
       // Render with placeholders first so UI feels fast
       renderPortfolio();
       renderTrades();
-      renderWow();
       document.getElementById('last-updated').textContent = 'fetching live prices...';
 
       // Fetch live prices for active holdings
@@ -807,6 +947,10 @@
 
       // Re-render with live prices
       renderPortfolio();
+
+      // Load WoW data separately
+      await loadWow();
+
       document.getElementById('last-updated').textContent =
         'updated ' + new Date().toLocaleTimeString('en-IN');
     } catch(e) {
@@ -1092,70 +1236,291 @@
   }
 
   // ============================================================
-  // RENDER: WoW TRACKER
+  // PHASE 3: WoW TRACKER
   // ============================================================
+
+  let wowEntries   = []; // all rows from wow_entries table
+  let pnlFloor     = 40; // default 40%
+
+  // Set default date to most recent Friday
+  function setDefaultWowDate() {
+    const today = new Date();
+    const day   = today.getDay(); // 0=Sun, 5=Fri
+    const diff  = day >= 5 ? day - 5 : day + 2; // days since last Friday
+    const friday = new Date(today);
+    friday.setDate(today.getDate() - diff);
+    document.getElementById('wow-date-picker').value = friday.toISOString().split('T')[0];
+  }
+
+  // Load user preferences (pnl_floor)
+  async function loadPreferences() {
+    try {
+      const { data } = await db.from('user_preferences').select('pnl_floor').single();
+      if (data) {
+        pnlFloor = data.pnl_floor;
+        document.getElementById('pnl-floor-select').value = pnlFloor;
+      }
+    } catch(e) { /* no prefs yet — use default */ }
+  }
+
+  // Save pnl_floor preference
+  async function savePnlFloor(val) {
+    pnlFloor = parseInt(val);
+    try {
+      await db.from('user_preferences').upsert({
+        user_id: (await db.auth.getUser()).data.user.id,
+        pnl_floor: pnlFloor,
+        updated_at: new Date().toISOString()
+      });
+    } catch(e) { console.error('Failed to save preference:', e); }
+    renderWow();
+  }
+
+  // Load wow_entries from Supabase
+  async function loadWowEntries() {
+    const { data, error } = await db.from('wow_entries')
+      .select('*').order('week_date', { ascending: false });
+    if (error) throw error;
+    wowEntries = data || [];
+  }
+
+  // Fetch historical closing price from Yahoo Finance for a specific date
+  async function fetchHistoricalPrice(yfSymbol, dateStr) {
+    try {
+      const d      = new Date(dateStr);
+      const p1     = Math.floor(d.getTime() / 1000) - 86400; // day before
+      const p2     = Math.floor(d.getTime() / 1000) + 86400; // day after
+      const url    = `${PROXY}${encodeURIComponent(YF_BASE + yfSymbol + `?interval=1d&period1=${p1}&period2=${p2}`)}`;
+      const r      = await fetch(url);
+      if (!r.ok) return null;
+      const data   = await r.json();
+      const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+      if (!closes || !closes.length) return null;
+      // Return last valid close price
+      const valid = closes.filter(c => c != null);
+      return valid.length ? valid[valid.length - 1] : null;
+    } catch { return null; }
+  }
+
+  // Fetch prices for all current holdings for a given date and save to wow_entries
+  async function fetchAndSaveWow() {
+    const dateStr = document.getElementById('wow-date-picker').value;
+    if (!dateStr) { alert('Please select a date first'); return; }
+
+    const btn = document.getElementById('wow-fetch-btn');
+    btn.disabled = true;
+    btn.textContent = 'Fetching...';
+    document.getElementById('wow-error').innerHTML = '';
+
+    try {
+      // Get current holdings from calcPortfolio
+      const { holdings } = calcPortfolio();
+      if (!holdings.length) throw new Error('No active holdings found');
+
+      // Check if this date already has entries — if so delete first
+      const { data: existing } = await db.from('wow_entries')
+        .select('id').eq('week_date', dateStr);
+      if (existing && existing.length > 0) {
+        await db.from('wow_entries').delete().eq('week_date', dateStr);
+      }
+
+      // Fetch prices in batches
+      const BATCH = 8;
+      const rows  = [];
+      const userId = (await db.auth.getUser()).data.user.id;
+
+      for (let i = 0; i < holdings.length; i += BATCH) {
+        const batch = holdings.slice(i, i + BATCH);
+        await Promise.all(batch.map(async h => {
+          const yfSym = toYFSymbol(h.ticker, h.exchange);
+          const price = await fetchHistoricalPrice(yfSym, dateStr);
+          if (price != null) {
+            rows.push({ week_date: dateStr, ticker: h.ticker, close_price: price, user_id: userId });
+          }
+        }));
+        if (i + BATCH < holdings.length) await new Promise(r => setTimeout(r, 300));
+        btn.textContent = `Fetching... ${Math.min(i + BATCH, holdings.length)}/${holdings.length}`;
+      }
+
+      if (!rows.length) throw new Error('No prices could be fetched for this date. Market may have been closed.');
+
+      // Save to Supabase
+      const { error } = await db.from('wow_entries').insert(rows);
+      if (error) throw error;
+
+      // Reload and render
+      await loadWowEntries();
+      renderWow();
+      btn.textContent = `✓ Saved ${rows.length} stocks`;
+      setTimeout(() => { btn.disabled = false; btn.textContent = '⬇ Fetch & Save Week'; }, 2000);
+    } catch(e) {
+      document.getElementById('wow-error').innerHTML =
+        `<div class="error-box" style="margin-bottom:12px">Error: ${e.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = '⬇ Fetch & Save Week';
+    }
+  }
+
+  // Delete all entries for a specific week date
+  async function deleteWowWeek(dateStr) {
+    if (!confirm(`Delete all WoW entries for ${fmtDate(dateStr)}?`)) return;
+    await db.from('wow_entries').delete().eq('week_date', dateStr);
+    await loadWowEntries();
+    renderWow();
+  }
+
+  // Get pyramiding signal based on P&L% vs floor and WoW change
+  function getPyramidSignal(pnlPct, wowChgPct, floor) {
+    if (pnlPct == null) return { label: '—', cls: '' };
+    const aboveFloor = pnlPct >= floor;
+    const nearFloor  = pnlPct >= floor - 5 && pnlPct < floor;
+    const wowUp      = wowChgPct == null || wowChgPct >= 0;
+    if (aboveFloor && wowUp)  return { label: '✅ Strong Add', cls: 'signal-add'  };
+    if (aboveFloor && !wowUp) return { label: '🟡 Hold',       cls: 'signal-hold' };
+    if (nearFloor)            return { label: '🟡 Watch',      cls: 'signal-hold' };
+    return                           { label: '❌ Don\'t Add', cls: 'signal-pass' };
+  }
+
+  // Get floor status class
+  function floorClass(pnlPct, floor) {
+    if (pnlPct == null) return '';
+    if (pnlPct >= floor)       return 'floor-above';
+    if (pnlPct >= floor - 5)   return 'floor-near';
+    return 'floor-below';
+  }
+
+  // RENDER: WoW TRACKER
   function renderWow() {
-    const v = wow.filter(w => w.close_price > 0);
-    if (!v.length) {
+    const { holdings } = calcPortfolio();
+
+    // Group wow_entries by week_date
+    const weekMap = {};
+    wowEntries.forEach(e => {
+      if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
+      weekMap[e.week_date][e.ticker] = e.close_price;
+    });
+
+    const weeks = Object.keys(weekMap).sort((a, b) => b.localeCompare(a)); // newest first
+
+    // Portfolio summary from latest week
+    let summaryHtml = '';
+    if (weeks.length > 0) {
+      const latestPrices = weekMap[weeks[0]];
+      let totalInv = 0, totalCurr = 0, stocksAbove = 0, stocksBelow = 0;
+      holdings.forEach(h => {
+        totalInv += h.invested;
+        const lp = latestPrices[h.ticker];
+        if (lp) {
+          totalCurr += lp * h.netQty;
+          const pnlPct = ((lp - h.avgBuy) / h.avgBuy) * 100;
+          if (pnlPct >= pnlFloor) stocksAbove++; else stocksBelow++;
+        }
+      });
+      const totalPnl    = totalCurr - totalInv;
+      const totalPnlPct = totalInv > 0 ? (totalPnl / totalInv) * 100 : 0;
+      const floorCls    = totalPnlPct >= pnlFloor ? 'positive' : totalPnlPct >= pnlFloor - 5 ? '' : 'negative';
+
+      summaryHtml = `
+        <div class="stat-card">
+          <div class="stat-label">Total Invested</div>
+          <div class="stat-value neutral">${fmt(totalInv)}</div>
+          <div class="stat-sub">active holdings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Current Value</div>
+          <div class="stat-value neutral">${fmt(totalCurr)}</div>
+          <div class="stat-sub">latest WoW prices</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Overall P&L%</div>
+          <div class="stat-value ${floorCls}">${fmtPct(totalPnlPct)}</div>
+          <div class="stat-sub">floor: ${pnlFloor}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Above Floor</div>
+          <div class="stat-value positive">${stocksAbove}</div>
+          <div class="stat-sub">stocks ≥ ${pnlFloor}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Below Floor</div>
+          <div class="stat-value negative">${stocksBelow}</div>
+          <div class="stat-sub">stocks < ${pnlFloor}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Weeks Tracked</div>
+          <div class="stat-value">${weeks.length}</div>
+          <div class="stat-sub">entries</div>
+        </div>`;
+    }
+    document.getElementById('wow-summary').innerHTML = summaryHtml;
+
+    if (!weeks.length) {
       document.getElementById('wow-section').innerHTML =
-        '<div class="loading">No WoW data found. Add weekly prices via Supabase.</div>';
+        `<div class="loading">No WoW entries yet — pick a date and click "Fetch & Save Week"</div>`;
       return;
     }
-    const latest = v[v.length - 1];
-    const totalReturn = ((latest.close_price - v[0].close_price) / v[0].close_price * 100);
-    const maxPrice    = Math.max(...v.map(w => w.close_price));
 
-    const bars = v.map((w, i) => {
-      const h    = Math.round((w.close_price / maxPrice) * 90) + 10;
-      const isUp = i === 0 || w.close_price >= v[i-1].close_price;
-      const lbl  = new Date(w.week_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
-      return `<div class="bar-wrap">
-        <div class="bar" style="height:${h}%;background:${isUp ? 'var(--accent2)' : 'var(--red)'};opacity:0.75"
-          title="Wk ${i+1}: ${fmt(w.close_price)}"></div>
-        <div class="bar-label">${lbl}</div>
-      </div>`;
+    // Render each week as a card (newest first)
+    const weekCards = weeks.map(dateStr => {
+      const prices    = weekMap[dateStr];
+      const prevDate  = weeks[weeks.indexOf(dateStr) + 1];
+      const prevPrices = prevDate ? weekMap[prevDate] : null;
+
+      const rows = holdings.map(h => {
+        const price     = prices[h.ticker];
+        const prevPrice = prevPrices ? prevPrices[h.ticker] : null;
+        if (price == null) return ''; // stock not in portfolio that week
+
+        const pnlPct    = ((price - h.avgBuy) / h.avgBuy) * 100;
+        const wowChg    = prevPrice != null ? price - prevPrice : null;
+        const wowChgPct = prevPrice != null ? ((price - prevPrice) / prevPrice) * 100 : null;
+        const signal    = getPyramidSignal(pnlPct, wowChgPct, pnlFloor);
+        const fCls      = floorClass(pnlPct, pnlFloor);
+        const pnlCls    = pnlPct >= 0 ? 'positive-text' : 'negative-text';
+        const wowCls    = wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text';
+
+        return `<tr>
+          <td style="font-weight:500">${h.name}</td>
+          <td><span class="ticker-pill">${h.ticker}</span></td>
+          <td class="mono">${fmt(h.avgBuy)}</td>
+          <td class="mono">${fmtPrice(price)}</td>
+          <td class="mono ${pnlCls}">${fmtPct(pnlPct)}</td>
+          <td class="mono ${fCls}">${pnlPct >= pnlFloor ? '🟢' : pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(pnlPct - pnlFloor)}</td>
+          <td class="mono ${wowCls}">${wowChgPct != null ? fmtPct(wowChgPct) : '—'}</td>
+          <td class="${signal.cls}">${signal.label}</td>
+        </tr>`;
+      }).filter(Boolean).join('');
+
+      const stockCount = Object.keys(prices).length;
+
+      return `
+        <div class="wow-week-card">
+          <div class="wow-week-header">
+            <div>
+              <div class="wow-week-title">Week of ${fmtDate(dateStr)}</div>
+              <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px">${stockCount} stocks tracked</div>
+            </div>
+            <button class="wow-delete-btn" onclick="deleteWowWeek('${dateStr}')">✕ Delete Week</button>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Stock</th><th>Ticker</th><th>Avg Buy</th><th>Week Price</th>
+              <th>P&L%</th><th>vs Floor (${pnlFloor}%)</th><th>WoW Chg%</th><th>Signal</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
     }).join('');
 
-    const rows = v.map((w, i) => {
-      const prev = i > 0 ? v[i-1].close_price : null;
-      const chg  = prev ? w.close_price - prev : 0;
-      const pct  = prev ? chg / prev * 100 : 0;
-      const tCls = i === 0 ? 'trend-neutral' : chg > 0 ? 'trend-up' : 'trend-down';
-      const cCls = i === 0 ? '' : chg >= 0 ? 'positive-text' : 'negative-text';
-      return `<tr>
-        <td class="mono" style="color:var(--muted)">Wk ${i+1}</td>
-        <td class="mono" style="color:var(--muted)">${fmtDate(w.week_date)}</td>
-        <td class="mono">${fmt(w.close_price)}</td>
-        <td class="mono ${cCls}">${i === 0 ? '—' : (chg >= 0 ? '+' : '') + fmt(chg)}</td>
-        <td class="mono ${cCls}">${i === 0 ? '—' : fmtPct(pct)}</td>
-        <td class="${tCls}">${i === 0 ? '—' : chg > 0 ? '↑ Up' : '↓ Down'}</td>
-      </tr>`;
-    }).join('');
+    document.getElementById('wow-section').innerHTML = weekCards;
+  }
 
-    document.getElementById('wow-section').innerHTML = `
-      <div class="wow-header">
-        <div>
-          <div class="section-title" style="margin-bottom:3px">${latest.ticker} — Week on Week</div>
-          <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${v.length} weeks tracked</div>
-        </div>
-        <div style="display:flex;gap:24px">
-          <div class="wow-stat">
-            <div class="label">Latest Close</div>
-            <div class="val positive-text">${fmt(latest.close_price)}</div>
-          </div>
-          <div class="wow-stat">
-            <div class="label">Total Return</div>
-            <div class="val ${totalReturn >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(totalReturn)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="chart-bars">${bars}</div>
-      <div style="border-top:0.5px solid var(--border)">
-        <table>
-          <thead><tr><th>Week</th><th>Date</th><th>Close</th><th>Chg ₹</th><th>Chg %</th><th>Trend</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
+  // Load WoW data (called from loadAll)
+  async function loadWow() {
+    await loadWowEntries();
+    setDefaultWowDate();
+    await loadPreferences();
+    renderWow();
   }
 
   // ============================================================
@@ -1188,6 +1553,11 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
+
+  // ============================================================
+  // INIT — set default WoW date on page load
+  // ============================================================
+  setDefaultWowDate();
 </script>
 </body>
 </html>
