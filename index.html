@@ -614,7 +614,7 @@
       </div>
 
       <div class="footer">
-        Phase 1 &mdash; Portfolio data from Supabase &mdash; Live NSE prices coming in Phase 2
+        Phase 2 &mdash; Live prices via Yahoo Finance &mdash; XIRR powered by Newton-Raphson
       </div>
     </div>
   </div>
@@ -629,6 +629,12 @@
   // CORS proxy for Yahoo Finance (swap URL here if proxy changes)
   const PROXY = 'https://corsproxy.io/?';
   const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+
+  // Override map — tickers where Yahoo Finance symbol differs from DB format
+  // Key = DB ticker, Value = exact Yahoo Finance symbol to use
+  const YF_OVERRIDES = {
+    'NSE:ARTSON-X': 'ARTSON.BO', // Renamed to Artson Ltd (Feb 2025), BSE only on Yahoo
+  };
 
   const { createClient } = supabase;
   const db = createClient(SUPA_URL, SUPA_KEY);
@@ -691,6 +697,7 @@
   // Ticker format: strip exchange prefix, append .NS or .BO
   // ============================================================
   function toYFSymbol(ticker, exchange) {
+    if (YF_OVERRIDES[ticker]) return YF_OVERRIDES[ticker];
     const symbol = ticker.includes(':') ? ticker.split(':')[1] : ticker;
     return symbol + (exchange === 'BSE' ? '.BO' : '.NS');
   }
