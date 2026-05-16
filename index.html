@@ -731,8 +731,9 @@
       border-radius:8px; padding:7px 10px; margin-bottom:11px;
     }
     .scr-cdot { width:6px; height:6px; border-radius:50%; background:#4caf50; }
-    .scr-tbl-wrap { border:0.5px solid var(--border); border-radius:10px; overflow:hidden; overflow-x:auto; }
-    .scr-tbl-wrap table { width:100%; border-collapse:collapse; font-size:12px; }
+    .scr-tbl-wrap { border:0.5px solid var(--border); border-radius:10px; overflow:hidden; }
+    .scr-tbl-inner { overflow-x:auto; width:100%; }
+    .scr-tbl-wrap table { width:max-content; min-width:100%; border-collapse:collapse; font-size:12px; }
     .scr-tbl-wrap thead tr { background:var(--card); border-bottom:0.5px solid var(--border); }
     .scr-tbl-wrap th {
       font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--muted);
@@ -788,6 +789,27 @@
     .scr-act:hover { border-color:var(--accent); color:var(--accent); }
     .scr-act.done { border-color:#4caf50; color:#4caf50; background:rgba(76,175,80,0.08); }
     .scr-leg { font-size:10px; color:var(--muted); margin-top:7px; font-family:var(--font-mono); line-height:1.8; }
+    .scr-log-wrap {
+      margin-top:14px; border:0.5px solid var(--border); border-radius:10px; overflow:hidden;
+    }
+    .scr-log-head {
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--card); padding:8px 12px; cursor:pointer;
+      font-family:var(--font-mono); font-size:11px; color:var(--muted);
+      user-select:none;
+    }
+    .scr-log-head:hover { color:var(--text); }
+    .scr-log-body { display:none; max-height:280px; overflow-y:auto; }
+    .scr-log-body.open { display:block; }
+    .scr-log-row {
+      display:grid; grid-template-columns:140px 1fr;
+      padding:5px 12px; border-top:0.5px solid var(--border);
+      font-size:11px; font-family:var(--font-mono);
+    }
+    .scr-log-row:hover { background:var(--card); }
+    .scr-log-stock { color:var(--text); font-weight:500; }
+    .scr-log-reason { color:var(--muted); }
+    .scr-log-reason span { color:var(--red); font-weight:500; }
     [data-tip] { position:relative; }
     [data-tip]:hover::after {
       content:attr(data-tip); position:absolute; bottom:calc(100% + 5px); left:50%;
@@ -2032,6 +2054,7 @@
 
   // Main run
   let scrLastResults = [];
+  let scrLastExcluded = [];
   let scrSortKey = 'position', scrSortAsc = true;
   let scrUniverse = []; // loaded from Supabase universe table
 
@@ -2102,28 +2125,54 @@
   }
 
   function scrApplyAndRender(stocks, f, fromCache) {
-    const results = [];
+    const results  = [];
+    const excluded = []; // { name, ticker, reasons[] }
+
     for (const s of stocks) {
       const mom  = scrMomentum(s, f);
       const fund = scrFund(s, f);
       const momPass = Object.values(mom).every(Boolean);
-      if (scrStrict) {
-        const fundPass = Object.values(fund).every(v => v===null || v===true);
-        if (!momPass || !fundPass) continue;
-      } else {
-        if (!momPass) continue;
+
+      // Build exclusion reasons
+      const reasons = [];
+      if (!mom.w52)    reasons.push('52W gap >' + f.pct52w + '%');
+      if (!mom.dma)    reasons.push('Price < ' + f.dma + ' DMA');
+      if (!mom.ema)    reasons.push('100 EMA < 200 EMA');
+      if (!mom.ret)    reasons.push(f.retPeriod===12?'1Y':f.retPeriod===6?'6M':'3M')+' return <' + f.retPct + '%';
+      if (!mom.updays) reasons.push('Up days <' + f.updays + '%');
+
+      if (!momPass) {
+        excluded.push({ name: s.name||s.ticker, ticker: s.ticker, reasons, layer: 'momentum' });
+        continue;
       }
+
+      if (scrStrict) {
+        const fundFails = [];
+        if (fund.pe  === false) fundFails.push('P/E ≥' + f.pe + 'x');
+        if (fund.eps === false) fundFails.push('EPS ≤' + f.eps);
+        if (fund.roe === false) fundFails.push('ROE <' + f.roe + '%');
+        if (fund.de  === false) fundFails.push('D/E ≥' + f.de);
+        if (fund.rev === false) fundFails.push('Rev <' + f.rev + '%');
+        if (fundFails.length) {
+          excluded.push({ name: s.name||s.ticker, ticker: s.ticker, reasons: fundFails, layer: 'fundamental' });
+          continue;
+        }
+      }
+
       const sig = scrSignal(mom, fund);
       if (sig) results.push({ ...s, mom, fund, sig });
     }
+
     results.sort((a,b) => a.position - b.position);
     scrLastResults = results;
+    scrLastExcluded = excluded;
     scrSortKey = 'position'; scrSortAsc = true;
-    scrRender(results, fromCache);
+    scrRender(results, fromCache, excluded);
   }
 
   // Render results table
-  function scrRender(results, fromCache) {
+  function scrRender(results, fromCache, excluded) {
+    excluded = excluded || scrLastExcluded;
     const el = document.getElementById('scr-results');
     if (!results.length) {
       el.innerHTML = `<div class="scr-empty"><div style="font-size:28px;opacity:0.3;margin-bottom:10px">⬡</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No stocks matched</div><div style="font-size:12px;color:var(--muted)">Try relaxing your filters.</div></div>`;
@@ -2204,6 +2253,7 @@
         </div>
       </div>
       <div class="scr-tbl-wrap">
+        <div class="scr-tbl-inner">
         <table>
           <thead><tr>
             <th>Stock</th>
@@ -2223,6 +2273,7 @@
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        </div>
       </div>
       <div class="scr-leg">
         Position = rank by 6M+3M+1M momentum across ${total} stocks &nbsp;|&nbsp;
@@ -2231,7 +2282,25 @@
         <span style="color:var(--muted)">■</span> rest &nbsp;|&nbsp;
         Dots: P/E·EPS·ROE·D/E·Rev &nbsp;|&nbsp;
         <span style="color:#a78bfa">▲ holding</span> = in your portfolio
-      </div>`;
+      </div>
+      ${excluded && excluded.length ? `
+      <div class="scr-log-wrap">
+        <div class="scr-log-head" onclick="this.nextElementSibling.classList.toggle('open')">
+          <span>⚠ ${excluded.length} stocks excluded — click to see why</span>
+          <span style="font-size:10px;opacity:0.5">▼</span>
+        </div>
+        <div class="scr-log-body">
+          ${excluded.map(e => `
+            <div class="scr-log-row">
+              <div class="scr-log-stock">${e.name}</div>
+              <div class="scr-log-reason">
+                <span style="font-size:9px;color:var(--muted);margin-right:4px">[${e.layer}]</span>
+                ${e.reasons.map(r=>`<span>${r}</span>`).join(' · ')}
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+    `;
   }
 
   // Sort
