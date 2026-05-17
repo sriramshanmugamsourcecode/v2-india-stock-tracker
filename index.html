@@ -1889,28 +1889,49 @@
     // BSE-only
     'BSE:ARTSON':      'ARTSON.BO',
 
-    // Corporate restructuring / renamed after Oct 2025
+    // Corporate restructuring / renamed
     'NSE:TATAMOTORS':  'TMPV.NS',           // Tata Motors → Tata Motors Passenger Vehicles
     'NSE:ZOMATO':      'ETERNAL.NS',         // Zomato renamed to Eternal Ltd
-    'NSE:TMCV':        'TMCV.NS',            // New Tata Motors commercial vehicles entity
+    'NSE:ADANITRANS':  'ADANIENSOL.NS',      // Adani Transmission → Adani Energy Solutions
 
-    // NSE ticker differs from Yahoo Finance symbol
+    // Yahoo symbol uses & which must be literal in the symbol
+    'NSE:AMARAJABAT':  'ARE&M.NS',           // Amara Raja Energy & Mobility
+    'NSE:L&TFH':       'LTFH.NS',            // L&T Finance (& breaks URL)
+
+    // NSE ticker differs from Yahoo symbol
     'NSE:AIRTEL':      'BHARTIARTL.NS',
     'NSE:MOTILALOSW':  'MOTILALOFS.NS',
     'NSE:MINDAIND':    'UNOMINDA.NS',
-    'NSE:AMARAJABAT':  'AMARAJAELE.NS',
     'NSE:BLUESTAR':    'BLUESTARCO.NS',
     'NSE:SUVENPHAR':   'SUVEN.NS',
     'NSE:MCDOWELL-N':  'MCDOWELLNS.NS',
-    'NSE:ADANITRANS':  'ADANIENSOL.NS',      // Adani Transmission → Adani Energy Solutions
+    'NSE:AJAXENG':     'AJAXENGG.NS',        // Ajax Engineering
+    'NSE:ASMTEC':      'ASMTEC.BO',          // ASM Technologies — BSE only on Yahoo
+    'NSE:SMLISUZU':    'SMLMAH.NS',          // SML Isuzu renamed to SML Mahindra
+    'NSE:ISEC':        'ISEC.NS',            // ICICI Securities
+    'NSE:KALPATPOWR':  'KPIL.NS',            // Kalpataru Projects
+    'NSE:MAHINDCIE':   'MAHINDCIE.BO',       // Mahindra CIE — BSE symbol on Yahoo
+    'NSE:OCCL':        'OCCL.BO',            // Oriental Carbon — BSE on Yahoo
+    'NSE:SEQUENT':     'SEQUENT.BO',         // Sequent Scientific — BSE on Yahoo
+    'NSE:TCNSBRANDS':  null,                  // TCNS Clothing — delisted/merged
+    'NSE:TRIL':        'TARIL.NS',           // Transformers & Rectifiers
+    'NSE:UTIAMCLTD':   'UTIAMC.NS',          // UTI AMC
+    'NSE:WABCOINDIA':  null,                  // Wabco India — delisted (merged with ZF)
+    'NSE:LAXMIMACH':   'LAXMIMACH.NS',       // Should work — keep as is
+    'NSE:IIFLFIN':     'IIFL.NS',            // IIFL Finance
+    'NSE:IIFLWAM':     'IIFLWAM.BO',         // IIFL Wealth — BSE on Yahoo
+    'NSE:ITDCEM':      'ITDCEM.BO',          // ITD Cementation — BSE on Yahoo
+    'NSE:JMB':         'JMFINANCIL.NS',      // JM Financial
+    'NSE:JSB':         null,                  // Jana Small Finance Bank — not on Yahoo
+    'NSE:KTIL':        'KIRLOSENG.NS',       // Kirloskar Industries
+    'NSE:FINOLEX':     'FNXC.NS',            // Finolex Cables
+    'NSE:IDFC':        'IDFCFIRSTB.NS',      // IDFC merged into IDFC First Bank
+    'NSE:DHANI':       null,                  // Dhani Services — delisted
+    'NSE:DRSNLANKAH':  'DRAGARWAL.NS',       // Dr Agarwals Eye Hospital
+    'NSE:ALEMBICPH':   'ALKEM.NS',           // Check — may be different stock
+    'NSE:ATFL':        'ATFL.BO',            // Agro Tech Foods — BSE on Yahoo
 
-    // Special characters in ticker break URL encoding
-    'NSE:L&TFH':       'LTFH.NS',
-
-    // ICICI Securities — not found on Yahoo, use BSE symbol
-    'NSE:ISEC':        'ISEC.BO',
-
-    // Delisted / merged / not on Yahoo Finance — skip (null = don't fetch)
+    // Delisted / merged / not on Yahoo Finance — skip
     'NSE:STRTECH':     null,
     'NSE:HDFCWM':      null,
     'NSE:ANNAS':       null,
@@ -1919,7 +1940,6 @@
     'NSE:ESDEE':       null,
     'NSE:AMHHOLDING':  null,
     'NSE:CAPMFG':      null,
-    'NSE:BBORO':       null,
   };
   function scrToYF(ticker) {
     if (ticker in SCR_YF_OVERRIDES) return SCR_YF_OVERRIDES[ticker]; // may be null = skip
@@ -1932,9 +1952,12 @@
   }
   async function scrFetch1Y(ticker) {
     const yfSym = scrToYF(ticker);
-    if (!yfSym) return null; // null override = intentionally skipped
+    if (!yfSym) return null;
     const { p1, p2 } = scr1YWindow();
-    const url = PROXY + encodeURIComponent(`${YF_BASE}${yfSym}?interval=1d&period1=${p1}&period2=${p2}`);
+    // Build URL carefully — yfSym may contain & (e.g. ARE&M.NS)
+    // We encode the whole URL but then restore the & in the symbol part
+    const baseUrl = `${YF_BASE}${yfSym}?interval=1d&period1=${p1}&period2=${p2}`;
+    const url = PROXY + encodeURIComponent(baseUrl);
     try {
       const r = await fetch(url);
       if (!r.ok) return null;
