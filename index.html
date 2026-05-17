@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.1</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.2</title>
 
   <!--
     ============================================================
@@ -159,7 +159,9 @@
     }
 
     /* ── Main App ── */
-    .app { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+    .app { max-width: 1600px; margin: 0 auto; padding: 24px 16px; }
+    /* Screener tab goes edge-to-edge within the app container */
+    #tab-screener { margin: 0 -16px; }
 
     .header {
       display: flex;
@@ -304,11 +306,12 @@
       background: var(--card);
       border: 0.5px solid var(--border);
       border-radius: 12px;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
       margin-bottom: 24px;
     }
 
-    table { width: 100%; border-collapse: collapse; }
+    table { width: max-content; min-width: 100%; border-collapse: collapse; }
     thead tr { background: var(--bg3); border-bottom: 0.5px solid var(--border); }
 
     th {
@@ -647,7 +650,7 @@
     }
 
     /* ── Phase 4: Screener ── */
-    .scr-wrap { display:grid; grid-template-columns:270px 1fr; height:calc(100vh - 130px); }
+    .scr-wrap { display:grid; grid-template-columns:270px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; }
     .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; padding:14px 13px; scrollbar-width:thin; }
     .scr-head {
       font-family:var(--font-mono); font-size:10px; font-weight:500;
@@ -1063,7 +1066,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.1 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.2 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
