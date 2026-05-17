@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.2</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.4</title>
 
   <!--
     ============================================================
@@ -950,16 +950,21 @@
                 <option value="5">Within 5%</option>
               </select>
             </div>
-            <div class="scr-row"><label>Price vs DMA</label>
+            <div class="scr-row"><label>Price vs DMA / EMA</label>
               <select id="f-dma">
-                <option value="100">Above 100 DMA</option>
+                <option value="100ema">Above 100 EMA</option>
                 <option value="50">Above 50 DMA</option>
+                <option value="100">Above 100 DMA</option>
                 <option value="200">Above 200 DMA</option>
+                <option value="brutal">Brutal Strength (50&gt;100&gt;200 DMA)</option>
               </select>
             </div>
             <div class="scr-row">
-              <label>EMA crossover <span style="color:#4caf50;font-size:10px">● always on</span></label>
-              <div class="scr-fixed">100 EMA &gt; 200 EMA</div>
+              <label>EMA crossover</label>
+              <select id="f-ema">
+                <option value="on">100 EMA &gt; 200 EMA</option>
+                <option value="off">None (skip)</option>
+              </select>
             </div>
             <div class="scr-2col">
               <div class="scr-row"><label>Return period</label>
@@ -979,6 +984,7 @@
             </div>
             <div class="scr-row"><label>Up days (last 6M)</label>
               <select id="f-updays">
+                <option value="45">More than 45%</option>
                 <option value="50">More than 50%</option>
                 <option value="40">More than 40%</option>
                 <option value="30">More than 30%</option>
@@ -1066,7 +1072,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.2 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.4 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -2079,7 +2085,8 @@
   function scrGetFilters() {
     return {
       pct52w:    parseFloat(document.getElementById('f-52w').value),
-      dma:       parseInt(document.getElementById('f-dma').value),
+      dma:       document.getElementById('f-dma').value,   // '50','100','200','100ema','brutal'
+      emaCross:  document.getElementById('f-ema').value,   // 'on' or 'off'
       retPeriod: parseInt(document.getElementById('f-ret-period').value),
       retPct:    parseFloat(document.getElementById('f-ret-pct').value),
       updays:    parseFloat(document.getElementById('f-updays').value),
@@ -2091,12 +2098,31 @@
     };
   }
   function scrMomentum(s, f) {
-    const dma = s[`dma${f.dma}`];
     const ret = f.retPeriod===12 ? s.ret1y : f.retPeriod===6 ? s.ret6m : s.ret3m;
+
+    // Price vs DMA/EMA filter
+    let dmaPass = false;
+    if (f.dma === '100ema') {
+      // Notebook-aligned: price > EMA100
+      dmaPass = s.ema100 != null && s.price > s.ema100;
+    } else if (f.dma === 'brutal') {
+      // Brutal Strength: price > DMA50 > DMA100 > DMA200 (all stacked bullish)
+      dmaPass = s.dma50 != null && s.dma100 != null && s.dma200 != null &&
+                s.price > s.dma50 && s.dma50 > s.dma100 && s.dma100 > s.dma200;
+    } else {
+      const dmaVal = s[`dma${f.dma}`];
+      dmaPass = dmaVal != null && s.price > dmaVal;
+    }
+
+    // EMA crossover — optional
+    const emaPass = f.emaCross === 'off'
+      ? true
+      : (s.ema100 != null && s.ema200 != null && s.ema100 > s.ema200);
+
     return {
       w52:    s.pct52w != null && s.pct52w <= f.pct52w,
-      dma:    dma != null && s.price > dma,
-      ema:    s.ema100 != null && s.ema200 != null && s.ema100 > s.ema200,
+      dma:    dmaPass,
+      ema:    emaPass,
       ret:    ret != null && ret >= f.retPct,
       updays: s.updays != null && s.updays >= f.updays,
     };
@@ -2213,8 +2239,12 @@
       // Build exclusion reasons
       const reasons = [];
       if (!mom.w52)    reasons.push('52W gap >' + f.pct52w + '%');
-      if (!mom.dma)    reasons.push('Price < ' + f.dma + ' DMA');
-      if (!mom.ema)    reasons.push('100 EMA < 200 EMA');
+      if (!mom.dma) {
+        if (f.dma === '100ema')  reasons.push('Price < 100 EMA');
+        else if (f.dma === 'brutal') reasons.push('Brutal Strength failed (50>100>200 DMA)');
+        else reasons.push('Price < ' + f.dma + ' DMA');
+      }
+      if (!mom.ema && f.emaCross === 'on') reasons.push('100 EMA < 200 EMA');
       if (!mom.ret)    reasons.push(f.retPeriod===12?'1Y':f.retPeriod===6?'6M':'3M')+' return <' + f.retPct + '%';
       if (!mom.updays) reasons.push('Up days <' + f.updays + '%');
 
@@ -2346,7 +2376,7 @@
             ${thS('pct52w', '52W gap',  8)}
             ${thS('ret1y',  '1Y Ret',   9)}
             ${thS('updays', 'Up Days', 10)}
-            <th>Fundamentals <span style="font-size:9px;opacity:0.6">P/E·EPS·ROE·D/E·Rev</span></th>
+            <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
           <tbody>${rows}</tbody>
@@ -2358,7 +2388,7 @@
         <span style="color:#4caf50">■</span> top 10% &nbsp;
         <span style="color:var(--amber)">■</span> top 25% &nbsp;
         <span style="color:var(--muted)">■</span> rest &nbsp;|&nbsp;
-        Dots: P/E·EPS·ROE·D/E·Rev &nbsp;|&nbsp;
+        Dots: P/E · EPS · ROE · D/E · Rev Growth &nbsp;|&nbsp;
         <span style="color:#a78bfa">▲ holding</span> = in your portfolio
       </div>
       ${excluded && excluded.length ? `
@@ -2398,10 +2428,11 @@
   // Restore defaults
   function scrRestoreDefaults() {
     document.getElementById('f-52w').value        = '20';
-    document.getElementById('f-dma').value         = '100';
+    document.getElementById('f-dma').value         = '100ema';
+    document.getElementById('f-ema').value         = 'on';
     document.getElementById('f-ret-period').value  = '12';
     document.getElementById('f-ret-pct').value     = '7';
-    document.getElementById('f-updays').value      = '50';
+    document.getElementById('f-updays').value      = '45';
     document.getElementById('f-pe').value          = '50';
     document.getElementById('f-eps').value         = '0';
     document.getElementById('f-roe').value         = '15';
