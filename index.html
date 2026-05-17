@@ -1886,27 +1886,40 @@
 
   // Yahoo Finance — period1/period2 (same pattern as WoW, reliably works via corsproxy.io)
   const SCR_YF_OVERRIDES = {
-    // BSE-only stocks
+    // BSE-only
     'BSE:ARTSON':      'ARTSON.BO',
-    // NSE stocks where Yahoo symbol differs from NSE ticker
-    'NSE:AIRTEL':      'BHARTIARTL.NS',      // Bharti Airtel
-    'NSE:MOTILALOSW':  'MOTILALOFS.NS',      // Motilal Oswal Financial
-    'NSE:ISEC':        'ICICISEC.NS',         // ICICI Securities
-    'NSE:MINDAIND':    'UNOMINDA.NS',         // Renamed to UNO Minda
-    'NSE:AMARAJABAT':  'AMARAJAELE.NS',       // Renamed Amara Raja
-    'NSE:BLUESTAR':    'BLUESTARCO.NS',       // Blue Star
-    'NSE:TMCV':        'TATAMTRDVR.NS',       // Tata Motors DVR
-    'NSE:SUVENPHAR':   'SUVEN.NS',            // Suven Pharmaceuticals
-    'NSE:L&TFH':       'LTFH.NS',             // L&T Finance (& breaks URL)
-    'NSE:MCDOWELL-N':  'MCDOWELLNS.NS',       // United Spirits
-    'NSE:STRTECH':     null,                   // Delisted/merged - skip
-    'NSE:HDFCWM':      null,                   // Delisted - skip
-    'NSE:ANNAS':       null,                   // Not on Yahoo - skip
-    'NSE:CANOLAFS':    null,                   // Not on Yahoo - skip
-    'NSE:ETHANOLBIO':  null,                   // Not on Yahoo - skip
-    'NSE:ESDEE':       null,                   // Not on Yahoo - skip
-    'NSE:AMHHOLDING':  null,                   // Not on Yahoo - skip
-    'NSE:CAPMFG':      null,                   // Not on Yahoo - skip
+
+    // Corporate restructuring / renamed after Oct 2025
+    'NSE:TATAMOTORS':  'TMPV.NS',           // Tata Motors → Tata Motors Passenger Vehicles
+    'NSE:ZOMATO':      'ETERNAL.NS',         // Zomato renamed to Eternal Ltd
+    'NSE:TMCV':        'TMCV.NS',            // New Tata Motors commercial vehicles entity
+
+    // NSE ticker differs from Yahoo Finance symbol
+    'NSE:AIRTEL':      'BHARTIARTL.NS',
+    'NSE:MOTILALOSW':  'MOTILALOFS.NS',
+    'NSE:MINDAIND':    'UNOMINDA.NS',
+    'NSE:AMARAJABAT':  'AMARAJAELE.NS',
+    'NSE:BLUESTAR':    'BLUESTARCO.NS',
+    'NSE:SUVENPHAR':   'SUVEN.NS',
+    'NSE:MCDOWELL-N':  'MCDOWELLNS.NS',
+    'NSE:ADANITRANS':  'ADANIENSOL.NS',      // Adani Transmission → Adani Energy Solutions
+
+    // Special characters in ticker break URL encoding
+    'NSE:L&TFH':       'LTFH.NS',
+
+    // ICICI Securities — not found on Yahoo, use BSE symbol
+    'NSE:ISEC':        'ISEC.BO',
+
+    // Delisted / merged / not on Yahoo Finance — skip (null = don't fetch)
+    'NSE:STRTECH':     null,
+    'NSE:HDFCWM':      null,
+    'NSE:ANNAS':       null,
+    'NSE:CANOLAFS':    null,
+    'NSE:ETHANOLBIO':  null,
+    'NSE:ESDEE':       null,
+    'NSE:AMHHOLDING':  null,
+    'NSE:CAPMFG':      null,
+    'NSE:BBORO':       null,
   };
   function scrToYF(ticker) {
     if (ticker in SCR_YF_OVERRIDES) return SCR_YF_OVERRIDES[ticker]; // may be null = skip
