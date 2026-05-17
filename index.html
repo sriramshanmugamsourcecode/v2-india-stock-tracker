@@ -1890,13 +1890,13 @@
     'BSE:ARTSON':      'ARTSON.BO',
 
     // Corporate restructuring / renamed
-    'NSE:TATAMOTORS':  'TMPV.NS',           // Tata Motors → Tata Motors Passenger Vehicles
-    'NSE:ZOMATO':      'ETERNAL.NS',         // Zomato renamed to Eternal Ltd
-    'NSE:ADANITRANS':  'ADANIENSOL.NS',      // Adani Transmission → Adani Energy Solutions
+    'NSE:TATAMOTORS':  'TMPV.NS',
+    'NSE:ZOMATO':      'ETERNAL.NS',
+    'NSE:ADANITRANS':  'ADANIENSOL.NS',
 
-    // Yahoo symbol uses & which must be literal in the symbol
-    'NSE:AMARAJABAT':  'ARE&M.NS',           // Amara Raja Energy & Mobility
-    'NSE:L&TFH':       'LTFH.NS',            // L&T Finance (& breaks URL)
+    // Symbol has & which must be literal
+    'NSE:AMARAJABAT':  'ARE&M.NS',
+    'NSE:L&TFH':       'LTFH.NS',
 
     // NSE ticker differs from Yahoo symbol
     'NSE:AIRTEL':      'BHARTIARTL.NS',
@@ -1904,34 +1904,37 @@
     'NSE:MINDAIND':    'UNOMINDA.NS',
     'NSE:BLUESTAR':    'BLUESTARCO.NS',
     'NSE:SUVENPHAR':   'SUVEN.NS',
-    'NSE:MCDOWELL-N':  'MCDOWELLNS.NS',
-    'NSE:AJAXENG':     'AJAXENGG.NS',        // Ajax Engineering
-    'NSE:ASMTEC':      'ASMTEC.BO',          // ASM Technologies — BSE only on Yahoo
-    'NSE:SMLISUZU':    'SMLMAH.NS',          // SML Isuzu renamed to SML Mahindra
-    'NSE:ISEC':        'ISEC.NS',            // ICICI Securities
-    'NSE:KALPATPOWR':  'KPIL.NS',            // Kalpataru Projects
-    'NSE:MAHINDCIE':   'MAHINDCIE.BO',       // Mahindra CIE — BSE symbol on Yahoo
-    'NSE:OCCL':        'OCCL.BO',            // Oriental Carbon — BSE on Yahoo
-    'NSE:SEQUENT':     'SEQUENT.BO',         // Sequent Scientific — BSE on Yahoo
-    'NSE:TCNSBRANDS':  null,                  // TCNS Clothing — delisted/merged
-    'NSE:TRIL':        'TARIL.NS',           // Transformers & Rectifiers
-    'NSE:UTIAMCLTD':   'UTIAMC.NS',          // UTI AMC
-    'NSE:WABCOINDIA':  null,                  // Wabco India — delisted (merged with ZF)
-    'NSE:LAXMIMACH':   'LAXMIMACH.NS',       // Should work — keep as is
-    'NSE:IIFLFIN':     'IIFL.NS',            // IIFL Finance
-    'NSE:IIFLWAM':     'IIFLWAM.BO',         // IIFL Wealth — BSE on Yahoo
-    'NSE:ITDCEM':      'ITDCEM.BO',          // ITD Cementation — BSE on Yahoo
-    'NSE:JMB':         'JMFINANCIL.NS',      // JM Financial
-    'NSE:JSB':         null,                  // Jana Small Finance Bank — not on Yahoo
-    'NSE:KTIL':        'KIRLOSENG.NS',       // Kirloskar Industries
-    'NSE:FINOLEX':     'FNXC.NS',            // Finolex Cables
-    'NSE:IDFC':        'IDFCFIRSTB.NS',      // IDFC merged into IDFC First Bank
-    'NSE:DHANI':       null,                  // Dhani Services — delisted
-    'NSE:DRSNLANKAH':  'DRAGARWAL.NS',       // Dr Agarwals Eye Hospital
-    'NSE:ALEMBICPH':   'ALKEM.NS',           // Check — may be different stock
-    'NSE:ATFL':        'ATFL.BO',            // Agro Tech Foods — BSE on Yahoo
+    'NSE:MCDOWELL-N':  'UNITDSPR.NS',     // confirmed
+    'NSE:AJAXENG':     'AJAXENGG.NS',
+    'NSE:ASMTEC':      'ASMTEC.BO',
+    'NSE:SMLISUZU':    'SMLMAH.NS',
+    'NSE:ISEC':        'ISEC.NS',            // ✅ confirmed
+    'NSE:KALPATPOWR':  'KPIL.NS',
+    'NSE:LAXMIMACH':   'LMW.NS',             // ✅ confirmed
+    'NSE:MAHINDCIE':   null,               // not on Yahoo
+    'NSE:OCCL':        'OCCL.BO',
+    'NSE:SEQUENT':     'SEQUENT.BO',
+    'NSE:TRIL':        'TARIL.NS',
+    'NSE:UTIAMCLTD':   'UTIAMC.NS',
+    'NSE:IIFLFIN':     'IIFL.NS',
+    'NSE:IIFLWAM':     '360ONE.NS',          // ✅ confirmed — IIFL Wealth renamed to 360 One
+    'NSE:ITDCEM':      'ITDCEM.BO',
+    'NSE:JMB':         'JMFINANCIL.NS',
+    'NSE:KTIL':        'KIRLOSENG.NS',
+    'NSE:IDFC':        'IDFCFIRSTB.NS',
+    'NSE:DRSNLANKAH':  'AGARWALEYE.NS',      // ✅ confirmed
+    'NSE:ALEMBICPH':   'APLLTD.NS',        // confirmed
+    'NSE:ATFL':        'ATFL.NS',            // ✅ confirmed
+    'NSE:PEL':         'PEL.NS',             // ✅ confirmed — Piramal Enterprises
+    'NSE:FINOLEXIND':  'FINPIPE.BO',         // ✅ confirmed — Finolex Industries
+    'NSE:FINOLEX':     'FINCABLES.NS',       // ✅ confirmed — Finolex Cables
+    'NSE:L&TFH':       'LTF.NS',             // ✅ confirmed — L&T Finance
 
-    // Delisted / merged / not on Yahoo Finance — skip
+    // Delisted / merged / not on Yahoo — skip
+    'NSE:CENTURYTEX':  null,                  // not on Yahoo — skip
+    'NSE:TCNSBRANDS':  null,
+    'NSE:WABCOINDIA':  null,
+    'NSE:JSB':         null,
     'NSE:STRTECH':     null,
     'NSE:HDFCWM':      null,
     'NSE:ANNAS':       null,
