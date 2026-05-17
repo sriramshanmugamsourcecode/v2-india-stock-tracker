@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.4</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.5</title>
 
   <!--
     ============================================================
@@ -1072,7 +1072,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.4 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.5 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -1977,9 +1977,12 @@
       const result = json?.chart?.result?.[0];
       if (!result) return null;
       const ts  = result.timestamp || [];
-      const cls = result.indicators?.quote?.[0]?.close || [];
+      const cls = result.indicators?.quote?.[0]?.close  || [];
+      const vol = result.indicators?.quote?.[0]?.volume || [];
       const days = [];
-      for (let i = 0; i < ts.length; i++) if (cls[i] != null) days.push({ ts: ts[i], close: cls[i] });
+      for (let i = 0; i < ts.length; i++) {
+        if (cls[i] != null) days.push({ ts: ts[i], close: cls[i], volume: vol[i] || 0 });
+      }
       return { ticker, days, price: result.meta?.regularMarketPrice || (days.length ? days[days.length-1].close : null) };
     } catch { return null; }
   }
@@ -2005,8 +2008,10 @@
     } catch { return {}; }
   }
 
-  // Client-side indicator calculations from 1Y daily close array
+  // Client-side indicator calculations from 1Y daily close + volume array
   const SCR_TD = { '1m':21, '3m':63, '6m':126, '1y':252 };
+  const SCR_SKIP = 21; // skip most recent month (Jegadeesh-Titman standard)
+
   function scrSMA(days, n) {
     if (days.length < n) return null;
     return days.slice(-n).reduce((s,d) => s+d.close, 0) / n;
@@ -2019,11 +2024,52 @@
     return v;
   }
   function scrHigh52(days) { return days.length ? Math.max(...days.map(d=>d.close)) : null; }
+
+  // Standard return (current price based) — used for display
   function scrReturn(days, n) {
     if (days.length < n+1) return null;
     const cur = days[days.length-1].close, past = days[days.length-1-n].close;
     return past ? ((cur-past)/past)*100 : null;
   }
+
+  // Skip-month return — used for ranking (Jegadeesh-Titman: skip last 21 days)
+  // Returns the n-month return ending 1 month ago
+  function scrReturnSkip(days, n) {
+    const skip = SCR_SKIP;
+    if (days.length < n + skip + 1) return null;
+    const cur  = days[days.length - 1 - skip].close;
+    const past = days[days.length - 1 - skip - n].close;
+    return past ? ((cur-past)/past)*100 : null;
+  }
+
+  // Volatility — annualised std dev of daily log returns over last 3M
+  function scrVolatility(days) {
+    const n = SCR_TD['3m'];
+    if (days.length < n+1) return null;
+    const sl = days.slice(-n-1);
+    const logRets = [];
+    for (let i=1; i<sl.length; i++) {
+      if (sl[i-1].close > 0) logRets.push(Math.log(sl[i].close / sl[i-1].close));
+    }
+    if (!logRets.length) return null;
+    const mean = logRets.reduce((s,v) => s+v, 0) / logRets.length;
+    const variance = logRets.reduce((s,v) => s + Math.pow(v-mean,2), 0) / logRets.length;
+    return Math.sqrt(variance * 252) * 100; // annualised %
+  }
+
+  // Volatility-adjusted return — skip-month 6M return / annualised vol (Sharpe-like momentum)
+  function scrAdjReturn(ret6mSkip, vol) {
+    if (ret6mSkip == null || vol == null || vol === 0) return null;
+    return ret6mSkip / vol;
+  }
+
+  // 52W proximity score — higher = closer to 52W high (0 to 1)
+  function scr52wScore(price, hi52) {
+    if (!hi52 || !price) return null;
+    return price / hi52; // 1.0 = at 52W high, 0.8 = 20% below
+  }
+
+  // Up days (for filter — unchanged)
   function scrUpdays(days) {
     const n = SCR_TD['6m'];
     if (days.length < n+1) return null;
@@ -2032,38 +2078,82 @@
     for (let i=1; i<sl.length; i++) if (sl[i].close > sl[i-1].close) up++;
     return (up/n)*100;
   }
+
+  // Volume momentum — avg volume last 1M vs avg volume last 6M
+  // > 1.0 means recent volume is higher than 6M average = accumulation signal
+  function scrVolRatio(days) {
+    const n1m = SCR_TD['1m'], n6m = SCR_TD['6m'];
+    if (days.length < n6m) return null;
+    const recent = days.slice(-n1m);
+    const older  = days.slice(-n6m);
+    const avgRecent = recent.reduce((s,d) => s+d.volume, 0) / recent.length;
+    const avg6m     = older.reduce((s,d)  => s+d.volume, 0) / older.length;
+    return avg6m > 0 ? avgRecent / avg6m : null;
+  }
+
   function scrCalc(raw) {
     const { ticker, days, price } = raw;
     if (!days.length || !price) return null;
-    const hi52 = scrHigh52(days);
+    const hi52   = scrHigh52(days);
+    const vol    = scrVolatility(days);
+    const r6mSkip = scrReturnSkip(days, SCR_TD['6m']);
     return {
       ticker, price, hi52,
-      pct52w:  hi52 ? ((hi52-price)/hi52)*100 : null,
-      dma50:   scrSMA(days,50),
-      dma100:  scrSMA(days,100),
-      dma200:  scrSMA(days,200),
-      ema100:  scrEMA(days,100),
-      ema200:  scrEMA(days,200),
-      ret1m:   scrReturn(days, SCR_TD['1m']),
-      ret3m:   scrReturn(days, SCR_TD['3m']),
-      ret6m:   scrReturn(days, SCR_TD['6m']),
-      ret1y:   scrReturn(days, SCR_TD['1y']),
-      updays:  scrUpdays(days),
+      pct52w:   hi52 ? ((hi52-price)/hi52)*100 : null,
+      score52w: scr52wScore(price, hi52),          // for ranking
+      dma50:    scrSMA(days,50),
+      dma100:   scrSMA(days,100),
+      dma200:   scrSMA(days,200),
+      ema100:   scrEMA(days,100),
+      ema200:   scrEMA(days,200),
+      ret1m:    scrReturn(days, SCR_TD['1m']),      // display
+      ret3m:    scrReturn(days, SCR_TD['3m']),      // display
+      ret6m:    scrReturn(days, SCR_TD['6m']),      // display
+      ret1y:    scrReturn(days, SCR_TD['1y']),      // display
+      ret1mSkip: scrReturnSkip(days, SCR_TD['1m']), // ranking (skip-month)
+      ret3mSkip: scrReturnSkip(days, SCR_TD['3m']), // ranking (skip-month)
+      ret6mSkip: r6mSkip,                           // ranking (skip-month)
+      adjRet:   scrAdjReturn(r6mSkip, vol),         // volatility-adjusted momentum
+      volatility: vol,
+      volRatio: scrVolRatio(days),                  // volume accumulation signal
+      updays:   scrUpdays(days),
       pe: raw.pe ?? null, eps: raw.eps ?? null,
       roe: raw.roe ?? null, de: raw.de ?? null, rev: raw.rev ?? null,
     };
   }
 
   // Ranking across full universe (run before filtering)
+  // Weights: 52W proximity (2x), adj momentum (2x), 6M skip (2x), 3M skip (2x), 1M skip (1x), vol ratio (1x)
   function scrRank(stocks) {
-    const rankBy = (arr, rk, rkk) => {
-      const valid = arr.filter(s=>s[rk]!=null).sort((a,b)=>b[rk]-a[rk]);
+    const rankBy = (arr, rk, rkk, ascending=false) => {
+      // ascending=true means lower value = better rank (e.g. pct52w: lower gap = better)
+      const valid  = arr.filter(s=>s[rk]!=null).sort((a,b) => ascending ? a[rk]-b[rk] : b[rk]-a[rk]);
       valid.forEach((s,i) => s[rkk] = i+1);
       arr.filter(s=>s[rk]==null).forEach(s => s[rkk] = valid.length+1);
     };
-    rankBy(stocks,'ret6m','rank6m'); rankBy(stocks,'ret3m','rank3m'); rankBy(stocks,'ret1m','rank1m');
-    stocks.forEach(s => s.finalRank = s.rank6m + s.rank3m + s.rank1m);
-    [...stocks].sort((a,b)=>a.finalRank-b.finalRank).forEach((s,i) => s.position = i+1);
+
+    // Rank each dimension (rank 1 = best in each)
+    rankBy(stocks, 'score52w',  'rank52w');      // higher score = closer to 52W high = better
+    rankBy(stocks, 'ret6mSkip', 'rank6m');       // higher skip-month 6M return = better
+    rankBy(stocks, 'ret3mSkip', 'rank3m');       // higher skip-month 3M return = better
+    rankBy(stocks, 'ret1mSkip', 'rank1m');       // higher skip-month 1M return = better
+    rankBy(stocks, 'adjRet',    'rankAdj');      // higher vol-adjusted return = better
+    rankBy(stocks, 'volRatio',  'rankVol');      // higher recent/historical volume = better
+
+    // Weighted composite rank (lower = stronger momentum)
+    // 52W:2x  adjRet:2x  6M:2x  3M:2x  1M:1x  vol:1x  → total weight 10x
+    stocks.forEach(s => {
+      s.compositeRank =
+        s.rank52w  * 2 +
+        s.rankAdj  * 2 +
+        s.rank6m   * 2 +
+        s.rank3m   * 2 +
+        s.rank1m   * 1 +
+        s.rankVol  * 1;
+    });
+
+    // Position = ordinal rank by compositeRank across full universe
+    [...stocks].sort((a,b)=>a.compositeRank-b.compositeRank).forEach((s,i) => s.position = i+1);
   }
 
   // localStorage cache — 1-day TTL
@@ -2309,7 +2399,7 @@
     };
 
     // Column index for sorted column highlight
-    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','position','pct52w','ret1y','updays'];
+    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','rank52w','rankAdj','rankVol','position','pct52w','ret1y','updays'];
     const ci = cols.indexOf(scrSortKey);
     const ch = (i) => ci===i ? 'scol' : '';
 
@@ -2328,16 +2418,19 @@
           </div>
         </td>
         <td class="${ch(0)}">${sigBadge(r.sig)}</td>
-        <td class="scr-n ${rcc(r.ret6m)} ${ch(1)}">${fmtR(r.ret6m)}</td>
-        <td class="scr-n ${rb} ${ch(2)}" data-tip="6M Rank">#${r.rank6m}</td>
-        <td class="scr-n ${rcc(r.ret3m)} ${ch(3)}">${fmtR(r.ret3m)}</td>
-        <td class="scr-n ${rb} ${ch(4)}" data-tip="3M Rank">#${r.rank3m}</td>
-        <td class="scr-n ${rcc(r.ret1m)} ${ch(5)}">${fmtR(r.ret1m)}</td>
-        <td class="scr-n ${rb} ${ch(6)}" data-tip="1M Rank">#${r.rank1m}</td>
-        <td class="scr-n ${rb} ${ch(7)}" data-tip="Position in universe of ${total}">#${r.position}<span class="scr-rof">/${total}</span></td>
-        <td class="scr-n scr-mu ${ch(8)}" data-tip="% below 52W high">${r.pct52w!=null?'−'+p52+'%':'—'}</td>
-        <td class="scr-n ${rcc(r.ret1y)} ${ch(9)}">${fmtR(r.ret1y)}</td>
-        <td class="scr-n scr-mu ${ch(10)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
+        <td class="scr-n ${rcc(r.ret6m)} ${ch(1)}" data-tip="6M Return (display)">${fmtR(r.ret6m)}</td>
+        <td class="scr-n ${rb} ${ch(2)}" data-tip="6M Rank (skip-month, weighted 2x)">#${r.rank6m}</td>
+        <td class="scr-n ${rcc(r.ret3m)} ${ch(3)}" data-tip="3M Return (display)">${fmtR(r.ret3m)}</td>
+        <td class="scr-n ${rb} ${ch(4)}" data-tip="3M Rank (skip-month, weighted 2x)">#${r.rank3m}</td>
+        <td class="scr-n ${rcc(r.ret1m)} ${ch(5)}" data-tip="1M Return (display)">${fmtR(r.ret1m)}</td>
+        <td class="scr-n ${rb} ${ch(6)}" data-tip="1M Rank (skip-month, weighted 1x)">#${r.rank1m}</td>
+        <td class="scr-n ${rb} ${ch(7)}" data-tip="52W Proximity Rank — rank 1 = closest to 52W high (weighted 2x)">#${r.rank52w}</td>
+        <td class="scr-n ${rb} ${ch(8)}" data-tip="Vol-Adjusted Momentum Rank — 6M return / volatility (weighted 2x)">#${r.rankAdj}</td>
+        <td class="scr-n ${rb} ${ch(9)}" data-tip="Volume Rank — recent vs 6M avg volume (weighted 1x) · >1 = accumulation">#${r.rankVol}${r.volRatio!=null?' <span style="font-size:10px;opacity:0.6">('+r.volRatio.toFixed(1)+'x)</span>':''}</td>
+        <td class="scr-n ${rb} ${ch(10)}" data-tip="Position = weighted composite rank across ${total} stocks">#${r.position}<span class="scr-rof">/${total}</span></td>
+        <td class="scr-n scr-mu ${ch(11)}" data-tip="% below 52W high">${r.pct52w!=null?'−'+p52+'%':'—'}</td>
+        <td class="scr-n ${rcc(r.ret1y)} ${ch(12)}">${fmtR(r.ret1y)}</td>
+        <td class="scr-n scr-mu ${ch(13)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
         <td>
           <div style="display:flex;gap:3px;align-items:center">
             ${Object.entries(r.fund).map(([k,v])=>`<div class="scr-fdot ${fd(v)}" data-tip="${tip(k,v)}"></div>`).join('')}
@@ -2365,17 +2458,20 @@
         <table>
           <thead><tr>
             <th>Stock</th>
-            ${thS('sig',    'Signal',    0)}
-            ${thS('ret6m',  'Ret_6M',   1)}
-            ${thS('rank6m', 'Rank_6M',  2)}
-            ${thS('ret3m',  'Ret_3M',   3)}
-            ${thS('rank3m', 'Rank_3M',  4)}
-            ${thS('ret1m',  'Ret_1M',   5)}
-            ${thS('rank1m', 'Rank_1M',  6)}
-            ${thS('position','Position',7)}
-            ${thS('pct52w', '52W gap',  8)}
-            ${thS('ret1y',  '1Y Ret',   9)}
-            ${thS('updays', 'Up Days', 10)}
+            ${thS('sig',      'Signal',     0)}
+            ${thS('ret6m',    'Ret_6M',     1)}
+            ${thS('rank6m',   'Rank_6M',    2)}
+            ${thS('ret3m',    'Ret_3M',     3)}
+            ${thS('rank3m',   'Rank_3M',    4)}
+            ${thS('ret1m',    'Ret_1M',     5)}
+            ${thS('rank1m',   'Rank_1M',    6)}
+            ${thS('rank52w',  'Rank_52W',   7)}
+            ${thS('rankAdj',  'Rank_AdjMom',8)}
+            ${thS('rankVol',  'Rank_Vol',   9)}
+            ${thS('position', 'Position',  10)}
+            ${thS('pct52w',   '52W gap',   11)}
+            ${thS('ret1y',    '1Y Ret',    12)}
+            ${thS('updays',   'Up Days',   13)}
             <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
@@ -2384,11 +2480,13 @@
         </div>
       </div>
       <div class="scr-leg">
-        Position = rank by 6M+3M+1M momentum across ${total} stocks &nbsp;|&nbsp;
+        Position = weighted composite rank across ${total} stocks (52W×2 + AdjMom×2 + 6M×2 + 3M×2 + 1M×1 + Vol×1) &nbsp;|&nbsp;
+        Rank_52W: proximity to 52W high &nbsp;|&nbsp; Rank_AdjMom: vol-adjusted 6M momentum &nbsp;|&nbsp;
+        Rank_Vol: recent vs 6M avg volume (>1x = accumulation) &nbsp;|&nbsp;
+        Returns ranked on skip-month basis (Jegadeesh-Titman) &nbsp;|&nbsp;
         <span style="color:#4caf50">■</span> top 10% &nbsp;
         <span style="color:var(--amber)">■</span> top 25% &nbsp;
         <span style="color:var(--muted)">■</span> rest &nbsp;|&nbsp;
-        Dots: P/E · EPS · ROE · D/E · Rev Growth &nbsp;|&nbsp;
         <span style="color:#a78bfa">▲ holding</span> = in your portfolio
       </div>
       ${excluded && excluded.length ? `
@@ -2414,7 +2512,7 @@
   // Sort
   function scrSort(key, colIdx) {
     if (scrSortKey === key) scrSortAsc = !scrSortAsc;
-    else { scrSortKey = key; scrSortAsc = ['position','rank6m','rank3m','rank1m','pct52w'].includes(key); }
+    else { scrSortKey = key; scrSortAsc = ['position','rank6m','rank3m','rank1m','rank52w','rankAdj','rankVol','pct52w'].includes(key); }
     const sorted = [...scrLastResults].sort((a,b) => {
       let av, bv;
       if (key==='sig') { const o={strong:0,watch:1,mom:2}; av=o[a.sig]; bv=o[b.sig]; }
