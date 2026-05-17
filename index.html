@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.1</title>
 
   <!--
     ============================================================
@@ -708,7 +708,7 @@
       background:var(--card); border:0.5px solid var(--border);
       border-radius:8px; padding:8px 10px; margin-top:10px;
     }
-    .scr-results { overflow-y:auto; overflow-x:hidden; padding:16px 18px; scrollbar-width:thin; min-width:0; }
+    .scr-results { overflow-y:auto; overflow-x:auto; padding:16px 18px; scrollbar-width:thin; min-width:0; }
     .scr-empty { text-align:center; padding:60px 20px; color:var(--muted); }
     .scr-topbar {
       display:flex; align-items:center; justify-content:space-between;
@@ -731,9 +731,9 @@
       border-radius:8px; padding:7px 10px; margin-bottom:11px;
     }
     .scr-cdot { width:6px; height:6px; border-radius:50%; background:#4caf50; }
-    .scr-tbl-wrap { border:0.5px solid var(--border); border-radius:10px; overflow:hidden; }
-    .scr-tbl-inner { overflow-x:auto; width:100%; }
-    .scr-tbl-wrap table { width:100%; border-collapse:collapse; font-size:12px; }
+    .scr-tbl-wrap { border:0.5px solid var(--border); border-radius:10px; overflow:visible; }
+    .scr-tbl-inner { overflow-x:auto; width:100%; -webkit-overflow-scrolling:touch; }
+    .scr-tbl-wrap table { width:max-content; min-width:100%; border-collapse:collapse; font-size:12px; }
     .scr-tbl-wrap thead tr { background:var(--card); border-bottom:0.5px solid var(--border); }
     .scr-tbl-wrap th {
       font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--muted);
@@ -1063,7 +1063,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 &mdash; Portfolio + WoW Tracker + Momentum Screener &mdash; Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.1 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
