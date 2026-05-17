@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.5</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.6</title>
 
   <!--
     ============================================================
@@ -1072,7 +1072,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.5 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.6 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -2157,7 +2157,7 @@
   }
 
   // localStorage cache — 1-day TTL
-  const SCR_CACHE_KEY = 'scr_cache_v1';
+  const SCR_CACHE_KEY = 'scr_cache_v2'; // v2: added skip-month, vol, adjRet, score52w
   function scrToday() { return new Date().toISOString().slice(0,10); }
   function scrLoadCache() {
     try {
