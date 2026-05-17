@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.6</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260517.8</title>
 
   <!--
     ============================================================
@@ -650,8 +650,20 @@
     }
 
     /* ── Phase 4: Screener ── */
-    .scr-wrap { display:grid; grid-template-columns:270px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; }
-    .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; padding:14px 13px; scrollbar-width:thin; }
+    .scr-wrap { display:grid; grid-template-columns:270px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; transition:grid-template-columns 0.25s ease; }
+    .scr-wrap.collapsed { grid-template-columns:36px 1fr; }
+    .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; overflow-x:hidden; padding:14px 13px; scrollbar-width:thin; position:relative; transition:padding 0.25s; }
+    .scr-wrap.collapsed .scr-sidebar { padding:8px 4px; overflow-y:hidden; }
+    .scr-sidebar-inner { transition:opacity 0.2s; }
+    .scr-wrap.collapsed .scr-sidebar-inner { opacity:0; pointer-events:none; }
+    .scr-collapse-btn {
+      position:sticky; top:0; width:100%; display:flex; align-items:center;
+      justify-content:flex-end; background:transparent; border:none;
+      cursor:pointer; padding:0 0 8px 0; color:var(--muted); font-size:14px;
+      z-index:10;
+    }
+    .scr-collapse-btn:hover { color:var(--text); }
+    .scr-wrap.collapsed .scr-collapse-btn { justify-content:center; padding:8px 0; }
     .scr-head {
       font-family:var(--font-mono); font-size:10px; font-weight:500;
       letter-spacing:0.1em; color:var(--muted); text-transform:uppercase;
@@ -938,7 +950,9 @@
         <div class="scr-wrap">
 
           <!-- Sidebar filters -->
-          <div class="scr-sidebar">
+          <div class="scr-sidebar" id="scr-sidebar">
+            <button class="scr-collapse-btn" onclick="scrToggleSidebar()" id="scr-collapse-btn" data-tip="Collapse filters">‹</button>
+            <div class="scr-sidebar-inner" id="scr-sidebar-inner">
 
             <div class="scr-head">Momentum <span class="scr-sub-label">all 5 must pass</span></div>
 
@@ -1057,7 +1071,8 @@
               <span id="scr-universe-count" style="font-family:var(--font-mono);font-size:13px;font-weight:500">555 stocks</span>
             </div>
 
-          </div>
+          </div> <!-- end scr-sidebar-inner -->
+          </div> <!-- end scr-sidebar -->
 
           <!-- Results panel -->
           <div class="scr-results" id="scr-results">
@@ -1072,7 +1087,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.6 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.8 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -2404,7 +2419,11 @@
     const ch = (i) => ci===i ? 'scol' : '';
 
     const rows = results.map(r => {
-      const p52 = r.pct52w != null ? r.pct52w.toFixed(1) : '—';
+      const p52     = r.pct52w != null ? r.pct52w : null;
+      const p52Disp = p52 === null ? '—'
+                    : p52 < 0  ? `<span style="color:#4caf50">▲ New High +${Math.abs(p52).toFixed(1)}%</span>`
+                    : p52 === 0 ? '0%'
+                    : `−${p52.toFixed(1)}%`;
       const isH = SCR_HOLDINGS.has(r.name);
       const rb  = rbc(r.position);
       return `<tr>
@@ -2428,7 +2447,7 @@
         <td class="scr-n ${rb} ${ch(8)}" data-tip="Vol-Adjusted Momentum Rank — 6M return / volatility (weighted 2x)">#${r.rankAdj}</td>
         <td class="scr-n ${rb} ${ch(9)}" data-tip="Volume Rank — recent vs 6M avg volume (weighted 1x) · >1 = accumulation">#${r.rankVol}${r.volRatio!=null?' <span style="font-size:10px;opacity:0.6">('+r.volRatio.toFixed(1)+'x)</span>':''}</td>
         <td class="scr-n ${rb} ${ch(10)}" data-tip="Position = weighted composite rank across ${total} stocks">#${r.position}<span class="scr-rof">/${total}</span></td>
-        <td class="scr-n scr-mu ${ch(11)}" data-tip="% below 52W high">${r.pct52w!=null?'−'+p52+'%':'—'}</td>
+        <td class="scr-n scr-mu ${ch(11)}" data-tip="% vs 52W high — green = new high">${p52Disp}</td>
         <td class="scr-n ${rcc(r.ret1y)} ${ch(12)}">${fmtR(r.ret1y)}</td>
         <td class="scr-n scr-mu ${ch(13)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
         <td>
@@ -2516,7 +2535,7 @@
     const sorted = [...scrLastResults].sort((a,b) => {
       let av, bv;
       if (key==='sig') { const o={strong:0,watch:1,mom:2}; av=o[a.sig]; bv=o[b.sig]; }
-      else if (key==='pct52w') { av=a.pct52w??999; bv=b.pct52w??999; }
+      else if (key==='pct52w') { av=a.pct52w??999; bv=b.pct52w??999; } // lower = better (at/above high)
       else { av=a[key]??0; bv=b[key]??0; }
       return scrSortAsc ? av-bv : bv-av;
     });
@@ -2524,6 +2543,14 @@
   }
 
   // Restore defaults
+  function scrToggleSidebar() {
+    const wrap = document.querySelector('.scr-wrap');
+    const btn  = document.getElementById('scr-collapse-btn');
+    const collapsed = wrap.classList.toggle('collapsed');
+    btn.textContent = collapsed ? '›' : '‹';
+    btn.setAttribute('data-tip', collapsed ? 'Expand filters' : 'Collapse filters');
+  }
+
   function scrRestoreDefaults() {
     document.getElementById('f-52w').value        = '20';
     document.getElementById('f-dma').value         = '100ema';
