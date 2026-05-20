@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.1</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.4</title>
 
   <!--
     ============================================================
@@ -1086,8 +1086,8 @@
         </div>
       </div>
 
-      <div class="footer">
-        Phase 4 · v4.20260517.13 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+      <div class="footer" id="app-footer">
+        Phase 4 · v4.20260520.2 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -1096,6 +1096,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
+  const APP_VERSION = 'v4.20260520.4'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2583,6 +2584,11 @@
   // INIT — set default WoW date on page load
   // ============================================================
   setDefaultWowDate();
+
+  // Sync version string to title + footer from single APP_VERSION constant
+  document.title = `🇮🇳 India Stock Tracker · ${APP_VERSION}`;
+  document.getElementById('app-footer').textContent =
+    `Phase 4 · ${APP_VERSION} · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance`;
 </script>
 </body>
 </html>
