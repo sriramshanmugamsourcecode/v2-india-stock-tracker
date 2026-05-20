@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260517.8</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.1</title>
 
   <!--
     ============================================================
@@ -1087,7 +1087,7 @@
       </div>
 
       <div class="footer">
-        Phase 4 · v4.20260517.8 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260517.13 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -2038,7 +2038,11 @@
     for (let i = days.length-n+1; i < days.length; i++) v = days[i].close*k + v*(1-k);
     return v;
   }
-  function scrHigh52(days) { return days.length ? Math.max(...days.map(d=>d.close)) : null; }
+  function scrHigh52(days) {
+    // Use exactly last 252 trading days (standard 52-week definition)
+    const lookback = days.slice(-252);
+    return lookback.length ? Math.max(...lookback.map(d => d.close)) : null;
+  }
 
   // Standard return (current price based) — used for display
   function scrReturn(days, n) {
@@ -2099,16 +2103,21 @@
   function scrVolRatio(days) {
     const n1m = SCR_TD['1m'], n6m = SCR_TD['6m'];
     if (days.length < n6m) return null;
-    const recent = days.slice(-n1m);
-    const older  = days.slice(-n6m);
+    const recent = days.slice(-n1m).filter(d => d.volume > 0);
+    const older  = days.slice(-n6m).filter(d => d.volume > 0);
+    if (!recent.length || !older.length) return null;
     const avgRecent = recent.reduce((s,d) => s+d.volume, 0) / recent.length;
-    const avg6m     = older.reduce((s,d)  => s+d.volume, 0) / older.length;
+    const avg6m     = older.reduce((s,d) => s+d.volume, 0) / older.length;
     return avg6m > 0 ? avgRecent / avg6m : null;
   }
 
   function scrCalc(raw) {
-    const { ticker, days, price } = raw;
-    if (!days.length || !price) return null;
+    const { ticker, days, price: livePrice } = raw;
+    if (!days.length) return null;
+    // Use last close for consistency with hi52 (both from same end-of-day data source)
+    // livePrice (regularMarketPrice) used only as fallback if no closes available
+    const price  = days[days.length - 1].close || livePrice;
+    if (!price) return null;
     const hi52   = scrHigh52(days);
     const vol    = scrVolatility(days);
     const r6mSkip = scrReturnSkip(days, SCR_TD['6m']);
@@ -2138,33 +2147,29 @@
   }
 
   // Ranking across full universe (run before filtering)
-  // Weights: 52W proximity (2x), adj momentum (2x), 6M skip (2x), 3M skip (2x), 1M skip (1x), vol ratio (1x)
+  // Weights: 52W proximity (2x), 6M skip (2x), 3M skip (2x), 1M skip (1x)
   function scrRank(stocks) {
     const rankBy = (arr, rk, rkk, ascending=false) => {
-      // ascending=true means lower value = better rank (e.g. pct52w: lower gap = better)
-      const valid  = arr.filter(s=>s[rk]!=null).sort((a,b) => ascending ? a[rk]-b[rk] : b[rk]-a[rk]);
+      const valid = arr.filter(s=>s[rk]!=null).sort((a,b) => ascending ? a[rk]-b[rk] : b[rk]-a[rk]);
       valid.forEach((s,i) => s[rkk] = i+1);
-      arr.filter(s=>s[rk]==null).forEach(s => s[rkk] = valid.length+1);
+      const medianRank = Math.round(valid.length / 2) || 1;
+      arr.filter(s=>s[rk]==null).forEach(s => s[rkk] = medianRank);
     };
 
-    // Rank each dimension (rank 1 = best in each)
-    rankBy(stocks, 'score52w',  'rank52w');      // higher score = closer to 52W high = better
-    rankBy(stocks, 'ret6mSkip', 'rank6m');       // higher skip-month 6M return = better
-    rankBy(stocks, 'ret3mSkip', 'rank3m');       // higher skip-month 3M return = better
-    rankBy(stocks, 'ret1mSkip', 'rank1m');       // higher skip-month 1M return = better
-    rankBy(stocks, 'adjRet',    'rankAdj');      // higher vol-adjusted return = better
-    rankBy(stocks, 'volRatio',  'rankVol');      // higher recent/historical volume = better
+    // Rank each dimension (rank 1 = best)
+    rankBy(stocks, 'score52w',  'rank52w');  // higher = closer to 52W high = better
+    rankBy(stocks, 'ret6mSkip', 'rank6m');   // higher skip-month 6M return = better
+    rankBy(stocks, 'ret3mSkip', 'rank3m');   // higher skip-month 3M return = better
+    rankBy(stocks, 'ret1mSkip', 'rank1m');   // higher skip-month 1M return = better
 
     // Weighted composite rank (lower = stronger momentum)
-    // 52W:2x  adjRet:2x  6M:2x  3M:2x  1M:1x  vol:1x  → total weight 10x
+    // 52W:2x  6M:2x  3M:2x  1M:1x  → total weight 7x
     stocks.forEach(s => {
       s.compositeRank =
-        s.rank52w  * 2 +
-        s.rankAdj  * 2 +
-        s.rank6m   * 2 +
-        s.rank3m   * 2 +
-        s.rank1m   * 1 +
-        s.rankVol  * 1;
+        s.rank52w * 2 +
+        s.rank6m  * 2 +
+        s.rank3m  * 2 +
+        s.rank1m  * 1;
     });
 
     // Position = ordinal rank by compositeRank across full universe
@@ -2350,7 +2355,7 @@
         else reasons.push('Price < ' + f.dma + ' DMA');
       }
       if (!mom.ema && f.emaCross === 'on') reasons.push('100 EMA < 200 EMA');
-      if (!mom.ret)    reasons.push(f.retPeriod===12?'1Y':f.retPeriod===6?'6M':'3M')+' return <' + f.retPct + '%';
+      if (!mom.ret)    reasons.push((f.retPeriod===12?'1Y':f.retPeriod===6?'6M':'3M') + ' return <' + f.retPct + '%');
       if (!mom.updays) reasons.push('Up days <' + f.updays + '%');
 
       if (!momPass) {
@@ -2414,7 +2419,7 @@
     };
 
     // Column index for sorted column highlight
-    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','rank52w','rankAdj','rankVol','position','pct52w','ret1y','updays'];
+    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','rank52w','position','pct52w','ret1y','updays'];
     const ci = cols.indexOf(scrSortKey);
     const ch = (i) => ci===i ? 'scol' : '';
 
@@ -2444,12 +2449,10 @@
         <td class="scr-n ${rcc(r.ret1m)} ${ch(5)}" data-tip="1M Return (display)">${fmtR(r.ret1m)}</td>
         <td class="scr-n ${rb} ${ch(6)}" data-tip="1M Rank (skip-month, weighted 1x)">#${r.rank1m}</td>
         <td class="scr-n ${rb} ${ch(7)}" data-tip="52W Proximity Rank — rank 1 = closest to 52W high (weighted 2x)">#${r.rank52w}</td>
-        <td class="scr-n ${rb} ${ch(8)}" data-tip="Vol-Adjusted Momentum Rank — 6M return / volatility (weighted 2x)">#${r.rankAdj}</td>
-        <td class="scr-n ${rb} ${ch(9)}" data-tip="Volume Rank — recent vs 6M avg volume (weighted 1x) · >1 = accumulation">#${r.rankVol}${r.volRatio!=null?' <span style="font-size:10px;opacity:0.6">('+r.volRatio.toFixed(1)+'x)</span>':''}</td>
-        <td class="scr-n ${rb} ${ch(10)}" data-tip="Position = weighted composite rank across ${total} stocks">#${r.position}<span class="scr-rof">/${total}</span></td>
-        <td class="scr-n scr-mu ${ch(11)}" data-tip="% vs 52W high — green = new high">${p52Disp}</td>
-        <td class="scr-n ${rcc(r.ret1y)} ${ch(12)}">${fmtR(r.ret1y)}</td>
-        <td class="scr-n scr-mu ${ch(13)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
+        <td class="scr-n ${rb} ${ch(8)}" data-tip="Position = weighted composite rank across ${total} stocks">#${r.position}<span class="scr-rof">/${total}</span></td>
+        <td class="scr-n scr-mu ${ch(9)}" data-tip="% vs 52W high — green = new high">${p52Disp}</td>
+        <td class="scr-n ${rcc(r.ret1y)} ${ch(10)}">${fmtR(r.ret1y)}</td>
+        <td class="scr-n scr-mu ${ch(11)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
         <td>
           <div style="display:flex;gap:3px;align-items:center">
             ${Object.entries(r.fund).map(([k,v])=>`<div class="scr-fdot ${fd(v)}" data-tip="${tip(k,v)}"></div>`).join('')}
@@ -2485,12 +2488,10 @@
             ${thS('ret1m',    'Ret_1M',     5)}
             ${thS('rank1m',   'Rank_1M',    6)}
             ${thS('rank52w',  'Rank_52W',   7)}
-            ${thS('rankAdj',  'Rank_AdjMom',8)}
-            ${thS('rankVol',  'Rank_Vol',   9)}
-            ${thS('position', 'Position',  10)}
-            ${thS('pct52w',   '52W gap',   11)}
-            ${thS('ret1y',    '1Y Ret',    12)}
-            ${thS('updays',   'Up Days',   13)}
+            ${thS('position', 'Position',   8)}
+            ${thS('pct52w',   '52W gap',    9)}
+            ${thS('ret1y',    '1Y Ret',    10)}
+            ${thS('updays',   'Up Days',   11)}
             <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
@@ -2499,9 +2500,8 @@
         </div>
       </div>
       <div class="scr-leg">
-        Position = weighted composite rank across ${total} stocks (52W×2 + AdjMom×2 + 6M×2 + 3M×2 + 1M×1 + Vol×1) &nbsp;|&nbsp;
-        Rank_52W: proximity to 52W high &nbsp;|&nbsp; Rank_AdjMom: vol-adjusted 6M momentum &nbsp;|&nbsp;
-        Rank_Vol: recent vs 6M avg volume (>1x = accumulation) &nbsp;|&nbsp;
+        Position = weighted composite rank across ${total} stocks (52W×2 + 6M×2 + 3M×2 + 1M×1) &nbsp;|&nbsp;
+        Rank_52W: proximity to 52W high &nbsp;|&nbsp;
         Returns ranked on skip-month basis (Jegadeesh-Titman) &nbsp;|&nbsp;
         <span style="color:#4caf50">■</span> top 10% &nbsp;
         <span style="color:var(--amber)">■</span> top 25% &nbsp;
@@ -2511,7 +2511,7 @@
       ${excluded && excluded.length ? `
       <div class="scr-log-wrap">
         <div class="scr-log-head" onclick="this.nextElementSibling.classList.toggle('open')">
-          <span>⚠ ${excluded.length} ${excluded.length} not in results (${excluded.filter(e=>e.layer==='fetch').length} fetch fail, ${excluded.filter(e=>e.layer!=='fetch').length} filtered) — click to expand</span>
+          <span>⚠ ${excluded.length} not in results (${excluded.filter(e=>e.layer==='fetch').length} fetch fail, ${excluded.filter(e=>e.layer!=='fetch').length} filtered) — click to expand</span>
           <span style="font-size:10px;opacity:0.5">▼</span>
         </div>
         <div class="scr-log-body">
@@ -2531,7 +2531,7 @@
   // Sort
   function scrSort(key, colIdx) {
     if (scrSortKey === key) scrSortAsc = !scrSortAsc;
-    else { scrSortKey = key; scrSortAsc = ['position','rank6m','rank3m','rank1m','rank52w','rankAdj','rankVol','pct52w'].includes(key); }
+    else { scrSortKey = key; scrSortAsc = ['position','rank6m','rank3m','rank1m','rank52w','pct52w'].includes(key); }
     const sorted = [...scrLastResults].sort((a,b) => {
       let av, bv;
       if (key==='sig') { const o={strong:0,watch:1,mom:2}; av=o[a.sig]; bv=o[b.sig]; }
