@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.4</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.5</title>
 
   <!--
     ============================================================
@@ -635,6 +635,56 @@
     }
     .wow-delete-btn:hover { background: rgba(248,113,113,0.1); }
 
+    /* ── WoW Stock Modal ── */
+    .wow-stock-link {
+      cursor: pointer; text-decoration: underline dotted;
+      text-underline-offset: 3px; color: inherit; transition: color 0.15s;
+    }
+    .wow-stock-link:hover { color: var(--accent); }
+
+    .wow-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.72);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .wow-modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .wow-modal {
+      background: var(--bg2); border: 0.5px solid var(--border2);
+      border-radius: 16px; width: 100%; max-width: 720px;
+      max-height: 88vh; overflow-y: auto; padding: 28px;
+      transform: translateY(12px); transition: transform 0.2s;
+      scrollbar-width: thin;
+    }
+    .wow-modal-overlay.open .wow-modal { transform: translateY(0); }
+
+    .wow-modal-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 20px;
+    }
+    .wow-modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+    .wow-modal-sub   { font-size: 11px; color: var(--muted); font-family: var(--font-mono); margin-top: 4px; }
+    .wow-modal-close {
+      background: var(--bg3); border: 0.5px solid var(--border);
+      color: var(--muted); width: 30px; height: 30px; border-radius: 8px;
+      cursor: pointer; font-size: 16px; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; transition: color 0.15s;
+    }
+    .wow-modal-close:hover { color: var(--text); }
+
+    .wow-modal-canvas-wrap {
+      background: var(--bg3); border-radius: 10px;
+      padding: 16px; margin-bottom: 20px;
+    }
+    .wow-modal canvas { width: 100%; display: block; }
+
+    .wow-modal-legend {
+      display: flex; gap: 16px; margin-top: 10px;
+      font-size: 11px; color: var(--muted); font-family: var(--font-mono);
+    }
+    .wow-modal-legend span { display: flex; align-items: center; gap: 5px; }
+    .wow-modal-legend i { display: inline-block; width: 20px; height: 2px; border-radius: 1px; }
+
     .signal-add  { color: var(--accent); font-weight: 600; }
     .signal-hold { color: var(--amber);  font-weight: 600; }
     .signal-pass { color: var(--red);    font-weight: 600; }
@@ -1086,6 +1136,27 @@
         </div>
       </div>
 
+      <!-- WoW Stock Detail Modal -->
+      <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
+        <div class="wow-modal" id="wow-modal">
+          <div class="wow-modal-header">
+            <div>
+              <div class="wow-modal-title" id="wow-modal-title"></div>
+              <div class="wow-modal-sub" id="wow-modal-sub"></div>
+            </div>
+            <button class="wow-modal-close" onclick="closeWowModal(null)">✕</button>
+          </div>
+          <div class="wow-modal-canvas-wrap">
+            <canvas id="wow-modal-canvas" height="220"></canvas>
+            <div class="wow-modal-legend">
+              <span><i style="background:var(--accent)"></i> Week Close</span>
+              <span><i style="background:var(--amber);border-top:2px dashed var(--amber);height:0"></i> Avg Buy</span>
+            </div>
+          </div>
+          <div id="wow-modal-table"></div>
+        </div>
+      </div>
+
       <div class="footer" id="app-footer">
         Phase 4 · v4.20260520.2 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
       </div>
@@ -1096,7 +1167,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260520.4'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260520.5'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1810,7 +1881,7 @@
         const wowCls    = wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text';
 
         return `<tr>
-          <td style="font-weight:500">${h.name}</td>
+          <td style="font-weight:500"><span class="wow-stock-link" onclick="openWowModal('${h.ticker}')">${h.name}</span></td>
           <td><span class="ticker-pill">${h.ticker}</span></td>
           <td class="mono">${fmt(h.avgBuy)}</td>
           <td class="mono">${fmtPrice(price)}</td>
@@ -1845,7 +1916,154 @@
     document.getElementById('wow-section').innerHTML = weekCards;
   }
 
-  // Load WoW data (called from loadAll)
+  // ============================================================
+  // WoW STOCK DETAIL MODAL
+  // ============================================================
+  function openWowModal(ticker) {
+    const { holdings } = calcPortfolio();
+    const holding = holdings.find(h => h.ticker === ticker);
+    if (!holding) return;
+
+    // Build chronological price history for this ticker
+    const weekMap = {};
+    wowEntries.forEach(e => {
+      if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
+      weekMap[e.week_date][e.ticker] = e.close_price;
+    });
+    const weeks = Object.keys(weekMap).sort((a, b) => a.localeCompare(b)); // oldest first for chart
+
+    const history = weeks
+      .map(w => ({ date: w, price: weekMap[w][ticker] }))
+      .filter(d => d.price != null);
+
+    if (!history.length) return;
+
+    // Populate header
+    document.getElementById('wow-modal-title').textContent = `${holding.name} (${ticker})`;
+    document.getElementById('wow-modal-sub').textContent =
+      `Avg Buy ₹${holding.avgBuy.toFixed(2)} · ${holding.netQty} shares · ${history.length} weeks tracked`;
+
+    // Draw chart
+    drawWowChart(history, holding.avgBuy);
+
+    // Build history table (newest first)
+    const tableRows = [...history].reverse().map((d, i, arr) => {
+      const prev       = arr[i + 1];
+      const wowChgPct  = prev ? ((d.price - prev.price) / prev.price) * 100 : null;
+      const pnlPct     = ((d.price - holding.avgBuy) / holding.avgBuy) * 100;
+      const signal     = getPyramidSignal(pnlPct, wowChgPct, pnlFloor);
+      const pnlCls     = pnlPct >= 0 ? 'positive-text' : 'negative-text';
+      const wowCls     = wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text';
+      return `<tr>
+        <td class="mono">${fmtDate(d.date)}</td>
+        <td class="mono">${fmtPrice(d.price)}</td>
+        <td class="mono ${wowCls}">${wowChgPct != null ? fmtPct(wowChgPct) : '—'}</td>
+        <td class="mono ${pnlCls}">${fmtPct(pnlPct)}</td>
+        <td class="${signal.cls}">${signal.label}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('wow-modal-table').innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Week</th><th>Close Price</th><th>WoW Chg%</th><th>P&amp;L%</th><th>Signal</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
+
+    document.getElementById('wow-modal-overlay').classList.add('open');
+  }
+
+  function closeWowModal(e) {
+    if (e && e.target !== document.getElementById('wow-modal-overlay')) return;
+    document.getElementById('wow-modal-overlay').classList.remove('open');
+  }
+
+  function drawWowChart(history, avgBuy) {
+    const canvas = document.getElementById('wow-modal-canvas');
+    const dpr    = window.devicePixelRatio || 1;
+    const W      = canvas.parentElement.clientWidth - 32; // subtract padding
+    const H      = 220;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const pad = { top: 16, right: 16, bottom: 36, left: 56 };
+    const cw  = W - pad.left - pad.right;
+    const ch  = H - pad.top  - pad.bottom;
+
+    const prices   = history.map(d => d.price);
+    const allVals  = [...prices, avgBuy];
+    const minV     = Math.min(...allVals) * 0.98;
+    const maxV     = Math.max(...allVals) * 1.02;
+    const scaleY   = v => pad.top + ch - ((v - minV) / (maxV - minV)) * ch;
+    const scaleX   = i => pad.left + (i / Math.max(history.length - 1, 1)) * cw;
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth   = 1;
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = pad.top + ch * t;
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+      const val = maxV - t * (maxV - minV);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = `10px monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText('₹' + val.toFixed(0), pad.left - 6, y + 3);
+    });
+
+    // Avg buy price dashed line
+    const avgY = scaleY(avgBuy);
+    ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.left, avgY); ctx.lineTo(pad.left + cw, avgY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Area fill under price line
+    const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+    grad.addColorStop(0, 'rgba(99,179,237,0.18)');
+    grad.addColorStop(1, 'rgba(99,179,237,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), pad.top + ch);
+    history.forEach((d, i) => ctx.lineTo(scaleX(i), scaleY(d.price)));
+    ctx.lineTo(scaleX(history.length - 1), pad.top + ch);
+    ctx.closePath(); ctx.fill();
+
+    // Price line
+    ctx.strokeStyle = '#63b3ed';
+    ctx.lineWidth   = 2;
+    ctx.lineJoin    = 'round';
+    ctx.beginPath();
+    history.forEach((d, i) => {
+      i === 0 ? ctx.moveTo(scaleX(i), scaleY(d.price))
+              : ctx.lineTo(scaleX(i), scaleY(d.price));
+    });
+    ctx.stroke();
+
+    // Dots + x-axis labels
+    history.forEach((d, i) => {
+      const x = scaleX(i), y = scaleY(d.price);
+      ctx.fillStyle    = '#63b3ed';
+      ctx.strokeStyle  = 'var(--bg3)';
+      ctx.lineWidth    = 2;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+
+      // X label: show every label if ≤8 weeks, else alternate
+      if (history.length <= 8 || i % 2 === 0) {
+        ctx.fillStyle   = 'rgba(255,255,255,0.35)';
+        ctx.font        = '9px monospace';
+        ctx.textAlign   = 'center';
+        const label     = d.date.slice(5); // MM-DD
+        ctx.fillText(label, x, H - pad.bottom + 14);
+      }
+    });
+  }
   async function loadWow() {
     await loadWowEntries();
     setDefaultWowDate();
