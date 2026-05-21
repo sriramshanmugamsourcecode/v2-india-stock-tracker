@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.6</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.7</title>
 
   <!--
     ============================================================
@@ -1180,7 +1180,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260520.6'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260520.7'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1804,14 +1804,17 @@
   }
 
   // RENDER: WoW TRACKER
-  // Sort state: { [dateStr]: { col: 'name'|'ticker'|'avgBuy'|'price'|'pnl'|'vsFloor'|'wow'|'signal', dir: 1|-1 } }
+  // Sort state: { [dateStr]: { col, dir } }
+  // Signal order: Strong Add=1, Hold=2, Watch=3, Don't Add=4
   const wowSortState = {};
+  const WOW_SIGNAL_ORDER = { 'signal-add': 1, 'signal-hold': 2, 'signal-pass': 3, '': 4 };
 
   function wowSortRows(rows, col, dir) {
     return [...rows].sort((a, b) => {
       let av = a[col], bv = b[col];
-      if (av == null) av = -Infinity;
-      if (bv == null) bv = -Infinity;
+      if (col === 'signal') { av = a.signalOrder; bv = b.signalOrder; }
+      if (av == null) av = dir === 1 ? Infinity : -Infinity;
+      if (bv == null) bv = dir === 1 ? Infinity : -Infinity;
       if (typeof av === 'string') return dir * av.localeCompare(bv);
       return dir * (av - bv);
     });
@@ -1831,7 +1834,7 @@
         <td class="mono ${r.pnlCls}">${fmtPct(r.pnlPct)}</td>
         <td class="mono ${r.fCls}">${r.pnlPct >= pnlFloor ? '🟢' : r.pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(r.pnlPct - pnlFloor)}</td>
         <td class="mono ${r.wowCls}">${r.wowChgPct != null ? fmtPct(r.wowChgPct) : '—'}</td>
-        <td class="${r.signal.cls}" style="white-space:nowrap">${r.signal.label} ${buyQtyBtn}</td>
+        <td class="${r.signalCls}" style="white-space:nowrap">${r.signalLabel} ${buyQtyBtn}</td>
       </tr>`;
     }).join('');
   }
@@ -1840,11 +1843,11 @@
     const cur = wowSortState[dateStr] || { col: 'name', dir: 1 };
     const dir = cur.col === col ? -cur.dir : 1;
     wowSortState[dateStr] = { col, dir };
-    // Re-render just this card's tbody
-    const tbody = document.getElementById('wow-tbody-' + dateStr);
-    const rowData = JSON.parse(document.getElementById('wow-rowdata-' + dateStr).textContent);
-    if (tbody) tbody.innerHTML = renderWowTableBody(dateStr, rowData, col, dir);
-    // Update header arrows
+    const tbody  = document.getElementById('wow-tbody-' + dateStr);
+    const stored = document.getElementById('wow-rowdata-' + dateStr);
+    if (!tbody || !stored) return;
+    const rowData = JSON.parse(stored.textContent);
+    tbody.innerHTML = renderWowTableBody(dateStr, rowData, col, dir);
     const thead = document.getElementById('wow-thead-' + dateStr);
     if (thead) {
       thead.querySelectorAll('th[data-col]').forEach(th => {
@@ -1852,6 +1855,15 @@
         if (arrow) arrow.textContent = th.dataset.col === col ? (dir === 1 ? ' ▲' : ' ▼') : ' ⇅';
       });
     }
+  }
+
+  function toggleWowWeek(dateStr) {
+    const body = document.getElementById('wow-body-' + dateStr);
+    const icon = document.getElementById('wow-icon-' + dateStr);
+    if (!body) return;
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    if (icon) icon.textContent = isOpen ? '▶' : '▼';
   }
 
   function renderWow() {
@@ -1925,10 +1937,11 @@
     }
 
     // Render each week as a card (newest first)
-    const weekCards = weeks.map(dateStr => {
+    const weekCards = weeks.map((dateStr, weekIdx) => {
       const prices     = weekMap[dateStr];
-      const prevDate   = weeks[weeks.indexOf(dateStr) + 1];
+      const prevDate   = weeks[weekIdx + 1];
       const prevPrices = prevDate ? weekMap[prevDate] : null;
+      const isLatest   = weekIdx === 0;
 
       // Build row data objects (sortable)
       const rowData = holdings.map(h => {
@@ -1944,37 +1957,61 @@
           avgBuy: h.avgBuy, price, qty: h.netQty,
           pnlPct, vsFloor: pnlPct - pnlFloor,
           wowChgPct: wowChgPct ?? null,
-          signal, isStrongAdd: signal.cls === 'signal-add',
-          pnlCls:  pnlPct >= 0 ? 'positive-text' : 'negative-text',
-          fCls:    floorClass(pnlPct, pnlFloor),
-          wowCls:  wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
+          signalLabel: signal.label, signalCls: signal.cls,
+          signalOrder: WOW_SIGNAL_ORDER[signal.cls] ?? 4,
+          isStrongAdd: signal.cls === 'signal-add',
+          pnlCls: pnlPct >= 0 ? 'positive-text' : 'negative-text',
+          fCls:   floorClass(pnlPct, pnlFloor),
+          wowCls: wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
         };
       }).filter(Boolean);
 
       const sort       = wowSortState[dateStr] || { col: 'name', dir: 1 };
-      const stockCount = Object.keys(prices).length;
+      const stockCount = rowData.length;
+      const strongAdds = rowData.filter(r => r.isStrongAdd).length;
+      // Overall P&L for this week
+      const wTotalInv  = rowData.reduce((s,r) => s + r.avgBuy * r.qty, 0);
+      const wTotalCurr = rowData.reduce((s,r) => s + r.price * r.qty, 0);
+      const wPnlPct    = wTotalInv > 0 ? ((wTotalCurr - wTotalInv) / wTotalInv) * 100 : 0;
+      const wPnlCls    = wPnlPct >= pnlFloor ? 'positive-text' : wPnlPct >= pnlFloor - 5 ? '' : 'negative-text';
 
-      const thStyle    = 'cursor:pointer;user-select:none';
-      const arrow      = col => `<span class="sort-arrow">${sort.col === col ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ⇅'}</span>`;
-      const th         = (col, label) => `<th data-col="${col}" style="${thStyle}" onclick="wowSortBy('${dateStr}','${col}')">${label}${arrow(col)}</th>`;
+      const thStyle = 'cursor:pointer;user-select:none';
+      const arrow   = col => `<span class="sort-arrow">${sort.col === col ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ⇅'}</span>`;
+      const th      = (col, label) => `<th data-col="${col}" style="${thStyle}" onclick="wowSortBy('${dateStr}','${col}')">${label}${arrow(col)}</th>`;
+
+      const summaryPills = `
+        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">
+          ${stockCount} stocks &nbsp;·&nbsp;
+          <span class="signal-add">${strongAdds} Strong Add</span> &nbsp;·&nbsp;
+          Overall P&L: <span class="${wPnlCls}">${fmtPct(wPnlPct)}</span>
+        </span>`;
 
       return `
         <div class="wow-week-card">
-          <div class="wow-week-header">
-            <div>
-              <div class="wow-week-title">Week of ${fmtDate(dateStr)}</div>
-              <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px">${stockCount} stocks tracked</div>
+          <div class="wow-week-header" ${!isLatest ? `onclick="toggleWowWeek('${dateStr}')" style="cursor:pointer"` : ''}>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${!isLatest ? `<span id="wow-icon-${dateStr}" style="font-size:11px;color:var(--muted)">▶</span>` : ''}
+              <div>
+                <div class="wow-week-title">
+                  Week of ${fmtDate(dateStr)}
+                  ${isLatest ? '<span style="font-size:10px;background:var(--accent);color:#000;padding:2px 7px;border-radius:10px;margin-left:8px;font-family:var(--font-mono);font-weight:600">LATEST</span>' : ''}
+                </div>
+                ${!isLatest ? `<div style="margin-top:3px">${summaryPills}</div>` : ''}
+                ${isLatest ? `<div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px">${stockCount} stocks tracked</div>` : ''}
+              </div>
             </div>
-            <button class="wow-delete-btn" onclick="deleteWowWeek('${dateStr}')">✕ Delete Week</button>
+            <button class="wow-delete-btn" onclick="event.stopPropagation();deleteWowWeek('${dateStr}')">✕ Delete Week</button>
           </div>
-          <table>
-            <thead id="wow-thead-${dateStr}"><tr>
-              ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
-              ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}${th('signal','Signal')}
-            </tr></thead>
-            <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
-          </table>
-          <script type="application/json" id="wow-rowdata-${dateStr}">${JSON.stringify(rowData)}<\/script>
+          <div id="wow-body-${dateStr}" ${!isLatest ? 'style="display:none"' : ''}>
+            <table>
+              <thead id="wow-thead-${dateStr}"><tr>
+                ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
+                ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}${th('signal','Signal')}
+              </tr></thead>
+              <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
+            </table>
+            <script type="application/json" id="wow-rowdata-${dateStr}">${JSON.stringify(rowData)}<\/script>
+          </div>
         </div>`;
     }).join('');
 
