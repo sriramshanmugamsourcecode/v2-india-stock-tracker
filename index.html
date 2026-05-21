@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260521.1</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260521.3</title>
 
   <!--
     ============================================================
@@ -814,8 +814,8 @@
     .scr-tbl-wrap table { width:max-content; min-width:100%; border-collapse:collapse; font-size:12px; }
     .scr-tbl-wrap thead tr { background:var(--card); border-bottom:0.5px solid var(--border); }
     .scr-tbl-wrap th {
-      font-family:var(--font-mono); font-size:10px; font-weight:500; color:var(--muted);
-      letter-spacing:0.05em; text-transform:uppercase; padding:9px 8px;
+      font-family:var(--font-mono); font-size:9px; font-weight:500; color:var(--muted);
+      letter-spacing:0.04em; text-transform:uppercase; padding:9px 6px;
       text-align:left; white-space:nowrap;
     }
     .scr-tbl-wrap th.srt { cursor:pointer; user-select:none; }
@@ -826,7 +826,7 @@
     .scr-tbl-wrap tbody tr { border-bottom:0.5px solid var(--border); transition:background 0.1s; }
     .scr-tbl-wrap tbody tr:last-child { border-bottom:none; }
     .scr-tbl-wrap tbody tr:hover { background:var(--card); }
-    .scr-tbl-wrap td { padding:8px 8px; vertical-align:middle; }
+    .scr-tbl-wrap td { padding:8px 6px; vertical-align:middle; }
     .scr-tbl-wrap td.scol { background:rgba(99,179,237,0.03); }
     .scr-scell { display:flex; align-items:center; gap:7px; }
     .scr-sdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
@@ -1200,7 +1200,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260521.1'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260521.3'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2807,11 +2807,12 @@
     };
 
     // Column index for sorted column highlight
-    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','rank52w','position','pct52w','ret1y','updays'];
+    const cols = ['sig','ret6m','rank6m','ret3m','rank3m','ret1m','rank1m','rank52w','position','pct52w','ret1y','updays','adtv','volatility'];
     const ci = cols.indexOf(scrSortKey);
     const ch = (i) => ci===i ? 'scol' : '';
 
-    const rows = results.map(r => {
+    const rows = results.map((r, idx) => {
+      const filteredRank = idx + 1;
       const p52     = r.pct52w != null ? r.pct52w : null;
       const p52Disp = p52 === null ? '—'
                     : p52 < 0  ? `<span style="color:#4caf50">▲ New High +${Math.abs(p52).toFixed(1)}%</span>`
@@ -2837,7 +2838,7 @@
         <td class="scr-n ${rcc(r.ret1m)} ${ch(5)}" data-tip="1M Return (display)">${fmtR(r.ret1m)}</td>
         <td class="scr-n ${rb} ${ch(6)}" data-tip="1M Rank (skip-month, weighted 1x)">#${r.rank1m}</td>
         <td class="scr-n ${rb} ${ch(7)}" data-tip="52W Proximity Rank — rank 1 = closest to 52W high (weighted 2x)">#${r.rank52w}</td>
-        <td class="scr-n ${rb} ${ch(8)}" data-tip="Position = weighted composite rank across ${total} stocks">#${r.position}<span class="scr-rof">/${total}</span></td>
+        <td class="scr-n ${rb} ${ch(8)}" data-tip="Universe rank: #${r.position}/${total} across all ${total} stocks">${filteredRank}<span class="scr-rof">/${results.length}</span></td>
         <td class="scr-n scr-mu ${ch(9)}" data-tip="% vs 52W high — green = new high">${p52Disp}</td>
         <td class="scr-n ${rcc(r.ret1y)} ${ch(10)}">${fmtR(r.ret1y)}</td>
         <td class="scr-n scr-mu ${ch(11)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
@@ -2870,20 +2871,20 @@
         <table>
           <thead><tr>
             <th>Stock</th>
-            ${thS('sig',      'Signal',     0)}
-            ${thS('ret6m',    'Ret_6M',     1)}
-            ${thS('rank6m',   'Rank_6M',    2)}
-            ${thS('ret3m',    'Ret_3M',     3)}
-            ${thS('rank3m',   'Rank_3M',    4)}
-            ${thS('ret1m',    'Ret_1M',     5)}
-            ${thS('rank1m',   'Rank_1M',    6)}
-            ${thS('rank52w',  'Rank_52W',   7)}
-            ${thS('position', 'Position',   8)}
-            ${thS('pct52w',   '52W gap',    9)}
-            ${thS('ret1y',    '1Y Ret',    10)}
-            ${thS('updays',   'Up Days',   11)}
-            ${thS('adtv',       'ADTV ₹Cr',  12)}
-            ${thS('volatility', 'Vol %',     13)}
+            ${thS('sig',        'Signal',    0)}
+            ${thS('ret6m',      '6M Ret',    1)}
+            ${thS('rank6m',     '6M Rnk',    2)}
+            ${thS('ret3m',      '3M Ret',    3)}
+            ${thS('rank3m',     '3M Rnk',    4)}
+            ${thS('ret1m',      '1M Ret',    5)}
+            ${thS('rank1m',     '1M Rnk',    6)}
+            ${thS('rank52w',    '52W Rnk',   7)}
+            ${thS('position',   'Rank',       8)}
+            ${thS('pct52w',     '52W Gap',   9)}
+            ${thS('ret1y',      '1Y Ret',   10)}
+            ${thS('updays',     'Up Days',  11)}
+            ${thS('adtv',       'ADTV ₹Cr', 12)}
+            ${thS('volatility', 'Vol %',    13)}
             <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
