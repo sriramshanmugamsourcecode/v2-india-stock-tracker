@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.8</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260521.1</title>
 
   <!--
     ============================================================
@@ -1029,6 +1029,16 @@
               </select>
             </div>
 
+            <div class="scr-row"><label>Max volatility (annual)</label>
+              <select id="f-vol">
+                <option value="40">Below 40%</option>
+                <option value="25">Below 25%</option>
+                <option value="35">Below 35%</option>
+                <option value="50">Below 50%</option>
+                <option value="NaN">None (skip)</option>
+              </select>
+            </div>
+
             <div class="scr-row"><label>52W high proximity</label>
               <select id="f-52w">
                 <option value="20">Within 20%</option>
@@ -1190,7 +1200,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260520.8'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260521.1'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2511,19 +2521,21 @@
     };
 
     // Rank each dimension (rank 1 = best)
-    rankBy(stocks, 'score52w',  'rank52w');  // higher = closer to 52W high = better
-    rankBy(stocks, 'ret6mSkip', 'rank6m');   // higher skip-month 6M return = better
-    rankBy(stocks, 'ret3mSkip', 'rank3m');   // higher skip-month 3M return = better
-    rankBy(stocks, 'ret1mSkip', 'rank1m');   // higher skip-month 1M return = better
+    rankBy(stocks, 'score52w',  'rank52w');   // higher = closer to 52W high = better
+    rankBy(stocks, 'ret6mSkip', 'rank6m');    // higher skip-month 6M return = better
+    rankBy(stocks, 'ret3mSkip', 'rank3m');    // higher skip-month 3M return = better
+    rankBy(stocks, 'ret1mSkip', 'rank1m');    // higher skip-month 1M return = better
+    rankBy(stocks, 'adjRet',    'rankAdjRet'); // higher vol-adjusted return = better (1x weight)
 
     // Weighted composite rank (lower = stronger momentum)
-    // 52W:2x  6M:2x  3M:2x  1M:1x  → total weight 7x
+    // 52W:2x  6M:2x  3M:2x  1M:1x  adjRet:1x  → total weight 8x
     stocks.forEach(s => {
       s.compositeRank =
-        s.rank52w * 2 +
-        s.rank6m  * 2 +
-        s.rank3m  * 2 +
-        s.rank1m  * 1;
+        s.rank52w    * 2 +
+        s.rank6m     * 2 +
+        s.rank3m     * 2 +
+        s.rank1m     * 1 +
+        s.rankAdjRet * 1;  // tiebreaker: smooth climbers rank above volatile rockets
     });
 
     // Position = ordinal rank by compositeRank across full universe
@@ -2531,7 +2543,7 @@
   }
 
   // localStorage cache — 1-day TTL
-  const SCR_CACHE_KEY = 'scr_cache_v3'; // v3: added adtv (avg daily traded value)
+  const SCR_CACHE_KEY = 'scr_cache_v4'; // v4: adjRet added to composite rank, adtv, volatility filter
   function scrToday() { return new Date().toISOString().slice(0,10); }
   function scrLoadCache() {
     try {
@@ -2548,7 +2560,8 @@
   // Filter logic
   function scrGetFilters() {
     return {
-      adtv:      parseFloat(document.getElementById('f-adtv').value), // NaN = skip (None option)
+      adtv:      parseFloat(document.getElementById('f-adtv').value),
+      maxVol:    parseFloat(document.getElementById('f-vol').value),  // NaN = skip
       pct52w:    parseFloat(document.getElementById('f-52w').value),
       dma:       document.getElementById('f-dma').value,   // '50','100','200','100ema','brutal'
       emaCross:  document.getElementById('f-ema').value,   // 'on' or 'off'
@@ -2707,6 +2720,16 @@
         }
       }
 
+      // ── Volatility cap — filter erratic rockets, keep steady climbers ──
+      if (!isNaN(f.maxVol) && f.maxVol > 0) {
+        if (s.volatility == null || s.volatility > f.maxVol) {
+          const volStr = s.volatility != null ? s.volatility.toFixed(1) + '%' : 'no data';
+          excluded.push({ name: s.name||s.ticker, ticker: s.ticker,
+            reasons: [`Volatility ${volStr} > ${f.maxVol}% cap`], layer: 'volatility' });
+          continue;
+        }
+      }
+
       const mom  = scrMomentum(s, f);
       const fund = scrFund(s, f);
       const momPass = Object.values(mom).every(Boolean);
@@ -2819,6 +2842,7 @@
         <td class="scr-n ${rcc(r.ret1y)} ${ch(10)}">${fmtR(r.ret1y)}</td>
         <td class="scr-n scr-mu ${ch(11)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
         <td class="scr-n scr-mu ${ch(12)}" data-tip="Avg Daily Traded Value (last 20 days)">${r.adtv!=null?r.adtv.toFixed(1):'—'}</td>
+        <td class="scr-n scr-mu ${ch(13)}" data-tip="Annualised volatility — lower = steadier trend">${r.volatility!=null?r.volatility.toFixed(1)+'%':'—'}</td>
         <td>
           <div style="display:flex;gap:3px;align-items:center">
             ${Object.entries(r.fund).map(([k,v])=>`<div class="scr-fdot ${fd(v)}" data-tip="${tip(k,v)}"></div>`).join('')}
@@ -2858,7 +2882,8 @@
             ${thS('pct52w',   '52W gap',    9)}
             ${thS('ret1y',    '1Y Ret',    10)}
             ${thS('updays',   'Up Days',   11)}
-            ${thS('adtv',     'ADTV ₹Cr',  12)}
+            ${thS('adtv',       'ADTV ₹Cr',  12)}
+            ${thS('volatility', 'Vol %',     13)}
             <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
@@ -2867,7 +2892,7 @@
         </div>
       </div>
       <div class="scr-leg">
-        Position = weighted composite rank across ${total} stocks (52W×2 + 6M×2 + 3M×2 + 1M×1) &nbsp;|&nbsp;
+        Position = weighted composite rank across ${total} stocks (52W×2 + 6M×2 + 3M×2 + 1M×1 + AdjRet×1) &nbsp;|&nbsp;
         Rank_52W: proximity to 52W high &nbsp;|&nbsp;
         Returns ranked on skip-month basis (Jegadeesh-Titman) &nbsp;|&nbsp;
         <span style="color:#4caf50">■</span> top 10% &nbsp;
@@ -2920,6 +2945,7 @@
 
   function scrRestoreDefaults() {
     document.getElementById('f-adtv').value         = '5';
+    document.getElementById('f-vol').value          = '40';
     document.getElementById('f-52w').value          = '20';
     document.getElementById('f-dma').value         = '100ema';
     document.getElementById('f-ema').value         = 'on';
