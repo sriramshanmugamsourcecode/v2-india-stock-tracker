@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.5</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.6</title>
 
   <!--
     ============================================================
@@ -642,6 +642,19 @@
     }
     .wow-stock-link:hover { color: var(--accent); }
 
+    .sort-arrow { font-size: 9px; opacity: 0.5; }
+    th[data-col]:hover .sort-arrow { opacity: 1; }
+    th[data-col]:hover { color: var(--text); }
+
+    .wow-qty-btn {
+      background: var(--bg3); border: 0.5px solid var(--border2);
+      color: var(--muted); font-size: 10px; padding: 2px 7px;
+      border-radius: 6px; cursor: pointer; margin-left: 6px;
+      font-family: var(--font-mono); transition: color 0.15s, border-color 0.15s;
+      vertical-align: middle;
+    }
+    .wow-qty-btn:hover { color: var(--accent); border-color: var(--accent); }
+
     .wow-modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.72);
       z-index: 1000; display: flex; align-items: center; justify-content: center;
@@ -1167,7 +1180,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260520.5'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260520.6'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1791,6 +1804,56 @@
   }
 
   // RENDER: WoW TRACKER
+  // Sort state: { [dateStr]: { col: 'name'|'ticker'|'avgBuy'|'price'|'pnl'|'vsFloor'|'wow'|'signal', dir: 1|-1 } }
+  const wowSortState = {};
+
+  function wowSortRows(rows, col, dir) {
+    return [...rows].sort((a, b) => {
+      let av = a[col], bv = b[col];
+      if (av == null) av = -Infinity;
+      if (bv == null) bv = -Infinity;
+      if (typeof av === 'string') return dir * av.localeCompare(bv);
+      return dir * (av - bv);
+    });
+  }
+
+  function renderWowTableBody(dateStr, rowData, sortCol, sortDir) {
+    const sorted = wowSortRows(rowData, sortCol, sortDir);
+    return sorted.map(r => {
+      const buyQtyBtn = r.isStrongAdd
+        ? `<button class="wow-qty-btn" onclick="calcBuyQty(this,${r.avgBuy},${r.price},${r.qty},${pnlFloor})">🧮 Qty?</button>`
+        : '';
+      return `<tr>
+        <td style="font-weight:500"><span class="wow-stock-link" onclick="openWowModal('${r.ticker}')">${r.name}</span></td>
+        <td><span class="ticker-pill">${r.ticker}</span></td>
+        <td class="mono">${fmt(r.avgBuy)}</td>
+        <td class="mono">${fmtPrice(r.price)}</td>
+        <td class="mono ${r.pnlCls}">${fmtPct(r.pnlPct)}</td>
+        <td class="mono ${r.fCls}">${r.pnlPct >= pnlFloor ? '🟢' : r.pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(r.pnlPct - pnlFloor)}</td>
+        <td class="mono ${r.wowCls}">${r.wowChgPct != null ? fmtPct(r.wowChgPct) : '—'}</td>
+        <td class="${r.signal.cls}" style="white-space:nowrap">${r.signal.label} ${buyQtyBtn}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function wowSortBy(dateStr, col) {
+    const cur = wowSortState[dateStr] || { col: 'name', dir: 1 };
+    const dir = cur.col === col ? -cur.dir : 1;
+    wowSortState[dateStr] = { col, dir };
+    // Re-render just this card's tbody
+    const tbody = document.getElementById('wow-tbody-' + dateStr);
+    const rowData = JSON.parse(document.getElementById('wow-rowdata-' + dateStr).textContent);
+    if (tbody) tbody.innerHTML = renderWowTableBody(dateStr, rowData, col, dir);
+    // Update header arrows
+    const thead = document.getElementById('wow-thead-' + dateStr);
+    if (thead) {
+      thead.querySelectorAll('th[data-col]').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (arrow) arrow.textContent = th.dataset.col === col ? (dir === 1 ? ' ▲' : ' ▼') : ' ⇅';
+      });
+    }
+  }
+
   function renderWow() {
     const { holdings } = calcPortfolio();
 
@@ -1863,36 +1926,37 @@
 
     // Render each week as a card (newest first)
     const weekCards = weeks.map(dateStr => {
-      const prices    = weekMap[dateStr];
-      const prevDate  = weeks[weeks.indexOf(dateStr) + 1];
+      const prices     = weekMap[dateStr];
+      const prevDate   = weeks[weeks.indexOf(dateStr) + 1];
       const prevPrices = prevDate ? weekMap[prevDate] : null;
 
-      const rows = holdings.map(h => {
+      // Build row data objects (sortable)
+      const rowData = holdings.map(h => {
         const price     = prices[h.ticker];
         const prevPrice = prevPrices ? prevPrices[h.ticker] : null;
-        if (price == null) return ''; // stock not in portfolio that week
+        if (price == null) return null;
 
         const pnlPct    = ((price - h.avgBuy) / h.avgBuy) * 100;
-        const wowChg    = prevPrice != null ? price - prevPrice : null;
         const wowChgPct = prevPrice != null ? ((price - prevPrice) / prevPrice) * 100 : null;
         const signal    = getPyramidSignal(pnlPct, wowChgPct, pnlFloor);
-        const fCls      = floorClass(pnlPct, pnlFloor);
-        const pnlCls    = pnlPct >= 0 ? 'positive-text' : 'negative-text';
-        const wowCls    = wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text';
+        return {
+          name: h.name, ticker: h.ticker,
+          avgBuy: h.avgBuy, price, qty: h.netQty,
+          pnlPct, vsFloor: pnlPct - pnlFloor,
+          wowChgPct: wowChgPct ?? null,
+          signal, isStrongAdd: signal.cls === 'signal-add',
+          pnlCls:  pnlPct >= 0 ? 'positive-text' : 'negative-text',
+          fCls:    floorClass(pnlPct, pnlFloor),
+          wowCls:  wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
+        };
+      }).filter(Boolean);
 
-        return `<tr>
-          <td style="font-weight:500"><span class="wow-stock-link" onclick="openWowModal('${h.ticker}')">${h.name}</span></td>
-          <td><span class="ticker-pill">${h.ticker}</span></td>
-          <td class="mono">${fmt(h.avgBuy)}</td>
-          <td class="mono">${fmtPrice(price)}</td>
-          <td class="mono ${pnlCls}">${fmtPct(pnlPct)}</td>
-          <td class="mono ${fCls}">${pnlPct >= pnlFloor ? '🟢' : pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(pnlPct - pnlFloor)}</td>
-          <td class="mono ${wowCls}">${wowChgPct != null ? fmtPct(wowChgPct) : '—'}</td>
-          <td class="${signal.cls}">${signal.label}</td>
-        </tr>`;
-      }).filter(Boolean).join('');
-
+      const sort       = wowSortState[dateStr] || { col: 'name', dir: 1 };
       const stockCount = Object.keys(prices).length;
+
+      const thStyle    = 'cursor:pointer;user-select:none';
+      const arrow      = col => `<span class="sort-arrow">${sort.col === col ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ⇅'}</span>`;
+      const th         = (col, label) => `<th data-col="${col}" style="${thStyle}" onclick="wowSortBy('${dateStr}','${col}')">${label}${arrow(col)}</th>`;
 
       return `
         <div class="wow-week-card">
@@ -1904,16 +1968,29 @@
             <button class="wow-delete-btn" onclick="deleteWowWeek('${dateStr}')">✕ Delete Week</button>
           </div>
           <table>
-            <thead><tr>
-              <th>Stock</th><th>Ticker</th><th>Avg Buy</th><th>Week Price</th>
-              <th>P&L%</th><th>vs Floor (${pnlFloor}%)</th><th>WoW Chg%</th><th>Signal</th>
+            <thead id="wow-thead-${dateStr}"><tr>
+              ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
+              ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}${th('signal','Signal')}
             </tr></thead>
-            <tbody>${rows}</tbody>
+            <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
           </table>
+          <script type="application/json" id="wow-rowdata-${dateStr}">${JSON.stringify(rowData)}<\/script>
         </div>`;
     }).join('');
 
     document.getElementById('wow-section').innerHTML = weekCards;
+  }
+
+  // ── Buy Qty Calculation ──
+  function calcBuyQty(btn, avgBuy, weekPrice, qtyHeld, floor) {
+    const floorMult = 1 + floor / 100;
+    const qtyNew    = qtyHeld * (weekPrice - floorMult * avgBuy) / (weekPrice * (floorMult - 1));
+    if (qtyNew <= 0) {
+      btn.outerHTML = `<span class="signal-pass" style="font-size:11px">Already below floor</span>`;
+    } else {
+      const qty = Math.floor(qtyNew);
+      btn.outerHTML = `<span class="signal-add" style="font-size:11px">Buy ${qty} share${qty !== 1 ? 's' : ''}</span>`;
+    }
   }
 
   // ============================================================
