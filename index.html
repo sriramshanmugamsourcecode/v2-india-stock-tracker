@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260520.7</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260520.8</title>
 
   <!--
     ============================================================
@@ -1019,6 +1019,16 @@
 
             <div class="scr-head">Momentum <span class="scr-sub-label">all 5 must pass</span></div>
 
+            <div class="scr-row"><label>Min liquidity (ADTV)</label>
+              <select id="f-adtv">
+                <option value="5">≥ ₹5 Cr/day</option>
+                <option value="1">≥ ₹1 Cr/day</option>
+                <option value="10">≥ ₹10 Cr/day</option>
+                <option value="25">≥ ₹25 Cr/day</option>
+                <option value="NaN">None (skip)</option>
+              </select>
+            </div>
+
             <div class="scr-row"><label>52W high proximity</label>
               <select id="f-52w">
                 <option value="20">Within 20%</option>
@@ -1180,7 +1190,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260520.7'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260520.8'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2444,6 +2454,16 @@
     return avg6m > 0 ? avgRecent / avg6m : null;
   }
 
+  // Average Daily Traded Value (₹ Cr) — last 20 trading days
+  function scrADTV(days) {
+    const n = 20;
+    if (days.length < n) return null;
+    const recent = days.slice(-n).filter(d => d.volume > 0 && d.close > 0);
+    if (!recent.length) return null;
+    const avgValue = recent.reduce((s,d) => s + d.close * d.volume, 0) / recent.length;
+    return avgValue / 1e7; // convert ₹ to ₹ Cr (1 Cr = 10^7)
+  }
+
   function scrCalc(raw) {
     const { ticker, days, price: livePrice } = raw;
     if (!days.length) return null;
@@ -2473,6 +2493,7 @@
       adjRet:   scrAdjReturn(r6mSkip, vol),         // volatility-adjusted momentum
       volatility: vol,
       volRatio: scrVolRatio(days),                  // volume accumulation signal
+      adtv:     scrADTV(days),                       // avg daily traded value ₹ Cr (last 20d)
       updays:   scrUpdays(days),
       pe: raw.pe ?? null, eps: raw.eps ?? null,
       roe: raw.roe ?? null, de: raw.de ?? null, rev: raw.rev ?? null,
@@ -2510,7 +2531,7 @@
   }
 
   // localStorage cache — 1-day TTL
-  const SCR_CACHE_KEY = 'scr_cache_v2'; // v2: added skip-month, vol, adjRet, score52w
+  const SCR_CACHE_KEY = 'scr_cache_v3'; // v3: added adtv (avg daily traded value)
   function scrToday() { return new Date().toISOString().slice(0,10); }
   function scrLoadCache() {
     try {
@@ -2527,6 +2548,7 @@
   // Filter logic
   function scrGetFilters() {
     return {
+      adtv:      parseFloat(document.getElementById('f-adtv').value), // NaN = skip (None option)
       pct52w:    parseFloat(document.getElementById('f-52w').value),
       dma:       document.getElementById('f-dma').value,   // '50','100','200','100ema','brutal'
       emaCross:  document.getElementById('f-ema').value,   // 'on' or 'off'
@@ -2675,6 +2697,16 @@
     const excluded = []; // filter-excluded stocks
 
     for (const s of stocks) {
+      // ── Liquidity filter (first — no point running momentum on illiquid stocks) ──
+      if (!isNaN(f.adtv) && f.adtv > 0) {
+        if (s.adtv == null || s.adtv < f.adtv) {
+          const adtvStr = s.adtv != null ? `₹${s.adtv.toFixed(2)} Cr` : 'no data';
+          excluded.push({ name: s.name||s.ticker, ticker: s.ticker,
+            reasons: [`ADTV ${adtvStr} < ₹${f.adtv} Cr threshold`], layer: 'liquidity' });
+          continue;
+        }
+      }
+
       const mom  = scrMomentum(s, f);
       const fund = scrFund(s, f);
       const momPass = Object.values(mom).every(Boolean);
@@ -2786,6 +2818,7 @@
         <td class="scr-n scr-mu ${ch(9)}" data-tip="% vs 52W high — green = new high">${p52Disp}</td>
         <td class="scr-n ${rcc(r.ret1y)} ${ch(10)}">${fmtR(r.ret1y)}</td>
         <td class="scr-n scr-mu ${ch(11)}">${r.updays!=null?r.updays.toFixed(1)+'%':'—'}</td>
+        <td class="scr-n scr-mu ${ch(12)}" data-tip="Avg Daily Traded Value (last 20 days)">${r.adtv!=null?r.adtv.toFixed(1):'—'}</td>
         <td>
           <div style="display:flex;gap:3px;align-items:center">
             ${Object.entries(r.fund).map(([k,v])=>`<div class="scr-fdot ${fd(v)}" data-tip="${tip(k,v)}"></div>`).join('')}
@@ -2825,6 +2858,7 @@
             ${thS('pct52w',   '52W gap',    9)}
             ${thS('ret1y',    '1Y Ret',    10)}
             ${thS('updays',   'Up Days',   11)}
+            ${thS('adtv',     'ADTV ₹Cr',  12)}
             <th>Fundamental Indicators</th>
             <th></th>
           </tr></thead>
@@ -2885,7 +2919,8 @@
   }
 
   function scrRestoreDefaults() {
-    document.getElementById('f-52w').value        = '20';
+    document.getElementById('f-adtv').value         = '5';
+    document.getElementById('f-52w').value          = '20';
     document.getElementById('f-dma').value         = '100ema';
     document.getElementById('f-ema').value         = 'on';
     document.getElementById('f-ret-period').value  = '12';
