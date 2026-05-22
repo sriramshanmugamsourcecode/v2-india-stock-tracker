@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260521.6</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260521.7</title>
 
   <!--
     ============================================================
@@ -775,7 +775,13 @@
       letter-spacing:0.06em; cursor:pointer; margin-top:4px; transition:opacity 0.15s;
     }
     .scr-run-btn:hover { opacity:0.85; }
-    .scr-reset-btn {
+    .scr-preset-btn {
+      flex: 1; padding: 7px 8px; border-radius: 8px;
+      border: 0.5px solid var(--border2); background: var(--bg3);
+      color: var(--muted); font-size: 11px; font-family: var(--font-mono);
+      cursor: pointer; transition: all 0.15s; text-align: center;
+    }
+    .scr-preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.08); }
       width:100%; padding:6px; background:transparent; color:var(--muted);
       border:0.5px dashed var(--border); border-radius:8px; font-family:var(--font-mono);
       font-size:11px; cursor:pointer; margin-top:6px; transition:all 0.15s;
@@ -1148,6 +1154,12 @@
               </div>
             </div>
 
+            <!-- Presets -->
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <button class="scr-preset-btn" onclick="scrPreset('early')" title="Early Momentum — wider filters, catches stocks building momentum before breakout">📡 Early</button>
+              <button class="scr-preset-btn" onclick="scrPreset('confirmed')" title="Confirmed Breakout — tight filters, high conviction entries only">✅ Confirmed</button>
+            </div>
+
             <button class="scr-run-btn" onclick="runScreener()">▶ RUN SCREENER</button>
             <button class="scr-reset-btn" onclick="scrRestoreDefaults()">↺ restore defaults</button>
 
@@ -1207,7 +1219,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260521.6'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260521.7'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3070,6 +3082,31 @@
     const collapsed = wrap.classList.toggle('collapsed');
     btn.textContent = collapsed ? '›' : '‹';
     btn.setAttribute('data-tip', collapsed ? 'Expand filters' : 'Collapse filters');
+  }
+
+  // ── Screener Presets ──
+  function scrPreset(mode) {
+    if (mode === 'early') {
+      // Early Momentum — wider filters, catches stocks building momentum before breakout
+      document.getElementById('f-adtv').value      = '5';
+      document.getElementById('f-vol').value       = '50';
+      document.getElementById('f-52w').value       = '20';
+      document.getElementById('f-dma').value       = '100ema';
+      document.getElementById('f-ema').value       = 'off';
+      document.getElementById('f-ret-period').value = '3';
+      document.getElementById('f-ret-pct').value   = '5';
+      document.getElementById('f-updays').value    = '40';
+    } else if (mode === 'confirmed') {
+      // Confirmed Breakout — tight filters, high conviction entries only
+      document.getElementById('f-adtv').value      = '10';
+      document.getElementById('f-vol').value       = '35';
+      document.getElementById('f-52w').value       = '-1';
+      document.getElementById('f-dma').value       = 'brutal';
+      document.getElementById('f-ema').value       = 'on';
+      document.getElementById('f-ret-period').value = '12';
+      document.getElementById('f-ret-pct').value   = '10';
+      document.getElementById('f-updays').value    = '50';
+    }
   }
 
   function scrRestoreDefaults() {
