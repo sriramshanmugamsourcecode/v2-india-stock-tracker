@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260521.4</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260521.6</title>
 
   <!--
     ============================================================
@@ -1051,6 +1051,7 @@
                 <option value="15">Within 15%</option>
                 <option value="10">Within 10%</option>
                 <option value="5">Within 5%</option>
+                <option value="-1">🆕 New 52W High only</option>
               </select>
             </div>
             <div class="scr-row"><label>Price vs DMA / EMA</label>
@@ -1206,7 +1207,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260521.4'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260521.6'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2103,7 +2104,26 @@
 
       const thStyle = 'cursor:pointer;user-select:none';
       const arrow   = col => `<span class="sort-arrow">${sort.col === col ? (sort.dir === 1 ? ' ▲' : ' ▼') : ' ⇅'}</span>`;
-      const th      = (col, label) => `<th data-col="${col}" style="${thStyle}" onclick="wowSortBy('${dateStr}','${col}')">${label}${arrow(col)}</th>`;
+      const th      = (col, label, tip='') => `<th data-col="${col}" style="${thStyle}" onclick="wowSortBy('${dateStr}','${col}')" ${tip?`title="${tip}"`:''}>${label}${arrow(col)}</th>`;
+
+      const buySignalTip = [
+        'Buy Signal — based on P&L% vs floor and WoW price change:',
+        '✅ Strong Add: P&L ≥ floor AND price up WoW',
+        '🟡 Hold: P&L ≥ floor AND price down WoW',
+        '🟡 Watch: P&L within 5% below floor',
+        '❌ Don\'t Add: P&L more than 5% below floor',
+        '🧮 Qty? button: max shares to buy while staying above floor'
+      ].join('\n');
+
+      const exitSignalTip = [
+        'Exit Signal — evaluated in priority order (most severe shown):',
+        '🔴 Hard Exit: P&L < floor − 10% (hard stop)',
+        '🔴 Trend Break: 3 consecutive WoW down weeks',
+        '🔴 EMA Break: Price < 100 EMA (requires Screener cache)',
+        '🟡 Near Floor: P&L between floor−10% and floor (early warning)',
+        '🟡 Sharp Drop: Single week drop > 5%',
+        '✅ Holding: No exit signals triggered'
+      ].join('\n');
 
       const summaryPills = `
         <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">
@@ -2134,7 +2154,7 @@
               <thead id="wow-thead-${dateStr}"><tr>
                 ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
                 ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}
-                ${th('signal','Signal')}${th('exit','Exit Signal')}
+                ${th('signal','Buy Signal',buySignalTip)}${th('exit','Exit Signal',exitSignalTip)}
               </tr></thead>
               <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
             </table>
@@ -2706,7 +2726,7 @@
       : (s.ema100 != null && s.ema200 != null && s.ema100 > s.ema200);
 
     return {
-      w52:    s.pct52w != null && s.pct52w <= f.pct52w,
+      w52:    s.pct52w != null && (f.pct52w < 0 ? s.pct52w <= 0 : s.pct52w <= f.pct52w),
       dma:    dmaPass,
       ema:    emaPass,
       ret:    ret != null && ret >= f.retPct,
@@ -2844,7 +2864,7 @@
 
       // Build exclusion reasons
       const reasons = [];
-      if (!mom.w52)    reasons.push('52W gap >' + f.pct52w + '%');
+      if (!mom.w52)    reasons.push(f.pct52w < 0 ? 'Not at new 52W high' : '52W gap >' + f.pct52w + '%');
       if (!mom.dma) {
         if (f.dma === '100ema')  reasons.push('Price < 100 EMA');
         else if (f.dma === 'brutal') reasons.push('Brutal Strength failed (50>100>200 DMA)');
