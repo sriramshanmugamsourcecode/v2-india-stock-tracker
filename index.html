@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260521.3</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260521.4</title>
 
   <!--
     ============================================================
@@ -699,6 +699,9 @@
     .wow-modal-legend i { display: inline-block; width: 20px; height: 2px; border-radius: 1px; }
 
     .signal-add  { color: var(--accent); font-weight: 600; }
+    .exit-hard   { color: #f87171; font-weight: 600; }
+    .exit-warn   { color: #fbbf24; font-weight: 600; }
+    .exit-ok     { color: var(--accent); }
     .signal-hold { color: var(--amber);  font-weight: 600; }
     .signal-pass { color: var(--red);    font-weight: 600; }
     .floor-above { color: var(--accent); }
@@ -1001,6 +1004,9 @@
         <!-- Error -->
         <div id="wow-error"></div>
 
+        <!-- EMA cache banner -->
+        <div id="wow-ema-banner" style="display:none"></div>
+
         <!-- Weekly History Table -->
         <div id="wow-section">
           <div class="loading"><div class="spinner"></div>Loading WoW data...</div>
@@ -1200,7 +1206,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260521.3'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260521.4'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1823,6 +1829,74 @@
     return 'floor-below';
   }
 
+  // Read 100 EMA for a ticker from screener cache (if fresh)
+  function getEmaFromCache(ticker) {
+    try {
+      const raw = localStorage.getItem(SCR_CACHE_KEY);
+      if (!raw) return null;
+      const { ts, data } = JSON.parse(raw);
+      // Accept cache up to 3 days old for EMA (weekly review tolerance)
+      if (Date.now() - ts > 3 * 24 * 60 * 60 * 1000) return null;
+      const stock = data.find(s => s.ticker === ticker || s.name === ticker);
+      return stock ? (stock.ema100 ?? null) : null;
+    } catch { return null; }
+  }
+
+  // Check if screener cache exists and is reasonably fresh (3 days)
+  function scrCacheIsFresh() {
+    try {
+      const raw = localStorage.getItem(SCR_CACHE_KEY);
+      if (!raw) return false;
+      const { ts } = JSON.parse(raw);
+      return Date.now() - ts <= 3 * 24 * 60 * 60 * 1000;
+    } catch { return false; }
+  }
+
+  // Exit signal — evaluated in priority order (most severe first)
+  // history: [{date, price}] chronological oldest→newest
+  function getExitSignal(pnlPct, wowChgPct, history, floor, ema100) {
+    if (pnlPct == null) return { label: '—', cls: '', order: 99 };
+
+    const hardFloor = floor - 10;
+
+    // 1. Hard Exit — P&L below floor − 10%
+    if (pnlPct < hardFloor)
+      return { label: '🔴 Hard Exit', cls: 'exit-hard', order: 1,
+               tip: `P&L ${fmtPct(pnlPct)} < hard floor ${fmtPct(hardFloor)}` };
+
+    // 2. Trend Break — 3+ consecutive WoW down weeks
+    if (history && history.length >= 4) {
+      const recent = history.slice(-3); // last 3 weeks
+      let consecutive = 0;
+      for (let i = 1; i < recent.length; i++) {
+        if (recent[i].price < recent[i-1].price) consecutive++;
+        else { consecutive = 0; break; }
+      }
+      if (consecutive >= 2) // 3 data points = 2 gaps = 3 consecutive down weeks
+        return { label: '🔴 Trend Break', cls: 'exit-hard', order: 2,
+                 tip: '3 consecutive WoW down weeks' };
+    }
+
+    // 3. EMA Break — Price below 100 EMA (requires screener cache)
+    const lastPrice = history && history.length ? history[history.length-1].price : null;
+    if (ema100 != null && lastPrice != null && lastPrice < ema100)
+      return { label: '🔴 EMA Break', cls: 'exit-hard', order: 3,
+               tip: `Price ₹${lastPrice.toFixed(0)} < 100 EMA ₹${ema100.toFixed(0)}` };
+
+    // 4. Near Floor — early warning
+    if (pnlPct < floor && pnlPct >= hardFloor)
+      return { label: '🟡 Near Floor', cls: 'exit-warn', order: 4,
+               tip: `P&L ${fmtPct(pnlPct)} approaching hard floor ${fmtPct(hardFloor)}` };
+
+    // 5. Sharp Drop — single week > 5% down
+    if (wowChgPct != null && wowChgPct < -5)
+      return { label: '🟡 Sharp Drop', cls: 'exit-warn', order: 5,
+               tip: `WoW drop ${fmtPct(wowChgPct)} this week` };
+
+    // All clear
+    return { label: '✅ Holding', cls: 'exit-ok', order: 6, tip: 'No exit signals' };
+  }
+
   // RENDER: WoW TRACKER
   // Sort state: { [dateStr]: { col, dir } }
   // Signal order: Strong Add=1, Hold=2, Watch=3, Don't Add=4
@@ -1833,6 +1907,7 @@
     return [...rows].sort((a, b) => {
       let av = a[col], bv = b[col];
       if (col === 'signal') { av = a.signalOrder; bv = b.signalOrder; }
+      if (col === 'exit')   { av = a.exit.order;  bv = b.exit.order;  }
       if (av == null) av = dir === 1 ? Infinity : -Infinity;
       if (bv == null) bv = dir === 1 ? Infinity : -Infinity;
       if (typeof av === 'string') return dir * av.localeCompare(bv);
@@ -1846,6 +1921,7 @@
       const buyQtyBtn = r.isStrongAdd
         ? `<button class="wow-qty-btn" onclick="calcBuyQty(this,${r.avgBuy},${r.price},${r.qty},${pnlFloor})">🧮 Qty?</button>`
         : '';
+      const exitTip = r.exit.tip ? `data-tip="${r.exit.tip}"` : '';
       return `<tr>
         <td style="font-weight:500"><span class="wow-stock-link" onclick="openWowModal('${r.ticker}')">${r.name}</span></td>
         <td><span class="ticker-pill">${r.ticker}</span></td>
@@ -1855,6 +1931,7 @@
         <td class="mono ${r.fCls}">${r.pnlPct >= pnlFloor ? '🟢' : r.pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(r.pnlPct - pnlFloor)}</td>
         <td class="mono ${r.wowCls}">${r.wowChgPct != null ? fmtPct(r.wowChgPct) : '—'}</td>
         <td class="${r.signalCls}" style="white-space:nowrap">${r.signalLabel} ${buyQtyBtn}</td>
+        <td class="${r.exit.cls}" style="white-space:nowrap" ${exitTip}>${r.exit.label}</td>
       </tr>`;
     }).join('');
   }
@@ -1896,12 +1973,33 @@
       weekMap[e.week_date][e.ticker] = e.close_price;
     });
 
-    const weeks = Object.keys(weekMap).sort((a, b) => b.localeCompare(a)); // newest first
+    const weeks     = Object.keys(weekMap).sort((a, b) => a.localeCompare(b)); // oldest→newest for history
+    const weeksDesc = [...weeks].reverse(); // newest first for display
+
+    // Build per-ticker chronological price history
+    const tickerHistory = {};
+    holdings.forEach(h => {
+      tickerHistory[h.ticker] = weeks
+        .map(w => ({ date: w, price: weekMap[w][h.ticker] }))
+        .filter(d => d.price != null);
+    });
+
+    // EMA cache check — show/hide banner
+    const cacheOk  = scrCacheIsFresh();
+    const emaBanner = document.getElementById('wow-ema-banner');
+    if (emaBanner) {
+      if (!cacheOk) {
+        emaBanner.style.display = '';
+        emaBanner.innerHTML = `<div style="background:rgba(251,191,36,0.08);border:0.5px solid rgba(251,191,36,0.3);border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px"><span style="font-size:16px">⚡</span><span>100 EMA exit signals unavailable — <strong style="color:var(--text)">run Screener first</strong> to enable. Other exit signals (Hard Exit, Trend Break, Near Floor, Sharp Drop) are active.</span></div>`;
+      } else {
+        emaBanner.style.display = 'none';
+      }
+    }
 
     // Portfolio summary from latest week
     let summaryHtml = '';
-    if (weeks.length > 0) {
-      const latestPrices = weekMap[weeks[0]];
+    if (weeksDesc.length > 0) {
+      const latestPrices = weekMap[weeksDesc[0]];
       let totalInv = 0, totalCurr = 0, stocksAbove = 0, stocksBelow = 0;
       holdings.forEach(h => {
         totalInv += h.invested;
@@ -1944,22 +2042,22 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Weeks Tracked</div>
-          <div class="stat-value">${weeks.length}</div>
+          <div class="stat-value">${weeksDesc.length}</div>
           <div class="stat-sub">entries</div>
         </div>`;
     }
     document.getElementById('wow-summary').innerHTML = summaryHtml;
 
-    if (!weeks.length) {
+    if (!weeksDesc.length) {
       document.getElementById('wow-section').innerHTML =
         `<div class="loading">No WoW entries yet — pick a date and click "Fetch & Save Week"</div>`;
       return;
     }
 
     // Render each week as a card (newest first)
-    const weekCards = weeks.map((dateStr, weekIdx) => {
+    const weekCards = weeksDesc.map((dateStr, weekIdx) => {
       const prices     = weekMap[dateStr];
-      const prevDate   = weeks[weekIdx + 1];
+      const prevDate   = weeksDesc[weekIdx + 1];
       const prevPrices = prevDate ? weekMap[prevDate] : null;
       const isLatest   = weekIdx === 0;
 
@@ -1972,6 +2070,12 @@
         const pnlPct    = ((price - h.avgBuy) / h.avgBuy) * 100;
         const wowChgPct = prevPrice != null ? ((price - prevPrice) / prevPrice) * 100 : null;
         const signal    = getPyramidSignal(pnlPct, wowChgPct, pnlFloor);
+
+        // Exit signal — uses full history up to and including this week
+        const histUpToNow = (tickerHistory[h.ticker] || []).filter(d => d.date <= dateStr);
+        const ema100 = cacheOk ? getEmaFromCache(h.ticker) : null;
+        const exit   = getExitSignal(pnlPct, wowChgPct, histUpToNow, pnlFloor, ema100);
+
         return {
           name: h.name, ticker: h.ticker,
           avgBuy: h.avgBuy, price, qty: h.netQty,
@@ -1980,6 +2084,7 @@
           signalLabel: signal.label, signalCls: signal.cls,
           signalOrder: WOW_SIGNAL_ORDER[signal.cls] ?? 4,
           isStrongAdd: signal.cls === 'signal-add',
+          exit,
           pnlCls: pnlPct >= 0 ? 'positive-text' : 'negative-text',
           fCls:   floorClass(pnlPct, pnlFloor),
           wowCls: wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
@@ -1989,6 +2094,7 @@
       const sort       = wowSortState[dateStr] || { col: 'name', dir: 1 };
       const stockCount = rowData.length;
       const strongAdds = rowData.filter(r => r.isStrongAdd).length;
+      const hardExits  = rowData.filter(r => r.exit && r.exit.order <= 3).length;
       // Overall P&L for this week
       const wTotalInv  = rowData.reduce((s,r) => s + r.avgBuy * r.qty, 0);
       const wTotalCurr = rowData.reduce((s,r) => s + r.price * r.qty, 0);
@@ -2003,6 +2109,7 @@
         <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">
           ${stockCount} stocks &nbsp;·&nbsp;
           <span class="signal-add">${strongAdds} Strong Add</span> &nbsp;·&nbsp;
+          ${hardExits > 0 ? `<span class="exit-hard">${hardExits} 🔴 Exit</span> &nbsp;·&nbsp;` : ''}
           Overall P&L: <span class="${wPnlCls}">${fmtPct(wPnlPct)}</span>
         </span>`;
 
@@ -2026,7 +2133,8 @@
             <table>
               <thead id="wow-thead-${dateStr}"><tr>
                 ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
-                ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}${th('signal','Signal')}
+                ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}
+                ${th('signal','Signal')}${th('exit','Exit Signal')}
               </tr></thead>
               <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
             </table>
