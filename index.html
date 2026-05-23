@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.1</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.2</title>
 
   <!--
     ============================================================
@@ -786,6 +786,7 @@
       cursor: pointer; transition: all 0.15s; text-align: center;
     }
     .scr-preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.08); }
+    .scr-preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.12); font-weight: 600; }
       width:100%; padding:6px; background:transparent; color:var(--muted);
       border:0.5px dashed var(--border); border-radius:8px; font-family:var(--font-mono);
       font-size:11px; cursor:pointer; margin-top:6px; transition:all 0.15s;
@@ -1196,7 +1197,7 @@
       </div>
 
       <div class="footer" id="app-footer">
-        Phase 4 · v4.20260520.2 · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance
+        Phase 4 · v4.20260522.1 · Portfolio · WoW Tracker · Discovery · Live prices via Yahoo Finance
       </div>
     </div>
   </div>
@@ -1205,7 +1206,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.1'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.2'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3112,6 +3113,11 @@
 
   // ── Screener Presets ──
   function scrPreset(mode) {
+    // Highlight active preset button
+    document.querySelectorAll('.scr-preset-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`.scr-preset-btn[onclick="scrPreset('${mode}')"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
     if (mode === 'pure') {
       // Pure Rank — no filters except liquidity. Closest to backtest Test #1.
       // ⚠ Avg 62.5% monthly turnover — research tool, not trading signal
@@ -3141,6 +3147,7 @@
   }
 
   function scrRestoreDefaults() {
+    document.querySelectorAll('.scr-preset-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('f-adtv').value         = '5';
     document.getElementById('f-52w').value          = '20';
     document.getElementById('f-dma').value         = '100ema';
@@ -3176,7 +3183,7 @@
   // Sync version string to title + footer from single APP_VERSION constant
   document.title = `🇮🇳 India Stock Tracker · ${APP_VERSION}`;
   document.getElementById('app-footer').textContent =
-    `Phase 4 · ${APP_VERSION} · Portfolio · WoW Tracker · Screener · Live prices via Yahoo Finance`;
+    `Phase 4 · ${APP_VERSION} · Portfolio · WoW Tracker · Discovery · Live prices via Yahoo Finance`;
 </script>
 </body>
 </html>
