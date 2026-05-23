@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.2</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.4</title>
 
   <!--
     ============================================================
@@ -787,6 +787,23 @@
     }
     .scr-preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.08); }
     .scr-preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.12); font-weight: 600; }
+
+    .scr-preset-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+    .scr-preset-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 8px;
+      border: 0.5px solid var(--border2); background: var(--bg3);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .scr-preset-row:hover { border-color: var(--accent); background: rgba(99,179,237,0.06); }
+    .scr-preset-row.active { border-color: var(--accent); background: rgba(99,179,237,0.12); }
+    .scr-preset-icon { font-size: 14px; flex-shrink: 0; }
+    .scr-preset-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
+    .scr-preset-desc { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+    .scr-preset-row.active .scr-preset-name { color: var(--accent); }
+    .scr-preset-row.active .scr-preset-desc { color: var(--accent); opacity: 0.7; }
+
+    .scr-divider { height: 1px; background: var(--border); margin: 12px 0; }
       width:100%; padding:6px; background:transparent; color:var(--muted);
       border:0.5px dashed var(--border); border-radius:8px; font-family:var(--font-mono);
       font-size:11px; cursor:pointer; margin-top:6px; transition:all 0.15s;
@@ -1034,7 +1051,33 @@
             <button class="scr-collapse-btn" onclick="scrToggleSidebar()" id="scr-collapse-btn" data-tip="Collapse filters">‹</button>
             <div class="scr-sidebar-inner" id="scr-sidebar-inner">
 
-            <div class="scr-head">Momentum <span class="scr-sub-label">all 5 must pass</span></div>
+            <!-- Presets -->
+            <div class="scr-head" style="margin-bottom:8px">Presets</div>
+            <div class="scr-preset-list">
+              <div class="scr-preset-row" onclick="scrPreset('pure')" id="preset-pure">
+                <span class="scr-preset-icon">🎯</span>
+                <span class="scr-preset-name">Pure Rank</span>
+                <span class="scr-preset-desc">no filters · research mode</span>
+              </div>
+              <div class="scr-preset-row" onclick="scrPreset('early')" id="preset-early">
+                <span class="scr-preset-icon">📡</span>
+                <span class="scr-preset-name">Early</span>
+                <span class="scr-preset-desc">wider filters · early signals</span>
+              </div>
+              <div class="scr-preset-row" onclick="scrPreset('confirmed')" id="preset-confirmed">
+                <span class="scr-preset-icon">✅</span>
+                <span class="scr-preset-name">Confirmed</span>
+                <span class="scr-preset-desc">tight filters · high conviction</span>
+              </div>
+            </div>
+
+            <!-- Run button -->
+            <button class="scr-run-btn" onclick="runScreener()" style="margin-top:12px">▶ RUN DISCOVERY</button>
+
+            <div class="scr-divider"></div>
+
+            <!-- Momentum filters -->
+            <div class="scr-head">Momentum <span class="scr-sub-label">all 4 must pass</span></div>
 
             <div class="scr-row"><label>Min liquidity (ADTV)</label>
               <select id="f-adtv">
@@ -1055,6 +1098,7 @@
                 <option value="-1">🆕 New 52W High only</option>
               </select>
             </div>
+
             <div class="scr-row"><label>Price vs DMA / EMA</label>
               <select id="f-dma">
                 <option value="100ema">Above 100 EMA</option>
@@ -1064,6 +1108,7 @@
                 <option value="brutal">Brutal Strength (50&gt;100&gt;200 DMA)</option>
               </select>
             </div>
+
             <div class="scr-row">
               <label>EMA crossover</label>
               <select id="f-ema">
@@ -1071,6 +1116,7 @@
                 <option value="off">None (skip)</option>
               </select>
             </div>
+
             <div class="scr-2col">
               <div class="scr-row"><label>Return period</label>
                 <select id="f-ret-period">
@@ -1084,10 +1130,15 @@
                   <option value="7">above 7%</option>
                   <option value="10">above 10%</option>
                   <option value="15">above 15%</option>
+                  <option value="5">above 5%</option>
                 </select>
               </div>
             </div>
-            <div class="scr-head" style="margin-top:14px">Fundamentals <span class="scr-sub-label">yahoo finance</span></div>
+
+            <div class="scr-divider"></div>
+
+            <!-- Fundamentals -->
+            <div class="scr-head">Fundamentals <span class="scr-sub-label">yahoo finance</span></div>
 
             <div class="scr-toggle">
               <div>
@@ -1140,14 +1191,8 @@
               </div>
             </div>
 
-            <!-- Presets -->
-            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-              <button class="scr-preset-btn" onclick="scrPreset('pure')" title="Pure Rank — no filters, full universe ranked. Closest to backtest. ⚠ 62.5% monthly turnover — research tool only">🎯 Pure Rank</button>
-              <button class="scr-preset-btn" onclick="scrPreset('early')" title="Early Momentum — wider filters, catches stocks building momentum before breakout">📡 Early</button>
-              <button class="scr-preset-btn" onclick="scrPreset('confirmed')" title="Confirmed Breakout — tight filters, high conviction entries only">✅ Confirmed</button>
-            </div>
+            <div class="scr-divider"></div>
 
-            <button class="scr-run-btn" onclick="runScreener()">▶ RUN SCREENER</button>
             <button class="scr-reset-btn" onclick="scrRestoreDefaults()">↺ restore defaults</button>
 
             <div id="scr-progress" style="display:none;margin-top:10px">
@@ -1206,7 +1251,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.2'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.4'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2949,7 +2994,35 @@
     excluded = excluded || scrLastExcluded;
     const el = document.getElementById('scr-results');
     if (!results.length) {
-      el.innerHTML = `<div class="scr-empty"><div style="font-size:28px;opacity:0.3;margin-bottom:10px">⬡</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No stocks matched</div><div style="font-size:12px;color:var(--muted)">Try relaxing your filters.</div></div>`;
+      // Build filter failure summary even when no results
+      const failCounts = {};
+      excluded.forEach(e => {
+        const layer = e.layer || 'unknown';
+        failCounts[layer] = (failCounts[layer] || 0) + 1;
+      });
+      const failSummary = Object.entries(failCounts)
+        .map(([k,v]) => `${v} ${k}`)
+        .join(', ');
+      el.innerHTML = `
+        <div class="scr-empty">
+          <div style="font-size:28px;opacity:0.3;margin-bottom:10px">⬡</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No stocks matched</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Try relaxing your filters — ${failSummary || 'all stocks filtered out'}.</div>
+        </div>
+        ${excluded && excluded.length ? `
+        <div class="scr-log-wrap">
+          <div class="scr-log-head" onclick="this.nextElementSibling.classList.toggle('open')">
+            <span>⚠ ${excluded.length} not in results (${excluded.filter(e=>e.layer==='fetch').length} fetch fail, ${excluded.filter(e=>e.layer!=='fetch').length} filtered) — click to expand</span>
+            <span style="font-size:10px;opacity:0.5">▼</span>
+          </div>
+          <div class="scr-log-body">
+            ${excluded.map(e => `
+              <div class="scr-log-row">
+                <div class="scr-log-stock">${e.name}</div>
+                <div class="scr-log-reason"><span>${e.reasons ? e.reasons.join(', ') : e.layer}</span></div>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}`;
       return;
     }
     const strong = results.filter(r=>r.sig==='strong').length;
@@ -3113,10 +3186,10 @@
 
   // ── Screener Presets ──
   function scrPreset(mode) {
-    // Highlight active preset button
-    document.querySelectorAll('.scr-preset-btn').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.querySelector(`.scr-preset-btn[onclick="scrPreset('${mode}')"]`);
-    if (activeBtn) activeBtn.classList.add('active');
+    // Highlight active preset row
+    document.querySelectorAll('.scr-preset-row').forEach(r => r.classList.remove('active'));
+    const activeRow = document.getElementById('preset-' + mode);
+    if (activeRow) activeRow.classList.add('active');
 
     if (mode === 'pure') {
       // Pure Rank — no filters except liquidity. Closest to backtest Test #1.
@@ -3147,7 +3220,7 @@
   }
 
   function scrRestoreDefaults() {
-    document.querySelectorAll('.scr-preset-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.scr-preset-row').forEach(r => r.classList.remove('active'));
     document.getElementById('f-adtv').value         = '5';
     document.getElementById('f-52w').value          = '20';
     document.getElementById('f-dma').value         = '100ema';
