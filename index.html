@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.4</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.7</title>
 
   <!--
     ============================================================
@@ -720,16 +720,16 @@
     }
 
     /* ── Phase 4: Screener ── */
-    .scr-wrap { display:grid; grid-template-columns:270px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; transition:grid-template-columns 0.25s ease; }
+    .scr-wrap { display:grid; grid-template-columns:255px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; transition:grid-template-columns 0.25s ease; }
     .scr-wrap.collapsed { grid-template-columns:36px 1fr; }
-    .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; overflow-x:hidden; padding:14px 13px; scrollbar-width:thin; position:relative; transition:padding 0.25s; }
+    .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; overflow-x:hidden; padding:8px 10px; scrollbar-width:thin; position:relative; transition:padding 0.25s; }
     .scr-wrap.collapsed .scr-sidebar { padding:8px 4px; overflow-y:hidden; }
     .scr-sidebar-inner { transition:opacity 0.2s; }
     .scr-wrap.collapsed .scr-sidebar-inner { opacity:0; pointer-events:none; }
     .scr-collapse-btn {
       position:sticky; top:0; width:100%; display:flex; align-items:center;
       justify-content:flex-end; background:transparent; border:none;
-      cursor:pointer; padding:0 0 8px 0; color:var(--muted); font-size:14px;
+      cursor:pointer; padding:0 0 6px 0; color:var(--muted); font-size:14px;
       z-index:10;
     }
     .scr-collapse-btn:hover { color:var(--text); }
@@ -737,34 +737,34 @@
     .scr-head {
       font-family:var(--font-mono); font-size:10px; font-weight:500;
       letter-spacing:0.1em; color:var(--muted); text-transform:uppercase;
-      margin-bottom:9px; display:flex; align-items:center; gap:6px;
+      margin-bottom:6px; display:flex; align-items:center; gap:6px;
     }
     .scr-head::after { content:''; flex:1; height:1px; background:var(--border); }
     .scr-sub-label { font-size:9px; color:var(--muted); text-transform:none; letter-spacing:0; }
-    .scr-row { display:flex; flex-direction:column; gap:3px; margin-bottom:8px; }
-    .scr-row label { font-size:11px; color:var(--muted); font-weight:500; }
+    .scr-row { display:flex; flex-direction:column; gap:2px; margin-bottom:6px; }
+    .scr-row label { font-size:10px; color:var(--muted); font-weight:500; }
     .scr-row select {
       background:var(--card); border:0.5px solid var(--border); color:var(--text);
-      font-family:var(--font-sans); font-size:12px; padding:6px 28px 6px 9px;
-      border-radius:8px; cursor:pointer; outline:none; appearance:none; width:100%;
+      font-family:var(--font-sans); font-size:11px; padding:5px 24px 5px 8px;
+      border-radius:7px; cursor:pointer; outline:none; appearance:none; width:100%;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 9px center; transition:border-color 0.15s;
+      background-repeat:no-repeat; background-position:right 8px center; transition:border-color 0.15s;
     }
     .scr-row select:hover, .scr-row select:focus { border-color:var(--accent); }
     .scr-fixed {
-      background:var(--card); border:0.5px solid var(--border); border-radius:8px;
-      padding:6px 9px; font-size:12px; color:var(--muted); font-family:var(--font-mono);
+      background:var(--card); border:0.5px solid var(--border); border-radius:7px;
+      padding:5px 8px; font-size:11px; color:var(--muted); font-family:var(--font-mono);
     }
-    .scr-2col { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .scr-2col { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
     .scr-toggle {
       display:flex; align-items:center; justify-content:space-between;
       background:var(--card); border:0.5px solid var(--border);
-      border-radius:8px; padding:8px 10px; margin-bottom:9px;
+      border-radius:7px; padding:6px 8px; margin-bottom:6px;
     }
-    .scr-toggle-title { font-size:12px; font-weight:500; color:var(--text); }
-    .scr-toggle-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+    .scr-toggle-title { font-size:11px; font-weight:500; color:var(--text); }
+    .scr-toggle-sub { font-size:9px; color:var(--muted); margin-top:1px; }
     .scr-switch {
-      width:32px; height:17px; background:var(--border); border-radius:9px;
+      width:30px; height:16px; background:var(--border); border-radius:9px;
       position:relative; cursor:pointer; transition:background 0.2s; flex-shrink:0;
     }
     .scr-switch.on { background:var(--accent); }
@@ -774,13 +774,20 @@
     }
     .scr-switch.on .scr-knob { left:17px; }
     .scr-run-btn {
-      width:100%; padding:9px; background:var(--accent); color:#fff; border:none;
+      padding:8px; background:var(--accent); color:#fff; border:none;
       border-radius:8px; font-family:var(--font-mono); font-size:12px; font-weight:500;
-      letter-spacing:0.06em; cursor:pointer; margin-top:4px; transition:opacity 0.15s;
+      letter-spacing:0.06em; cursor:pointer; transition:opacity 0.15s; width:100%;
     }
     .scr-run-btn:hover { opacity:0.85; }
+    .scr-reset-btn {
+      padding:8px 10px; background:transparent; color:var(--muted);
+      border:0.5px dashed var(--border); border-radius:8px; font-family:var(--font-mono);
+      font-size:11px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+    }
+    .scr-reset-btn:hover { border-color:var(--amber); color:var(--amber); }
+
     .scr-preset-btn {
-      flex: 1; padding: 7px 8px; border-radius: 8px;
+      flex: 1; padding: 6px 8px; border-radius: 7px;
       border: 0.5px solid var(--border2); background: var(--bg3);
       color: var(--muted); font-size: 11px; font-family: var(--font-mono);
       cursor: pointer; transition: all 0.15s; text-align: center;
@@ -788,27 +795,27 @@
     .scr-preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.08); }
     .scr-preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(99,179,237,0.12); font-weight: 600; }
 
-    .scr-preset-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+    .scr-preset-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
     .scr-preset-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 7px 10px; border-radius: 8px;
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 8px; border-radius: 7px;
       border: 0.5px solid var(--border2); background: var(--bg3);
       cursor: pointer; transition: all 0.15s;
     }
     .scr-preset-row:hover { border-color: var(--accent); background: rgba(99,179,237,0.06); }
     .scr-preset-row.active { border-color: var(--accent); background: rgba(99,179,237,0.12); }
-    .scr-preset-icon { font-size: 14px; flex-shrink: 0; }
-    .scr-preset-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
-    .scr-preset-desc { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+    .scr-preset-icon { font-size: 13px; flex-shrink: 0; }
+    .scr-preset-name { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; }
+    .scr-preset-desc { font-size: 9px; color: var(--muted); font-family: var(--font-mono); }
     .scr-preset-row.active .scr-preset-name { color: var(--accent); }
     .scr-preset-row.active .scr-preset-desc { color: var(--accent); opacity: 0.7; }
-
-    .scr-divider { height: 1px; background: var(--border); margin: 12px 0; }
-      width:100%; padding:6px; background:transparent; color:var(--muted);
-      border:0.5px dashed var(--border); border-radius:8px; font-family:var(--font-mono);
-      font-size:11px; cursor:pointer; margin-top:6px; transition:all 0.15s;
+    .scr-divider { height: 1px; background: var(--border); margin: 8px 0; }
+    .scr-cache-clear-btn {
+      background: none; border: none; color: var(--muted); font-size: 10px;
+      font-family: var(--font-mono); cursor: pointer; padding: 2px 4px;
+      border-radius: 4px; transition: color 0.15s; margin-left: auto;
     }
-    .scr-reset-btn:hover { border-color:var(--amber); color:var(--amber); }
+    .scr-cache-clear-btn:hover { color: var(--amber); }
     .scr-pbar { height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-bottom:4px; }
     .scr-pfill { height:100%; background:var(--accent); border-radius:2px; width:0%; transition:width 0.3s; }
     .scr-ptext { font-size:10px; color:var(--muted); font-family:var(--font-mono); }
@@ -1071,10 +1078,11 @@
               </div>
             </div>
 
-            <!-- Run button -->
-            <button class="scr-run-btn" onclick="runScreener()" style="margin-top:12px">▶ RUN DISCOVERY</button>
-
-            <div class="scr-divider"></div>
+            <!-- Run + Restore side by side -->
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="scr-run-btn" onclick="runScreener()" style="flex:1">▶ Run</button>
+              <button class="scr-reset-btn" onclick="scrRestoreDefaults()" style="flex:0 0 auto">↺</button>
+            </div>
 
             <!-- Momentum filters -->
             <div class="scr-head">Momentum <span class="scr-sub-label">all 4 must pass</span></div>
@@ -1193,8 +1201,6 @@
 
             <div class="scr-divider"></div>
 
-            <button class="scr-reset-btn" onclick="scrRestoreDefaults()">↺ restore defaults</button>
-
             <div id="scr-progress" style="display:none;margin-top:10px">
               <div class="scr-pbar"><div class="scr-pfill" id="scr-pfill"></div></div>
               <div class="scr-ptext" id="scr-ptext">Fetching…</div>
@@ -1203,6 +1209,7 @@
             <div class="scr-universe">
               <span style="font-size:11px;color:var(--muted)">Universe</span>
               <span id="scr-universe-count" style="font-family:var(--font-mono);font-size:13px;font-weight:500">555 stocks</span>
+              <button class="scr-cache-clear-btn" onclick="scrClearCache()" data-tip="Clear today's price cache and force a fresh fetch on next run">↺ refresh prices</button>
             </div>
 
           </div> <!-- end scr-sidebar-inner -->
@@ -1251,7 +1258,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.4'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.7'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2800,7 +2807,7 @@
   const STREAK_KEY     = 'streak_history';
   const STREAK_TOP_N   = 30;
   const STREAK_ADTV    = 5;   // ₹ Cr minimum
-  const STREAK_MONTHS  = 12;  // keep last 12 months of history
+  const STREAK_MONTHS  = 24;  // keep last 24 months of history
 
   function scrCurrentMonth() { return new Date().toISOString().slice(0, 7); } // 'YYYY-MM'
 
@@ -3216,6 +3223,19 @@
       document.getElementById('f-ema').value        = 'on';
       document.getElementById('f-ret-period').value = '12';
       document.getElementById('f-ret-pct').value    = '10';
+    }
+  }
+
+  function scrClearCache() {
+    localStorage.removeItem(SCR_CACHE_KEY);
+    const btn = document.querySelector('.scr-cache-clear-btn');
+    if (btn) {
+      btn.textContent = '✓ cleared';
+      btn.style.color = 'var(--accent)';
+      setTimeout(() => {
+        btn.textContent = '↺ refresh prices';
+        btn.style.color = '';
+      }, 2000);
     }
   }
 
