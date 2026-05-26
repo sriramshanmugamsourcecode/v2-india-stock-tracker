@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>🇮🇳 India Stock Tracker · v4.20260522.8</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.9</title>
 
   <!--
     ============================================================
@@ -1258,7 +1258,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.8'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.9'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1967,6 +1967,23 @@
     });
   }
 
+  // ── WoW Streak Helpers ──
+  // Build last N weeks of up/down arrows with % for a ticker
+  // history = [{date, price}] oldest→newest, up to dateStr
+  function wowStreakArrows(histUpToNow, n) {
+    if (!histUpToNow || histUpToNow.length < 2) return '<span style="color:var(--muted)">—</span>';
+    const recent = histUpToNow.slice(-Math.min(n+1, histUpToNow.length)); // n+1 to compute n changes
+    const arrows = [];
+    for (let i = recent.length - 1; i >= 1; i--) {
+      const chg = ((recent[i].price - recent[i-1].price) / recent[i-1].price) * 100;
+      const up  = chg >= 0;
+      const col = up ? '#68d391' : '#fc8181';
+      const arr = up ? '⬆' : '⬇';
+      arrows.push(`<span style="color:${col};font-size:11px;white-space:nowrap">${arr}${Math.abs(chg).toFixed(1)}%</span>`);
+    }
+    return arrows.join(' ');
+  }
+
   function renderWowTableBody(dateStr, rowData, sortCol, sortDir) {
     const sorted = wowSortRows(rowData, sortCol, sortDir);
     return sorted.map(r => {
@@ -1984,6 +2001,7 @@
         <td class="mono ${r.wowCls}">${r.wowChgPct != null ? fmtPct(r.wowChgPct) : '—'}</td>
         <td class="${r.signalCls}" style="white-space:nowrap">${r.signalLabel} ${buyQtyBtn}</td>
         <td class="${r.exit.cls}" style="white-space:nowrap" ${exitTip}>${r.exit.label}</td>
+        <td style="white-space:nowrap" data-tip="Last 3 weeks: newest → oldest">${r.streakMini || '—'}</td>
       </tr>`;
     }).join('');
   }
@@ -2123,8 +2141,11 @@
         const wowChgPct = prevPrice != null ? ((price - prevPrice) / prevPrice) * 100 : null;
         const signal    = getPyramidSignal(pnlPct, wowChgPct, pnlFloor);
 
-        // Exit signal — uses full history up to and including this week
+        // WoW streak — last 3 weeks of direction + % (compact for table)
         const histUpToNow = (tickerHistory[h.ticker] || []).filter(d => d.date <= dateStr);
+        const streakMini  = wowStreakArrows(histUpToNow, 3);
+
+        // Exit signal — reuses histUpToNow computed above
         const ema100 = cacheOk ? getEmaFromCache(h.ticker) : null;
         const exit   = getExitSignal(pnlPct, wowChgPct, histUpToNow, pnlFloor, ema100);
 
@@ -2137,6 +2158,7 @@
           signalOrder: WOW_SIGNAL_ORDER[signal.cls] ?? 4,
           isStrongAdd: signal.cls === 'signal-add',
           exit,
+          streakMini,
           pnlCls: pnlPct >= 0 ? 'positive-text' : 'negative-text',
           fCls:   floorClass(pnlPct, pnlFloor),
           wowCls: wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
@@ -2206,6 +2228,7 @@
                 ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
                 ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}
                 ${th('signal','Buy Signal',buySignalTip)}${th('exit','Exit Signal',exitSignalTip)}
+                <th title="Last 3 weeks direction &amp; % change (newest → oldest)">3W Trend</th>
               </tr></thead>
               <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
             </table>
@@ -2276,7 +2299,19 @@
       </tr>`;
     }).join('');
 
-    document.getElementById('wow-modal-table').innerHTML = `
+    // 6-week streak summary for modal (newest → oldest)
+    const streak6 = wowStreakArrows(history, 6);
+    const streak6Html = `
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
+        <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">
+          Last 6 weeks — newest → oldest
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          ${streak6}
+        </div>
+      </div>`;
+
+    document.getElementById('wow-modal-table').innerHTML = streak6Html + `
       <table>
         <thead><tr>
           <th>Week</th><th>Close Price</th><th>WoW Chg%</th><th>P&amp;L%</th><th>Signal</th>
