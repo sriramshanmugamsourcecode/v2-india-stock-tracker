@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.14</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.16</title>
 
   <!--
     ============================================================
@@ -1487,7 +1487,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.14'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.16'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3662,14 +3662,19 @@
       });
 
       // Build final trades with weighted avg price
-      // Build universe map — load from Supabase if scrUniverse not yet populated
-      let universeData = scrUniverse;
-      if (!universeData.length) {
+      // Load universe from Supabase if not yet populated
+      if (!scrUniverse.length) {
         const { data } = await db.from('universe').select('ticker, stock_name, exchange').eq('active', true);
-        universeData = data || [];
+        if (data) {
+          scrUniverse = data;
+          const countEl = document.getElementById('scr-universe-count');
+          if (countEl) countEl.textContent = `${scrUniverse.length} stocks`;
+        }
       }
+
+      // Build universe map
       const universeMap = {};
-      universeData.forEach(u => {
+      scrUniverse.forEach(u => {
         const ticker = (u.ticker || '').toUpperCase().trim();
         universeMap[ticker] = u.stock_name || ticker;
       });
@@ -3780,7 +3785,15 @@
 
   function filterImportPicker(idx, query) {
     const list = document.getElementById(`import-picker-list-${idx}`);
-    const q    = query.toLowerCase();
+    const stripped = query.includes(':') ? query.split(':').pop() : query;
+    const q = stripped.toLowerCase();
+    if (!scrUniverse.length) {
+      list.innerHTML = '<div style="padding:8px 12px;color:var(--muted);font-size:11px">Loading universe…</div>';
+      db.from('universe').select('ticker, stock_name, exchange').eq('active', true).then(({ data }) => {
+        if (data) { scrUniverse = data; filterImportPicker(idx, query); }
+      });
+      return;
+    }
     let universeData = scrUniverse;
     if (!universeData.length) { list.innerHTML = '<div style="padding:8px 12px;color:var(--muted);font-size:11px">Loading…</div>'; return; }
 
@@ -3902,7 +3915,18 @@
   function filterStockSearch(query) {
     const dd = document.getElementById('mt-stock-dropdown');
     if (!query || query.length < 1) { dd.style.display = 'none'; return; }
-    const q = query.toLowerCase();
+    const stripped = query.includes(':') ? query.split(':').pop() : query;
+    const q = stripped.toLowerCase();
+
+    // Load universe from Supabase if not yet populated
+    if (!scrUniverse.length) {
+      dd.innerHTML = `<div style="padding:10px 12px;color:var(--muted);font-size:11px;font-family:var(--font-mono)">Loading universe…</div>`;
+      dd.style.display = 'block';
+      db.from('universe').select('ticker, stock_name, exchange').eq('active', true).then(({ data }) => {
+        if (data) { scrUniverse = data; filterStockSearch(query); }
+      });
+      return;
+    }
     const matches = scrUniverse.filter(u => {
       const ticker = (u.ticker.includes(':') ? u.ticker.split(':')[1] : u.ticker).toLowerCase();
       const name   = (u.stock_name || '').toLowerCase();
