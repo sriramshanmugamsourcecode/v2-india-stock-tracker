@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.18</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.21</title>
 
   <!--
     ============================================================
@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.18'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.21'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1683,6 +1683,9 @@
 
       document.getElementById('last-updated').textContent =
         'updated ' + new Date().toLocaleTimeString('en-IN');
+
+      // Re-show undo button if recent import exists
+      showUndoButton();
     } catch(e) {
       document.getElementById('last-updated').textContent = 'error — see below';
       document.getElementById('error-area').innerHTML =
@@ -3926,7 +3929,11 @@
   async function deleteTrade(id, label) {
     if (!confirm(`Delete trade: ${label}?\n\nThis cannot be undone.`)) return;
     try {
-      const { error } = await db.from('trades').delete().eq('id', id);
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) throw new Error('Not logged in');
+      const { error } = await db.from('trades').delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
       if (error) throw error;
       await loadAll();
     } catch(e) {
@@ -3946,12 +3953,19 @@
       }
       if (!confirm(`Undo last import?\n\nThis will permanently delete ${batch.count} trade(s) imported at ${new Date(batch.importedAt).toLocaleString()}.\n\nThis cannot be undone.`)) return;
 
-      const { error } = await db.from('trades').delete().eq('import_batch', batch.batchId);
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) throw new Error('Not logged in');
+
+      const { error } = await db.from('trades').delete()
+        .eq('import_batch', batch.batchId)
+        .eq('user_id', user.id);
       if (error) throw error;
 
+      // Only clear after confirmed success
       localStorage.removeItem('last_import_batch');
       document.getElementById('undo-import-btn').style.display = 'none';
       await loadAll();
+      alert(`✓ Undo successful — ${batch.count} trade(s) removed.`);
     } catch(e) {
       alert('Failed to undo import: ' + e.message);
     }
