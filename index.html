@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.17</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.18</title>
 
   <!--
     ============================================================
@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.17'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.18'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3649,7 +3649,7 @@
           symbol:    String(row[colIdx['Symbol']]).trim(),
           date:      row[colIdx['Trade Date']],
           exchange:  String(row[colIdx['Exchange']]).trim(),
-          action:    String(row[colIdx['Trade Type']]).trim().toLowerCase(),
+          action:    String(row[colIdx['Trade Type']]).trim().toUpperCase(),
           qty:       parseFloat(row[colIdx['Quantity']]) || 0,
           price:     parseFloat(row[colIdx['Price']]) || 0,
           orderId:   String(row[colIdx['Order ID']]).trim(),
@@ -3858,7 +3858,7 @@
         date:         t.date,
         stock_name:   t.stock_name,
         ticker:       t.ticker,
-        action:       t.action,
+        action:       t.action.toUpperCase(),
         qty:          t.qty,
         price:        t.price,
         brokerage:    t.brokerage,
