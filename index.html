@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.21</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260527.1</title>
 
   <!--
     ============================================================
@@ -1465,6 +1465,35 @@
         </div>
       </div>
 
+      <!-- Stock Notes Modal -->
+      <div class="import-modal-overlay" id="notes-modal-overlay" onclick="closeNotesModal(event)">
+        <div class="import-modal" style="max-width:520px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+            <div>
+              <div id="notes-modal-title" style="font-family:var(--font-display);font-size:18px;font-weight:600"></div>
+              <div id="notes-modal-sub" style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:3px"></div>
+            </div>
+            <button class="wow-modal-close" onclick="closeNotesModal(null)">✕</button>
+          </div>
+          <textarea id="notes-textarea"
+            placeholder="Write your analysis, thesis, price targets, concerns…"
+            style="width:100%;min-height:220px;background:var(--bg3);border:1px solid var(--border2);
+                   border-radius:10px;padding:14px;color:var(--text);font-family:var(--font-mono);
+                   font-size:13px;line-height:1.6;resize:vertical;outline:none;
+                   transition:border-color 0.15s"
+            onfocus="this.style.borderColor='var(--accent)'"
+            onblur="this.style.borderColor='var(--border2)'"
+          ></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <div id="notes-saved-label" style="font-size:11px;color:var(--muted);font-family:var(--font-mono)"></div>
+            <div style="display:flex;gap:8px">
+              <button class="scr-act" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border2)" onclick="closeNotesModal(null)">Cancel</button>
+              <button class="scr-act" id="notes-save-btn" style="background:var(--accent);color:#000;font-weight:600" onclick="saveNotes()">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- WoW Stock Detail Modal -->
       <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
         <div class="wow-modal" id="wow-modal">
@@ -1496,7 +1525,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.21'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260527.2'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1733,18 +1762,27 @@
         const unrealisedPnl = currentValue != null ? currentValue - invested : null;
         const unrealisedPct = unrealisedPnl != null ? (unrealisedPnl / invested) * 100 : null;
 
-        // XIRR per stock
+        // XIRR per stock — only meaningful when holding is >= 90 days
+        const MIN_XIRR_DAYS = 90;
         let stockXirr = null;
+        let stockXirrShort = false;
         if (livePrice != null) {
-          const cfs = buildCashflows(s.allTrades, livePrice);
-          stockXirr = xirr(cfs);
+          const firstBuy = s.allTrades.reduce((min, t) =>
+            new Date(t.date) < min ? new Date(t.date) : min, new Date());
+          const holdingDays = (Date.now() - firstBuy) / (1000 * 60 * 60 * 24);
+          if (holdingDays >= MIN_XIRR_DAYS) {
+            const cfs = buildCashflows(s.allTrades, livePrice);
+            stockXirr = xirr(cfs);
+          } else {
+            stockXirrShort = true;
+          }
         }
 
         if (currentValue != null)  totalCurrentValue   += currentValue;
         if (unrealisedPnl != null) totalUnrealisedPnl  += unrealisedPnl;
 
         holdings.push({ name: s.name, ticker: s.ticker, exchange: s.exchange,
-          netQty, avgBuy, invested, livePrice, currentValue, unrealisedPnl, unrealisedPct, stockXirr,
+          netQty, avgBuy, invested, livePrice, currentValue, unrealisedPnl, unrealisedPct, stockXirr, stockXirrShort,
           allTrades: s.allTrades });
       }
     });
@@ -1758,8 +1796,12 @@
       allCfs.push({ amount: total, date: new Date(t.date) });
     });
     if (totalCurrentValue > 0) {
-      allCfs.push({ amount: totalCurrentValue, date: new Date() });
-      portfolioXirr = xirr(allCfs.sort((a,b) => a.date - b.date));
+      const oldestTrade = allCfs.reduce((min, cf) => cf.date < min ? cf.date : min, new Date());
+      const portfolioDays = (Date.now() - oldestTrade) / (1000 * 60 * 60 * 24);
+      if (portfolioDays >= 90) {
+        allCfs.push({ amount: totalCurrentValue, date: new Date() });
+        portfolioXirr = xirr(allCfs.sort((a,b) => a.date - b.date));
+      }
     }
 
     holdings.sort((a, b) => b.invested - a.invested);
@@ -1919,7 +1961,7 @@
             <td class="mono">${fmtPrice(h.livePrice)}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPct != null ? fmtPct(h.unrealisedPct) : '—'}</td>
-            <td class="mono ${xirrCls}">${h.stockXirr != null ? fmtPct(h.stockXirr) : '—'}</td>
+            <td class="mono ${xirrCls}">${h.stockXirr != null ? fmtPct(h.stockXirr) : h.stockXirrShort ? '<span style="opacity:0.4;font-size:0.78em">< 90d</span>' : '—'}</td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -3393,10 +3435,11 @@
       const rb  = rbc(r.position);
       return `<tr>
         <td>
-          <div class="scr-scell">
+          <div class="scr-scell" onclick="openNotesModal('${r.ticker}','${r.name.replace(/'/g,"\\'")}','${r.exchange||'NSE'}',${r.price!=null?r.price:'null'})"
+               style="cursor:pointer" title="Click to add/edit notes">
             <div class="scr-sdot" style="background:${isH?'#a78bfa':'var(--border)'}"></div>
             <div>
-              <div class="scr-sname">${r.name}${isH?'<span class="scr-hchip">▲ holding</span>':''}</div>
+              <div class="scr-sname">${r.name}${isH?'<span class="scr-hchip">▲ holding</span>':''}<span data-note-ticker="${r.ticker}" style="display:${hasNote(r.ticker)?'inline':'none'};margin-left:5px;font-size:10px;opacity:0.7" title="Has notes">📝</span></div>
               <div class="scr-smeta">${r.ticker} · ₹${r.price!=null?r.price.toLocaleString('en-IN'):'—'}</div>
             </div>
           </div>
@@ -3589,6 +3632,62 @@
     }, { onConflict: 'ticker,user_id' });
     if (error) { btn.textContent = '✗ Error'; btn.style.color = 'var(--red)'; }
     else { btn.textContent = '✓ Added'; btn.classList.add('done'); }
+  }
+
+  // ============================================================
+  // STOCK NOTES — stored in localStorage keyed by ticker
+  // ============================================================
+  let notesCurrentTicker = null;
+
+  function getNoteKey(ticker) { return `stock_note:${ticker}`; }
+
+  function getNote(ticker) {
+    try { return JSON.parse(localStorage.getItem(getNoteKey(ticker)) || 'null'); } catch { return null; }
+  }
+
+  function hasNote(ticker) {
+    const n = getNote(ticker);
+    return n && n.text && n.text.trim().length > 0;
+  }
+
+  function openNotesModal(ticker, name, exchange, price) {
+    notesCurrentTicker = ticker;
+    document.getElementById('notes-modal-title').textContent = name;
+    document.getElementById('notes-modal-sub').textContent =
+      `${ticker} · ${exchange}${price != null ? ' · ₹' + price.toLocaleString('en-IN') : ''}`;
+    const saved = getNote(ticker);
+    document.getElementById('notes-textarea').value = saved ? saved.text : '';
+    const lbl = document.getElementById('notes-saved-label');
+    lbl.textContent = saved ? `Last saved ${new Date(saved.ts).toLocaleString('en-IN', {dateStyle:'medium',timeStyle:'short'})}` : '';
+    document.getElementById('notes-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('notes-textarea').focus(), 80);
+  }
+
+  function closeNotesModal(e) {
+    if (e && e.target !== document.getElementById('notes-modal-overlay')) return;
+    document.getElementById('notes-modal-overlay').classList.remove('open');
+    notesCurrentTicker = null;
+  }
+
+  function saveNotes() {
+    if (!notesCurrentTicker) return;
+    const text = document.getElementById('notes-textarea').value;
+    const key  = getNoteKey(notesCurrentTicker);
+    if (text.trim()) {
+      localStorage.setItem(key, JSON.stringify({ text, ts: new Date().toISOString() }));
+    } else {
+      localStorage.removeItem(key); // clear if empty
+    }
+    const lbl = document.getElementById('notes-saved-label');
+    lbl.textContent = text.trim() ? `Saved ${new Date().toLocaleTimeString('en-IN', {timeStyle:'short'})}` : 'Note cleared';
+    lbl.style.color = 'var(--accent)';
+    setTimeout(() => { lbl.style.color = 'var(--muted)'; }, 1500);
+    // Refresh note dot in the table without full re-render
+    document.querySelectorAll(`[data-note-ticker="${notesCurrentTicker}"]`).forEach(el => {
+      el.style.display = text.trim() ? 'inline' : 'none';
+    });
+    document.getElementById('notes-modal-overlay').classList.remove('open');
+    notesCurrentTicker = null;
   }
 
   // ============================================================
