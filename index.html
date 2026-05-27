@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.16</title>
+  <title>🇮🇳 India Stock Tracker · v4.20260522.17</title>
 
   <!--
     ============================================================
@@ -760,6 +760,11 @@
       white-space: nowrap;
     }
     .import-pick-btn:hover { background: rgba(251,191,36,0.2); }
+    .trade-delete-btn {
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-size: 14px; padding: 2px 4px; border-radius: 4px; transition: color 0.15s;
+    }
+    .trade-delete-btn:hover { color: #f87171; }
 
     /* ── Manual Trade Entry ── */
     .mt-field { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
@@ -1088,7 +1093,11 @@
       <div id="tab-trades" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <p class="section-title" style="margin:0">All Trades</p>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="undo-import-btn" class="import-trades-btn" onclick="undoLastImport()"
+              style="display:none;border-color:rgba(248,113,113,0.4);color:#f87171">
+              ↩ Undo Last Import
+            </button>
             <button class="import-trades-btn" onclick="openManualTradeModal()">➕ Add Trade</button>
             <button class="import-trades-btn" onclick="openImportModal()">📥 Import Kite Trades</button>
           </div>
@@ -1487,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260522.16'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260522.17'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -1940,6 +1949,7 @@
           ${th('date','Date')} ${th('stock_name','Stock')} ${th('ticker','Ticker')}
           ${th('action','Action')} ${th('qty','Qty')} ${th('price','Price')}
           ${th('brokerage','Brokerage')} ${th('total','Total')}
+          <th style="color:var(--muted);font-size:10px">Del</th>
         </tr></thead>
         <tbody>${sorted.map(t => `
           <tr>
@@ -1951,6 +1961,7 @@
             <td class="mono">${fmt(t.price)}</td>
             <td class="mono" style="color:var(--muted)">${fmt(t.brokerage || 0)}</td>
             <td class="mono">${fmt(t.total)}</td>
+            <td><button class="trade-delete-btn" onclick="deleteTrade('${t.id}', '${t.stock_name} ${t.action} ${t.qty}')" title="Delete this trade">🗑</button></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
@@ -3840,20 +3851,35 @@
       const user = (await db.auth.getUser()).data.user;
       if (!user) throw new Error('Not logged in');
 
+      // Generate unique batch ID for this import
+      const batchId = new Date().toISOString();
+
       const rows = importParsedTrades.map(t => ({
-        date:       t.date,
-        stock_name: t.stock_name,
-        ticker:     t.ticker,
-        action:     t.action,
-        qty:        t.qty,
-        price:      t.price,
-        brokerage:  t.brokerage,
-        exchange:   t.exchange,
-        user_id:    user.id,
+        date:         t.date,
+        stock_name:   t.stock_name,
+        ticker:       t.ticker,
+        action:       t.action,
+        qty:          t.qty,
+        price:        t.price,
+        brokerage:    t.brokerage,
+        exchange:     t.exchange,
+        user_id:      user.id,
+        import_batch: batchId,
       }));
 
       const { error } = await db.from('trades').insert(rows);
       if (error) throw new Error(error.message);
+
+      // Save batch ID to localStorage for undo (24hr window)
+      localStorage.setItem('last_import_batch', JSON.stringify({
+        batchId,
+        count: rows.length,
+        importedAt: batchId,
+        expiresAt: new Date(Date.now() + 24*60*60*1000).toISOString(),
+      }));
+
+      // Show undo button
+      showUndoButton();
 
       // Success
       document.getElementById('import-step-preview').style.display = 'none';
@@ -3874,8 +3900,65 @@
   setDefaultWowDate();
 
   // ============================================================
-  // MANUAL TRADE ENTRY
+  // TRADE DELETE & UNDO IMPORT
   // ============================================================
+
+  function showUndoButton() {
+    try {
+      const raw = localStorage.getItem('last_import_batch');
+      if (!raw) return;
+      const batch = JSON.parse(raw);
+      if (new Date() > new Date(batch.expiresAt)) {
+        localStorage.removeItem('last_import_batch');
+        return;
+      }
+      const btn = document.getElementById('undo-import-btn');
+      if (btn) {
+        btn.style.display = '';
+        const mins = Math.round((new Date(batch.expiresAt) - new Date()) / 60000);
+        const hrs  = Math.floor(mins / 60);
+        const timeStr = hrs > 0 ? `${hrs}h` : `${mins}m`;
+        btn.textContent = `↩ Undo Last Import (${batch.count} trades · ${timeStr} left)`;
+      }
+    } catch(e) {}
+  }
+
+  async function deleteTrade(id, label) {
+    if (!confirm(`Delete trade: ${label}?\n\nThis cannot be undone.`)) return;
+    try {
+      const { error } = await db.from('trades').delete().eq('id', id);
+      if (error) throw error;
+      await loadAll();
+    } catch(e) {
+      alert('Failed to delete trade: ' + e.message);
+    }
+  }
+
+  async function undoLastImport() {
+    try {
+      const raw = localStorage.getItem('last_import_batch');
+      if (!raw) { alert('No recent import found to undo.'); return; }
+      const batch = JSON.parse(raw);
+      if (new Date() > new Date(batch.expiresAt)) {
+        localStorage.removeItem('last_import_batch');
+        alert('Undo window expired (24 hours). Delete individual trades manually.');
+        return;
+      }
+      if (!confirm(`Undo last import?\n\nThis will permanently delete ${batch.count} trade(s) imported at ${new Date(batch.importedAt).toLocaleString()}.\n\nThis cannot be undone.`)) return;
+
+      const { error } = await db.from('trades').delete().eq('import_batch', batch.batchId);
+      if (error) throw error;
+
+      localStorage.removeItem('last_import_batch');
+      document.getElementById('undo-import-btn').style.display = 'none';
+      await loadAll();
+    } catch(e) {
+      alert('Failed to undo import: ' + e.message);
+    }
+  }
+
+  // Check for recent import on page load
+  showUndoButton();
   let manualAction        = 'buy';
   let manualSelectedStock = null;
 
