@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260601.2'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260601.3'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3495,7 +3495,8 @@
     const sorted = [...scrLastResults].sort((a,b) => {
       let av, bv;
       if (key==='sig') { const o={strong:0,watch:1,mom:2}; av=o[a.sig]; bv=o[b.sig]; }
-      else if (key==='pct52w') { av=a.pct52w??999; bv=b.pct52w??999; } // lower = better (at/above high)
+      else if (key==='pct52w') { av=a.pct52w??999; bv=b.pct52w??999; }
+      else if (key==='streak') { av=getStreak(a.ticker); bv=getStreak(b.ticker); }
       else { av=a[key]??0; bv=b[key]??0; }
       return scrSortAsc ? av-bv : bv-av;
     });
