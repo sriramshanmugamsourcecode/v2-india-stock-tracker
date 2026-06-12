@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260601.3'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260601.4'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -3216,7 +3216,7 @@
     const fetchFailed = []; // tickers that failed Yahoo fetch
     let done = 0;
     const total = scrUniverse.length;
-    const BATCH = 8, DELAY = 300;
+    const BATCH = 15, DELAY = 200;
 
     for (let i = 0; i < scrUniverse.length; i += BATCH) {
       const batch = scrUniverse.slice(i, i+BATCH);
@@ -3228,9 +3228,8 @@
           pf.style.width = (done/total*100) + '%';
           return;
         }
-        const raw = await scrFetch1Y(u.ticker);
+        const [raw, fund] = await Promise.all([scrFetch1Y(u.ticker), scrFetchFund(u.ticker)]);
         if (raw) {
-          const fund = await scrFetchFund(u.ticker);
           Object.assign(raw, fund);
           const ind = scrCalc(raw);
           if (ind) { ind.name = u.stock_name; ind.exchange = u.exchange; results[u.ticker] = ind; }
