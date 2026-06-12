@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260601.4'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260601.5'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2829,6 +2829,11 @@
     const now = Math.floor(Date.now() / 1000);
     return { p1: now - 380 * 86400, p2: now };
   }
+  function fetchWithTimeout(url, ms = 8000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
   async function scrFetch1Y(ticker) {
     const yfSym = scrToYF(ticker);
     if (!yfSym) return null;
@@ -2838,7 +2843,7 @@
     const baseUrl = `${YF_BASE}${yfSym}?interval=1d&period1=${p1}&period2=${p2}`;
     const url = PROXY + encodeURIComponent(baseUrl);
     try {
-      const r = await fetch(url);
+      const r = await fetchWithTimeout(url);
       if (!r.ok) return null;
       const json   = await r.json();
       const result = json?.chart?.result?.[0];
@@ -2859,7 +2864,7 @@
       `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${yfSym}?modules=summaryDetail,defaultKeyStatistics,financialData`
     );
     try {
-      const r = await fetch(url);
+      const r = await fetchWithTimeout(url);
       if (!r.ok) return {};
       const json   = await r.json();
       const res    = json?.quoteSummary?.result?.[0];
