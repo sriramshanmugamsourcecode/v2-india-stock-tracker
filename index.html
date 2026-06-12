@@ -1496,7 +1496,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260601.5'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260601.6'; // ← single source of truth — update here only
   const SUPA_URL = 'https://zlpejsixpycewmfpmwrz.supabase.co';
   const SUPA_KEY = 'sb_publishable_4CmwdTrj7CndRqTZ4MGYvg_TXmP8uqv';
 
@@ -2829,10 +2829,22 @@
     const now = Math.floor(Date.now() / 1000);
     return { p1: now - 380 * 86400, p2: now };
   }
-  function fetchWithTimeout(url, ms = 8000) {
+  function fetchWithTimeout(url, ms = 20000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
     return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+  async function scrFetchWithRetry(url, ms = 20000, retries = 2) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const r = await fetchWithTimeout(url, ms);
+        if (r.ok) return r;
+        if (attempt === retries) return r;
+      } catch (e) {
+        if (attempt === retries) throw e;
+        await new Promise(r => setTimeout(r, 1000 * attempt)); // 1s, then 2s back-off
+      }
+    }
   }
   async function scrFetch1Y(ticker) {
     const yfSym = scrToYF(ticker);
@@ -2843,8 +2855,8 @@
     const baseUrl = `${YF_BASE}${yfSym}?interval=1d&period1=${p1}&period2=${p2}`;
     const url = PROXY + encodeURIComponent(baseUrl);
     try {
-      const r = await fetchWithTimeout(url);
-      if (!r.ok) return null;
+      const r = await scrFetchWithRetry(url);
+      if (!r || !r.ok) return null;
       const json   = await r.json();
       const result = json?.chart?.result?.[0];
       if (!result) return null;
@@ -2864,8 +2876,8 @@
       `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${yfSym}?modules=summaryDetail,defaultKeyStatistics,financialData`
     );
     try {
-      const r = await fetchWithTimeout(url);
-      if (!r.ok) return {};
+      const r = await scrFetchWithRetry(url);
+      if (!r || !r.ok) return {};
       const json   = await r.json();
       const res    = json?.quoteSummary?.result?.[0];
       if (!res) return {};
@@ -3221,7 +3233,7 @@
     const fetchFailed = []; // tickers that failed Yahoo fetch
     let done = 0;
     const total = scrUniverse.length;
-    const BATCH = 15, DELAY = 200;
+    const BATCH = 6, DELAY = 500;
 
     for (let i = 0; i < scrUniverse.length; i += BATCH) {
       const batch = scrUniverse.slice(i, i+BATCH);
