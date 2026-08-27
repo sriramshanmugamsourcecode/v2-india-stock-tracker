@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🇮🇳 India Stock Tracker · v4.20260522.21</title>
+  <title>🇮🇳 India Stock Tracker v2 · v4.20260522.21</title>
 
   <!--
     ============================================================
@@ -1031,7 +1031,7 @@
   <!-- ── Login Screen ── -->
   <div id="login-screen" class="login-wrap" style="display:none">
     <div class="login-card">
-      <div class="login-logo">🇮🇳 India Stock Tracker</div>
+      <div class="login-logo">🇮🇳 India Stock Tracker v2</div>
       <div class="login-sub">Sign in to your portfolio</div>
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -1052,7 +1052,7 @@
 
       <div class="header">
         <div class="header-left">
-          <h1>🇮🇳 India Stock Tracker</h1>
+          <h1>🇮🇳 India Stock Tracker v2</h1>
           <p id="last-updated">loading...</p>
         </div>
         <div class="header-right">
@@ -1499,6 +1499,7 @@
   const APP_VERSION = 'v4.20260601.6'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
+  const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
 
   // CORS proxy for Yahoo Finance (swap URL here if proxy changes)
   const PROXY = 'https://little-bird-6066.sriram-shanmugam.workers.dev/?url=';
@@ -2761,69 +2762,71 @@
   }
 
   // Yahoo Finance — period1/period2 (same pattern as WoW, reliably works via corsproxy.io)
+  // Keys are bare tickers (no exchange prefix) — v2 fix: scrToYF now derives exchange from the
+  // universe row's `exchange` column instead of parsing the ticker string, so this map (and the
+  // screener as a whole) works correctly whether universe.ticker is prefixed or bare.
   const SCR_YF_OVERRIDES = {
     // BSE-only
-    'BSE:ARTSON':      'ARTSON.BO',
+    'ARTSON':      'ARTSON.BO',
 
     // Corporate restructuring / renamed
-    'NSE:TATAMOTORS':  'TMPV.NS',
-    'NSE:ZOMATO':      'ETERNAL.NS',
-    'NSE:ADANITRANS':  'ADANIENSOL.NS',
+    'TATAMOTORS':  'TMPV.NS',
+    'ZOMATO':      'ETERNAL.NS',
+    'ADANITRANS':  'ADANIENSOL.NS',
 
     // Symbol has & which must be literal
-    'NSE:AMARAJABAT':  'ARE&M.NS',
-    'NSE:L&TFH':       'LTFH.NS',
+    'AMARAJABAT':  'ARE&M.NS',
+    'L&TFH':       'LTF.NS',             // ✅ confirmed — L&T Finance
 
     // NSE ticker differs from Yahoo symbol
-    'NSE:AIRTEL':      'BHARTIARTL.NS',
-    'NSE:MOTILALOSW':  'MOTILALOFS.NS',
-    'NSE:MINDAIND':    'UNOMINDA.NS',
-    'NSE:BLUESTAR':    'BLUESTARCO.NS',
-    'NSE:SUVENPHAR':   'SUVEN.NS',
-    'NSE:MCDOWELL-N':  'UNITDSPR.NS',     // confirmed
-    'NSE:AJAXENG':     'AJAXENGG.NS',
-    'NSE:ASMTEC':      'ASMTEC.BO',
-    'NSE:SMLISUZU':    'SMLMAH.NS',
-    'NSE:ISEC':        'ISEC.NS',            // ✅ confirmed
-    'NSE:KALPATPOWR':  'KPIL.NS',
-    'NSE:LAXMIMACH':   'LMW.NS',             // ✅ confirmed
-    'NSE:MAHINDCIE':   null,               // not on Yahoo
-    'NSE:OCCL':        'OCCL.BO',
-    'NSE:SEQUENT':     'SEQUENT.BO',
-    'NSE:TRIL':        'TARIL.NS',
-    'NSE:UTIAMCLTD':   'UTIAMC.NS',
-    'NSE:IIFLFIN':     'IIFL.NS',
-    'NSE:IIFLWAM':     '360ONE.NS',          // ✅ confirmed — IIFL Wealth renamed to 360 One
-    'NSE:ITDCEM':      'ITDCEM.BO',
-    'NSE:JMB':         'JMFINANCIL.NS',
-    'NSE:KTIL':        'KIRLOSENG.NS',
-    'NSE:IDFC':        'IDFCFIRSTB.NS',
-    'NSE:DRSNLANKAH':  'AGARWALEYE.NS',      // ✅ confirmed
-    'NSE:ALEMBICPH':   'APLLTD.NS',        // confirmed
-    'NSE:ATFL':        'ATFL.NS',            // ✅ confirmed
-    'NSE:PEL':         'PEL.NS',             // ✅ confirmed — Piramal Enterprises
-    'NSE:FINOLEXIND':  'FINPIPE.BO',         // ✅ confirmed — Finolex Industries
-    'NSE:FINOLEX':     'FINCABLES.NS',       // ✅ confirmed — Finolex Cables
-    'NSE:L&TFH':       'LTF.NS',             // ✅ confirmed — L&T Finance
+    'AIRTEL':      'BHARTIARTL.NS',
+    'MOTILALOSW':  'MOTILALOFS.NS',
+    'MINDAIND':    'UNOMINDA.NS',
+    'BLUESTAR':    'BLUESTARCO.NS',
+    'SUVENPHAR':   'SUVEN.NS',
+    'MCDOWELL-N':  'UNITDSPR.NS',     // confirmed
+    'AJAXENG':     'AJAXENGG.NS',
+    'ASMTEC':      'ASMTEC.BO',
+    'SMLISUZU':    'SMLMAH.NS',
+    'ISEC':        'ISEC.NS',            // ✅ confirmed
+    'KALPATPOWR':  'KPIL.NS',
+    'LAXMIMACH':   'LMW.NS',             // ✅ confirmed
+    'MAHINDCIE':   null,               // not on Yahoo
+    'OCCL':        'OCCL.BO',
+    'SEQUENT':     'SEQUENT.BO',
+    'TRIL':        'TARIL.NS',
+    'UTIAMCLTD':   'UTIAMC.NS',
+    'IIFLFIN':     'IIFL.NS',
+    'IIFLWAM':     '360ONE.NS',          // ✅ confirmed — IIFL Wealth renamed to 360 One
+    'ITDCEM':      'ITDCEM.BO',
+    'JMB':         'JMFINANCIL.NS',
+    'KTIL':        'KIRLOSENG.NS',
+    'IDFC':        'IDFCFIRSTB.NS',
+    'DRSNLANKAH':  'AGARWALEYE.NS',      // ✅ confirmed
+    'ALEMBICPH':   'APLLTD.NS',        // confirmed
+    'ATFL':        'ATFL.NS',            // ✅ confirmed
+    'PEL':         'PEL.NS',             // ✅ confirmed — Piramal Enterprises
+    'FINOLEXIND':  'FINPIPE.BO',         // ✅ confirmed — Finolex Industries
+    'FINOLEX':     'FINCABLES.NS',       // ✅ confirmed — Finolex Cables
 
     // Delisted / merged / not on Yahoo — skip
-    'NSE:CENTURYTEX':  null,                  // not on Yahoo — skip
-    'NSE:TCNSBRANDS':  null,
-    'NSE:WABCOINDIA':  null,
-    'NSE:JSB':         null,
-    'NSE:STRTECH':     null,
-    'NSE:HDFCWM':      null,
-    'NSE:ANNAS':       null,
-    'NSE:CANOLAFS':    null,
-    'NSE:ETHANOLBIO':  null,
-    'NSE:ESDEE':       null,
-    'NSE:AMHHOLDING':  null,
-    'NSE:CAPMFG':      null,
+    'CENTURYTEX':  null,                  // not on Yahoo — skip
+    'TCNSBRANDS':  null,
+    'WABCOINDIA':  null,
+    'JSB':         null,
+    'STRTECH':     null,
+    'HDFCWM':      null,
+    'ANNAS':       null,
+    'CANOLAFS':    null,
+    'ETHANOLBIO':  null,
+    'ESDEE':       null,
+    'AMHHOLDING':  null,
+    'CAPMFG':      null,
   };
-  function scrToYF(ticker) {
-    if (ticker in SCR_YF_OVERRIDES) return SCR_YF_OVERRIDES[ticker]; // may be null = skip
-    const [ex, sym] = ticker.split(':');
-    return sym + (ex === 'BSE' ? '.BO' : '.NS');
+  function scrToYF(ticker, exchange) {
+    const bare = ticker.includes(':') ? ticker.split(':')[1] : ticker; // works whether prefixed or bare
+    if (bare in SCR_YF_OVERRIDES) return SCR_YF_OVERRIDES[bare]; // may be null = skip
+    return bare + (exchange === 'BSE' ? '.BO' : '.NS');
   }
   function scr1YWindow() {
     const now = Math.floor(Date.now() / 1000);
@@ -2846,8 +2849,8 @@
       }
     }
   }
-  async function scrFetch1Y(ticker) {
-    const yfSym = scrToYF(ticker);
+  async function scrFetch1Y(ticker, exchange) {
+    const yfSym = scrToYF(ticker, exchange);
     if (!yfSym) return null;
     const { p1, p2 } = scr1YWindow();
     // Build URL carefully — yfSym may contain & (e.g. ARE&M.NS)
@@ -2870,8 +2873,8 @@
       return { ticker, days, price: result.meta?.regularMarketPrice || (days.length ? days[days.length-1].close : null) };
     } catch { return null; }
   }
-  async function scrFetchFund(ticker) {
-    const yfSym = scrToYF(ticker);
+  async function scrFetchFund(ticker, exchange) {
+    const yfSym = scrToYF(ticker, exchange);
     const url = PROXY + encodeURIComponent(
       `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${yfSym}?modules=summaryDetail,defaultKeyStatistics,financialData`
     );
@@ -3059,7 +3062,7 @@
   }
 
   // localStorage cache — 1-day TTL
-  const SCR_CACHE_KEY = 'scr_cache_v4'; // v4: adjRet added to composite rank, adtv, volatility filter
+  const SCR_CACHE_KEY = 'scr_cache_v4_v2'; // v4: adjRet added to composite rank, adtv, volatility filter. _v2 suffix: v1 and v2 share the same localStorage origin (github.io), namespaced to avoid cache collisions
   function scrToday() { return new Date().toISOString().slice(0,10); }
   function scrLoadCache() {
     try {
@@ -3141,7 +3144,7 @@
   // Streak = consecutive months a stock appeared in top 30
   // (pure rank + ADTV ≥5Cr only — no other filters to avoid false resets)
   // ============================================================
-  const STREAK_KEY     = 'streak_history';
+  const STREAK_KEY     = 'streak_history_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
   const STREAK_TOP_N   = 30;
   const STREAK_ADTV    = 5;   // ₹ Cr minimum
   const STREAK_MONTHS  = 24;  // keep last 24 months of history
@@ -3238,14 +3241,14 @@
     for (let i = 0; i < scrUniverse.length; i += BATCH) {
       const batch = scrUniverse.slice(i, i+BATCH);
       await Promise.all(batch.map(async u => {
-        const yfSym = scrToYF(u.ticker);
+        const yfSym = scrToYF(u.ticker, u.exchange);
         if (!yfSym) {
           // Intentionally skipped (null override)
           done++;
           pf.style.width = (done/total*100) + '%';
           return;
         }
-        const [raw, fund] = await Promise.all([scrFetch1Y(u.ticker), scrFetchFund(u.ticker)]);
+        const [raw, fund] = await Promise.all([scrFetch1Y(u.ticker, u.exchange), scrFetchFund(u.ticker, u.exchange)]);
         if (raw) {
           Object.assign(raw, fund);
           const ind = scrCalc(raw);
@@ -3888,7 +3891,7 @@
       if (error) throw new Error(error.message);
 
       // Save batch ID to localStorage for undo (24hr window)
-      localStorage.setItem('last_import_batch', JSON.stringify({
+      localStorage.setItem(LAST_IMPORT_KEY, JSON.stringify({
         batchId,
         count: rows.length,
         importedAt: batchId,
@@ -3922,11 +3925,11 @@
 
   function showUndoButton() {
     try {
-      const raw = localStorage.getItem('last_import_batch');
+      const raw = localStorage.getItem(LAST_IMPORT_KEY);
       if (!raw) return;
       const batch = JSON.parse(raw);
       if (new Date() > new Date(batch.expiresAt)) {
-        localStorage.removeItem('last_import_batch');
+        localStorage.removeItem(LAST_IMPORT_KEY);
         return;
       }
       const btn = document.getElementById('undo-import-btn');
@@ -3957,11 +3960,11 @@
 
   async function undoLastImport() {
     try {
-      const raw = localStorage.getItem('last_import_batch');
+      const raw = localStorage.getItem(LAST_IMPORT_KEY);
       if (!raw) { alert('No recent import found to undo.'); return; }
       const batch = JSON.parse(raw);
       if (new Date() > new Date(batch.expiresAt)) {
-        localStorage.removeItem('last_import_batch');
+        localStorage.removeItem(LAST_IMPORT_KEY);
         alert('Undo window expired (24 hours). Delete individual trades manually.');
         return;
       }
@@ -3976,7 +3979,7 @@
       if (error) throw error;
 
       // Only clear after confirmed success
-      localStorage.removeItem('last_import_batch');
+      localStorage.removeItem(LAST_IMPORT_KEY);
       document.getElementById('undo-import-btn').style.display = 'none';
       await loadAll();
       alert(`✓ Undo successful — ${batch.count} trade(s) removed.`);
@@ -4052,7 +4055,7 @@
     }
     dd.innerHTML = matches.map(u => {
       const ticker = u.ticker.includes(':') ? u.ticker.split(':')[1] : u.ticker;
-      const exch   = u.ticker.includes(':') ? u.ticker.split(':')[0] : 'NSE';
+      const exch   = u.exchange || 'NSE'; // v2 fix: read the actual exchange column instead of guessing from ticker prefix
       return `<div class="mt-dropdown-item" onclick="selectManualStock('${ticker}','${(u.stock_name||ticker).replace(/'/g,"\\'")}','${exch}')">
         <div class="mt-dropdown-name">${u.stock_name || ticker}</div>
         <div class="mt-dropdown-meta">${ticker} · ${exch}</div>
@@ -4114,7 +4117,7 @@
   }
 
   // Sync version string to title + footer from single APP_VERSION constant
-  document.title = `🇮🇳 India Stock Tracker · ${APP_VERSION}`;
+  document.title = `🇮🇳 India Stock Tracker v2 · ${APP_VERSION}`;
   document.getElementById('app-footer').textContent =
     `Phase 4 · ${APP_VERSION} · Portfolio · WoW Tracker · Discovery · Live prices via Yahoo Finance`;
 </script>
