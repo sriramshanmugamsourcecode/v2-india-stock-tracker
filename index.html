@@ -7,24 +7,25 @@
 
   <!--
     ============================================================
-    INDIA STOCK TRACKER — Phase 2 (Live Prices + XIRR)
+    INDIA STOCK TRACKER v2 — Phase 4 (Momentum + Fundamentals)
     ============================================================
     Author      : Built with Claude (Anthropic)
-    Project     : https://github.com/sriramshanmugamsourcecode/india-stock-tracker
-    Backend     : Supabase (PostgreSQL + Auth)
-    Last updated: 2026-05-10 (Phase 2 — live prices, unrealised P&L, XIRR)
+    Project     : https://github.com/sriramshanmugamsourcecode/v2-india-stock-tracker
+    Backend     : Supabase (PostgreSQL + Auth) — independent v2 project
+    Last updated: 2026-08-27 (Phase 4 — Nifty 500 screener, WoW exit signals)
 
     PHASES:
       Phase 1 (done)    — Portfolio viewer, Trade Log, WoW Tracker + Auth
-      Phase 2 (current) — Live NSE/BSE prices via Yahoo Finance + XIRR
-      Phase 3           — WoW Tracker multi-stock, web-native
-      Phase 4           — Momentum + Fundamentals screener (Nifty 500)
+      Phase 2 (done)    — Live NSE/BSE prices via Yahoo Finance + XIRR
+      Phase 3 (done)    — WoW Tracker multi-stock, web-native
+      Phase 4 (current) — Momentum + Fundamentals screener (Nifty 500)
 
     SUPABASE TABLES:
-      trades       — all BUY/SELL entries (source of truth)
-      wow_tracker  — week-on-week price entries per stock
-      watchlist    — stocks with entry/exit conditions (Phase 4)
-      imports      — CSV import history for delta tracking (planned)
+      trades           — all BUY/SELL entries (source of truth)
+      wow_entries      — week-on-week price entries per stock
+      universe         — Nifty 500 screener universe (exchange-prefixed tickers)
+      user_preferences — per-user settings (floor %, etc.)
+      watchlist        — stocks with entry/exit conditions
 
     AUTH:
       - Supabase email/password auth
@@ -771,7 +772,7 @@
     .mt-label { font-size:11px; color:var(--muted); font-weight:500; }
     .mt-input {
       background:var(--card); border:0.5px solid var(--border); color:var(--text);
-      font-family:var(--font-sans); font-size:13px; padding:8px 12px;
+      font-family:var(--font-body); font-size:13px; padding:8px 12px;
       border-radius:8px; outline:none; width:100%; box-sizing:border-box; transition:border-color 0.15s;
     }
     .mt-input:focus { border-color:var(--accent); }
@@ -836,7 +837,7 @@
     .scr-row label { font-size:10px; color:var(--muted); font-weight:500; }
     .scr-row select {
       background:var(--card); border:0.5px solid var(--border); color:var(--text);
-      font-family:var(--font-sans); font-size:11px; padding:5px 24px 5px 8px;
+      font-family:var(--font-body); font-size:11px; padding:5px 24px 5px 8px;
       border-radius:7px; cursor:pointer; outline:none; appearance:none; width:100%;
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
       background-repeat:no-repeat; background-position:right 8px center; transition:border-color 0.15s;
@@ -1496,7 +1497,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260601.6'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260827.7'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -3073,7 +3074,7 @@
     } catch { return null; }
   }
   function scrSaveCache(data) {
-    try { localStorage.setItem(SCR_CACHE_KEY, JSON.stringify({ date: scrToday(), data })); } catch {}
+    try { localStorage.setItem(SCR_CACHE_KEY, JSON.stringify({ date: scrToday(), ts: Date.now(), data })); } catch {}
   }
 
   // Filter logic
@@ -3741,8 +3742,8 @@
     document.getElementById('import-step-preview').style.display = '';
 
     const notInUniverse = importParsedTrades.filter(t => t.notInUniverse).length;
-    const buys  = importParsedTrades.filter(t => t.action === 'buy').length;
-    const sells = importParsedTrades.filter(t => t.action === 'sell').length;
+    const buys  = importParsedTrades.filter(t => t.action === 'BUY').length;
+    const sells = importParsedTrades.filter(t => t.action === 'SELL').length;
 
     document.getElementById('import-preview-summary').innerHTML = `
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
@@ -3773,7 +3774,7 @@
           <span style="font-size:10px;color:var(--muted);font-family:var(--font-mono)"> ${t.ticker}</span>
         </td>
         <td style="padding:7px 10px;font-family:var(--font-mono);
-          color:${t.action==='buy'?'#68d391':'#fc8181'};font-weight:600">
+          color:${t.action==='BUY'?'#68d391':'#fc8181'};font-weight:600">
           ${t.action.toUpperCase()}
         </td>
         <td style="padding:7px 10px;text-align:right;font-family:var(--font-mono)">${t.qty}</td>
@@ -4103,7 +4104,7 @@
       if (!user) throw new Error('Not logged in');
       const { error } = await db.from('trades').insert([{
         date, stock_name: manualSelectedStock.stock_name,
-        ticker: manualSelectedStock.ticker, action: manualAction,
+        ticker: manualSelectedStock.ticker, action: manualAction.toUpperCase(),
         qty, price, brokerage, exchange, user_id: user.id,
       }]);
       if (error) throw new Error(error.message);
