@@ -1497,7 +1497,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260827.7'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260828.8'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -1507,9 +1507,9 @@
   const YF_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 
   // Override map — tickers where Yahoo Finance symbol differs from DB format
-  // Key = DB ticker, Value = exact Yahoo Finance symbol to use
+  // Key = bare stock symbol (exchange prefix stripped), Value = exact Yahoo Finance symbol to use
   const YF_OVERRIDES = {
-    'NSE:ARTSON-X': 'ARTSON.BO', // Renamed to Artson Ltd (Feb 2025), BSE only on Yahoo
+    'ARTSON-X': 'ARTSON.BO', // Renamed to Artson Ltd (Feb 2025), BSE only on Yahoo
   };
 
   const { createClient } = supabase;
@@ -1572,9 +1572,16 @@
   // Fetches in batches of 10 to avoid rate limiting
   // Ticker format: strip exchange prefix, append .NS or .BO
   // ============================================================
+  // Exchange-agnostic stock key — NSE:/BSE:/bare all collapse to the bare symbol,
+  // so trades of one stock across exchanges roll into a single holding.
+  function bareSym(ticker) {
+    if (!ticker) return ticker;
+    return (ticker.includes(':') ? ticker.split(':').pop() : ticker).toUpperCase();
+  }
+
   function toYFSymbol(ticker, exchange) {
-    if (YF_OVERRIDES[ticker]) return YF_OVERRIDES[ticker];
-    const symbol = ticker.includes(':') ? ticker.split(':')[1] : ticker;
+    const symbol = bareSym(ticker);
+    if (YF_OVERRIDES[symbol]) return YF_OVERRIDES[symbol];
     return symbol + (exchange === 'BSE' ? '.BO' : '.NS');
   }
 
@@ -1702,19 +1709,29 @@
   function calcPortfolio() {
     const stocks = {};
     trades.forEach(t => {
-      if (!stocks[t.ticker]) stocks[t.ticker] = {
-        name: t.stock_name, ticker: t.ticker, exchange: t.exchange || 'NSE',
+      const key = bareSym(t.ticker); // group exchange-agnostic: NSE:/BSE:/bare all merge
+      if (!stocks[key]) stocks[key] = {
+        name: t.stock_name, ticker: key, exchange: t.exchange || 'NSE',
         buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0,
+        buyQtyByExch: {},
         allTrades: []
       };
-      const s    = stocks[t.ticker];
+      const s    = stocks[key];
       const brok = Number(t.brokerage || 0);
       s.allTrades.push(t);
       if (t.action === 'BUY') {
         s.buyQty += t.qty; s.totalCost += t.qty * t.price + brok; s.totalBrokerage += brok;
+        const ex = (t.exchange === 'BSE') ? 'BSE' : 'NSE';
+        s.buyQtyByExch[ex] = (s.buyQtyByExch[ex] || 0) + t.qty;
       } else {
         s.sellQty += t.qty; s.totalSell += t.qty * t.price - brok; s.totalBrokerage += brok;
       }
+    });
+
+    // Representative exchange per holding = whichever exchange holds the most bought qty.
+    // Only used to pick .NS/.BO for the live price — the holding itself is exchange-agnostic.
+    Object.values(stocks).forEach(s => {
+      s.exchange = (s.buyQtyByExch.BSE || 0) > (s.buyQtyByExch.NSE || 0) ? 'BSE' : 'NSE';
     });
 
     const holdings = [];
@@ -2167,7 +2184,8 @@
       const { ts, data } = JSON.parse(raw);
       // Accept cache up to 3 days old for EMA (weekly review tolerance)
       if (Date.now() - ts > 3 * 24 * 60 * 60 * 1000) return null;
-      const stock = data.find(s => s.ticker === ticker || s.name === ticker);
+      const want  = bareSym(ticker);
+      const stock = data.find(s => bareSym(s.ticker) === want || s.name === ticker);
       return stock ? (stock.ema100 ?? null) : null;
     } catch { return null; }
   }
@@ -2324,7 +2342,7 @@
     const weekMap = {};
     wowEntries.forEach(e => {
       if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
-      weekMap[e.week_date][e.ticker] = e.close_price;
+      weekMap[e.week_date][bareSym(e.ticker)] = e.close_price; // join exchange-agnostic
     });
 
     const weeks     = Object.keys(weekMap).sort((a, b) => a.localeCompare(b)); // oldest→newest for history
@@ -2550,7 +2568,7 @@
     const weekMap = {};
     wowEntries.forEach(e => {
       if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
-      weekMap[e.week_date][e.ticker] = e.close_price;
+      weekMap[e.week_date][bareSym(e.ticker)] = e.close_price; // join exchange-agnostic
     });
     const weeks = Object.keys(weekMap).sort((a, b) => a.localeCompare(b)); // oldest first
 
@@ -2711,14 +2729,17 @@
   // Updates exchange for all trades of a given ticker
   // ============================================================
   async function updateExchange(ticker, newExchange) {
+    const want = bareSym(ticker); // holding key is exchange-agnostic — update every listing's rows
+    const ids  = trades.filter(t => bareSym(t.ticker) === want).map(t => t.id);
+    if (!ids.length) return;
     try {
       const { error } = await db
         .from('trades')
         .update({ exchange: newExchange })
-        .eq('ticker', ticker);
+        .in('id', ids);
       if (error) throw error;
       // Refresh local state silently
-      trades = trades.map(t => t.ticker === ticker ? { ...t, exchange: newExchange } : t);
+      trades = trades.map(t => bareSym(t.ticker) === want ? { ...t, exchange: newExchange } : t);
     } catch(e) {
       alert('Failed to update exchange: ' + e.message);
       // Re-render to reset dropdown to previous value
