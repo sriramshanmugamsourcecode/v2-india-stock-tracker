@@ -1497,7 +1497,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260828.9'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260828.10'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -1712,26 +1712,52 @@
       const key = bareSym(t.ticker); // group exchange-agnostic: NSE:/BSE:/bare all merge
       if (!stocks[key]) stocks[key] = {
         name: t.stock_name, ticker: key, exchange: t.exchange || 'NSE',
-        buyQty: 0, sellQty: 0, totalCost: 0, totalSell: 0, totalBrokerage: 0,
-        buyQtyByExch: {},
-        allTrades: []
+        totalBrokerage: 0, buyQtyByExch: {}, allTrades: []
       };
-      const s    = stocks[key];
-      const brok = Number(t.brokerage || 0);
+      const s = stocks[key];
+      s.totalBrokerage += Number(t.brokerage || 0);
       s.allTrades.push(t);
       if (t.action === 'BUY') {
-        s.buyQty += t.qty; s.totalCost += t.qty * t.price + brok; s.totalBrokerage += brok;
         const ex = (t.exchange === 'BSE') ? 'BSE' : 'NSE';
         s.buyQtyByExch[ex] = (s.buyQtyByExch[ex] || 0) + t.qty;
-      } else {
-        s.sellQty += t.qty; s.totalSell += t.qty * t.price - brok; s.totalBrokerage += brok;
       }
     });
 
-    // Representative exchange per holding = whichever exchange holds the most bought qty.
-    // Only used to pick .NS/.BO for the live price — the holding itself is exchange-agnostic.
+    // Cost basis via chronological moving average: a SELL is booked against the
+    // running average at that moment and removes that value from the cost pool,
+    // so a full exit (qty→0) resets the basis and later buys start clean.
+    // Fixes avgBuy / realised P&L across buy → sell → re-buy sequences.
     Object.values(stocks).forEach(s => {
+      // Representative exchange = whichever holds the most bought qty (live-price .NS/.BO suffix only).
       s.exchange = (s.buyQtyByExch.BSE || 0) > (s.buyQtyByExch.NSE || 0) ? 'BSE' : 'NSE';
+
+      const chron = [...s.allTrades].sort((a, b) =>
+        (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
+        || String(a.created_at || '').localeCompare(String(b.created_at || ''))
+        || String(a.id || '').localeCompare(String(b.id || '')));
+
+      let qty = 0, pool = 0, realised = 0, proceeds = 0, sellQty = 0;
+      for (const t of chron) {
+        const brok = Number(t.brokerage || 0);
+        if (t.action === 'BUY') {
+          qty  += t.qty;
+          pool += t.qty * t.price + brok;
+        } else {
+          const avgNow = qty > 0 ? pool / qty : 0;
+          const units  = Math.min(t.qty, qty); // units that actually close a position
+          realised += (t.price - avgNow) * units - brok;
+          proceeds += t.qty * t.price - brok;
+          sellQty  += t.qty;
+          pool     -= units * avgNow;
+          qty      -= units;
+          if (qty <= 1e-9) { qty = 0; pool = 0; } // flat → reset basis, clear float dust
+        }
+      }
+      s.netQty       = qty;
+      s.avgBuy       = qty > 0 ? pool / qty : 0;
+      s.realised     = realised;
+      s.sellProceeds = proceeds;
+      s.sellQty      = sellQty;
     });
 
     const holdings = [];
@@ -1739,12 +1765,12 @@
     let totalCurrentValue = 0, totalUnrealisedPnl = 0;
 
     Object.values(stocks).forEach(s => {
-      const netQty   = s.buyQty - s.sellQty;
-      const avgBuy   = s.buyQty > 0 ? s.totalCost / s.buyQty : 0;
+      const netQty   = s.netQty;
+      const avgBuy   = s.avgBuy;
       const invested = netQty * avgBuy;
       totalInvested  += invested;
       totalBrokerage += s.totalBrokerage;
-      if (s.sellQty > 0) { realisedPnl += s.totalSell - s.sellQty * avgBuy; sellProceeds += s.totalSell; }
+      if (s.sellQty > 0) { realisedPnl += s.realised; sellProceeds += s.sellProceeds; }
 
       if (netQty > 0) {
         const livePrice     = livePrices[s.ticker] ?? null;
