@@ -1497,7 +1497,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260828.8'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260828.9'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2300,6 +2300,7 @@
         <td class="mono">${fmtPrice(r.price)}</td>
         <td class="mono ${r.pnlCls}">${fmtPct(r.pnlPct)}</td>
         <td class="mono ${r.fCls}">${r.pnlPct >= pnlFloor ? '🟢' : r.pnlPct >= pnlFloor - 5 ? '🟡' : '🔴'} ${fmtPct(r.pnlPct - pnlFloor)}</td>
+        <td class="mono ${r.gainLostCls}" data-tip="Peak ${fmtPrice(r.peakPrice)} · peak P&L ${fmtPct(r.peakPnlPct)}">${r.gainLost < -0.05 ? fmtPct(r.gainLost) : '▲ at peak'}</td>
         <td class="mono ${r.wowCls}">${r.wowChgPct != null ? fmtPct(r.wowChgPct) : '—'}</td>
         <td class="${r.signalCls}" style="white-space:nowrap">${r.signalLabel} ${buyQtyBtn}</td>
         <td class="${r.exit.cls}" style="white-space:nowrap" ${exitTip}>${r.exit.label}</td>
@@ -2447,6 +2448,12 @@
         const histUpToNow = (tickerHistory[h.ticker] || []).filter(d => d.date <= dateStr);
         const streakMini  = wowStreakArrows(histUpToNow, 3);
 
+        // Gain Lost — P&L points given back from this position's own peak
+        // (highest weekly close up to and including this week). ≤ 0; 0 = at a fresh high.
+        const peakPrice  = histUpToNow.length ? Math.max(...histUpToNow.map(d => d.price)) : price;
+        const peakPnlPct = ((peakPrice - h.avgBuy) / h.avgBuy) * 100;
+        const gainLost   = pnlPct - peakPnlPct;
+
         // Exit signal — reuses histUpToNow computed above
         const ema100 = cacheOk ? getEmaFromCache(h.ticker) : null;
         const exit   = getExitSignal(pnlPct, wowChgPct, histUpToNow, pnlFloor, ema100);
@@ -2456,6 +2463,7 @@
           avgBuy: h.avgBuy, price, qty: h.netQty,
           pnlPct, vsFloor: pnlPct - pnlFloor,
           wowChgPct: wowChgPct ?? null,
+          peakPrice, peakPnlPct, gainLost,
           signalLabel: signal.label, signalCls: signal.cls,
           signalOrder: WOW_SIGNAL_ORDER[signal.cls] ?? 4,
           isStrongAdd: signal.cls === 'signal-add',
@@ -2464,6 +2472,7 @@
           pnlCls: pnlPct >= 0 ? 'positive-text' : 'negative-text',
           fCls:   floorClass(pnlPct, pnlFloor),
           wowCls: wowChgPct == null ? '' : wowChgPct >= 0 ? 'positive-text' : 'negative-text',
+          gainLostCls: gainLost < -0.05 ? 'negative-text' : '',
         };
       }).filter(Boolean);
 
@@ -2528,7 +2537,7 @@
             <table>
               <thead id="wow-thead-${dateStr}"><tr>
                 ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
-                ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('wowChgPct','WoW Chg%')}
+                ${th('pnlPct','P&L%')}${th('vsFloor','vs Floor ('+pnlFloor+'%)')}${th('gainLost','Gain Lost','P&L points given back from its own peak P&L% (highest weekly close up to this week); the up-triangle marks a fresh high')}${th('wowChgPct','WoW Chg%')}
                 ${th('signal','Buy Signal',buySignalTip)}${th('exit','Exit Signal',exitSignalTip)}
                 <th title="Last 3 weeks direction &amp; % change (newest → oldest)">3W Trend</th>
               </tr></thead>
