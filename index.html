@@ -1497,7 +1497,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260828.10'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260828.11'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -1944,6 +1944,7 @@
           ${th('livePrice',     'Live Price')}
           ${th('unrealisedPnl', 'Unrealised P&L')}
           ${th('unrealisedPct', 'P&L %')}
+          <th style="color:var(--muted);font-size:10px">Del</th>
         </tr></thead>
         <tbody>${sorted.map(h => {
           const pnlCls  = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
@@ -1962,6 +1963,7 @@
             <td class="mono">${fmtPrice(h.livePrice)}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPct != null ? fmtPct(h.unrealisedPct) : '—'}</td>
+            <td><button class="trade-delete-btn" onclick="deleteHolding('${h.ticker}')" title="Delete entire holding — every buy and sell for this stock">🗑</button></td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -4012,6 +4014,38 @@
       await loadAll();
     } catch(e) {
       alert('Failed to delete trade: ' + e.message);
+    }
+  }
+
+  // Delete an entire holding — every buy AND sell for that stock (all of NSE:/BSE:/bare).
+  // Bulk + irreversible, so it requires typing the bare ticker to confirm. Deletes only
+  // `trades`; wow_entries are price history and are left alone (see KNOWN_BUGS.md).
+  async function deleteHolding(sym) {
+    const rows = trades.filter(t => bareSym(t.ticker) === sym);
+    if (!rows.length) return;
+    const dates = rows.map(r => r.date).sort();
+    const net   = rows.reduce((n, r) => r.action === 'BUY' ? n + r.qty : n - r.qty, 0);
+    const name  = rows[rows.length - 1].stock_name || sym;
+    const ans = prompt(
+      `Delete ALL ${rows.length} trade(s) for ${name} (${sym})?\n` +
+      `${dates[0]} → ${dates[dates.length - 1]} · net ${net} shares.\n` +
+      `This permanently removes every buy and sell for this holding and cannot be undone.\n\n` +
+      `Type ${sym} to confirm:`);
+    if (ans == null) return; // cancelled
+    if (ans.trim().toUpperCase() !== sym) {
+      alert(`Delete cancelled — "${ans}" did not match ${sym}.`);
+      return;
+    }
+    try {
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) throw new Error('Not logged in');
+      const { error } = await db.from('trades').delete()
+        .in('id', rows.map(r => r.id))
+        .eq('user_id', user.id);
+      if (error) throw error;
+      await loadAll();
+    } catch(e) {
+      alert('Failed to delete holding: ' + e.message);
     }
   }
 
