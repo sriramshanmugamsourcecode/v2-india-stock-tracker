@@ -1025,6 +1025,78 @@
       color:var(--text); font-size:10px; font-family:var(--font-mono);
       padding:3px 7px; border-radius:4px; white-space:nowrap; pointer-events:none; z-index:200;
     }
+
+    /* ===== RANK HISTORY (isolated feature — all selectors .rh-*) ===== */
+    .rh-wrap { --rh-up:#4ade80; --rh-down:#f87171; display:flex; flex-direction:column; gap:14px; }
+    .rh-head { display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; justify-content:space-between; }
+    .rh-title { font-family:var(--font-display,var(--font-mono)); font-weight:600; font-size:20px; display:inline-flex; align-items:center; gap:8px; position:relative; }
+    .rh-info { width:18px; height:18px; border-radius:50%; border:1px solid var(--border2); background:var(--bg3); color:var(--muted); font-size:11px; font-style:italic; font-family:var(--font-body); display:inline-flex; align-items:center; justify-content:center; cursor:help; }
+    .rh-title:hover .rh-info, .rh-title:focus-within .rh-info { color:var(--accent); border-color:var(--accent); }
+    .rh-info:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    .rh-tip { position:absolute; top:calc(100% + 10px); left:0; z-index:300; width:340px; max-width:78vw; background:var(--card); border:0.5px solid var(--border2); border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,0.5); padding:14px; font-family:var(--font-body); font-weight:400; font-size:12px; line-height:1.5; color:var(--text); opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity .15s,transform .15s,visibility .15s; }
+    .rh-title:hover .rh-tip, .rh-title:focus-within .rh-tip { opacity:1; visibility:visible; transform:translateY(0); }
+    .rh-tip h4 { font-family:var(--font-mono); font-size:10px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 7px; }
+    .rh-tip p { margin:0; }
+    .rh-tip ul { list-style:none; padding:0; margin:10px 0 0; }
+    .rh-tip li { display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:0.5px solid var(--border); font-size:11.5px; }
+    .rh-tip li:last-child { border-bottom:none; }
+    .rh-tip li b { font-family:var(--font-mono); color:var(--accent); font-weight:500; }
+    .rh-tip .foot { margin-top:9px; padding-top:9px; border-top:0.5px solid var(--border); font-size:10.5px; color:var(--muted); }
+    .rh-sub { font-size:12px; color:var(--muted); margin-top:5px; max-width:62ch; }
+    .rh-actions { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; }
+    .rh-seg { display:inline-flex; gap:3px; padding:3px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:9px; }
+    .rh-seg .rh-lbl { font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); align-self:center; padding:0 4px 0 6px; }
+    .rh-seg button { font-family:var(--font-mono); font-size:12px; font-weight:500; color:var(--muted); background:none; border:none; cursor:pointer; padding:6px 12px; border-radius:6px; transition:color .14s,background .14s; }
+    .rh-seg button:hover { color:var(--text); }
+    .rh-seg button.on { background:var(--accent); color:#17131f; }
+    .rh-capture { font-family:var(--font-mono); font-size:11.5px; font-weight:500; color:#17131f; background:var(--accent); border:none; border-radius:9px; padding:9px 15px; cursor:pointer; }
+    .rh-capture:hover { filter:brightness(1.08); }
+    .rh-capture:disabled { opacity:.5; cursor:default; filter:none; }
+    .rh-legend { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; font-size:11px; color:var(--muted); font-family:var(--font-mono); padding-bottom:12px; border-bottom:0.5px solid var(--border); }
+    .rh-legend .up { color:var(--rh-up); } .rh-legend .down { color:var(--rh-down); } .rh-legend .new { color:var(--accent); }
+    .rh-legend .hsw { display:inline-block; width:9px; height:9px; border-radius:2px; background:var(--amber); vertical-align:middle; margin-right:5px; }
+    .rh-panel { background:var(--card); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
+    .rh-cap { padding:10px 15px; font-size:11px; color:var(--muted); background:var(--bg3); border-bottom:0.5px solid var(--border); }
+    .rh-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+    .rh-scroll table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+    .rh-scroll th, .rh-scroll td { text-align:left; white-space:nowrap; }
+    .rh-scroll thead th { background:var(--bg3); position:sticky; top:0; z-index:2; border-bottom:0.5px solid var(--border); padding:10px 13px; vertical-align:top; }
+    .rh-scroll tr.rh-yrow th { position:static; padding:6px 13px; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.16em; color:var(--muted); }
+    .rh-corner { position:sticky; left:0; z-index:3; background:var(--bg3); border-right:0.5px solid var(--border); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+    .rh-scroll tr.rh-yrow th.rh-corner { position:sticky; left:0; }
+    .rh-mhead { min-width:138px; position:relative; }
+    .rh-mhead .rh-mo { font-family:var(--font-mono); font-size:12.5px; font-weight:500; display:flex; align-items:center; gap:7px; }
+    .rh-mhead .rh-src { font-size:8px; letter-spacing:.06em; text-transform:uppercase; padding:2px 4px; border:0.5px solid var(--border2); border-radius:3px; color:var(--muted); }
+    .rh-mhead .rh-src.live { color:var(--accent); border-color:var(--accent); }
+    .rh-mhead .rh-capd { font-size:9.5px; color:var(--muted); margin-top:4px; }
+    .rh-mhead .rh-del { position:absolute; top:7px; right:6px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; opacity:.5; padding:2px; border-radius:4px; line-height:1; }
+    .rh-mhead .rh-del:hover { opacity:1; color:var(--red); }
+    .rh-scroll tbody td { padding:0; border-bottom:0.5px solid var(--border); }
+    .rh-slot { position:sticky; left:0; z-index:1; background:var(--card); border-right:0.5px solid var(--border); font-family:var(--font-mono); font-size:11.5px; color:var(--muted); text-align:right; padding:0 13px; }
+    .rh-cell { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:8px 13px; min-height:36px; border-left:2px solid transparent; }
+    .rh-cell.hold { border-left-color:var(--amber); background:rgba(251,191,36,0.09); }
+    .rh-cell .rh-tk { font-family:var(--font-mono); font-size:12px; font-weight:500; }
+    .rh-cell.hold .rh-tk { color:var(--amber); }
+    .rh-mv { font-family:var(--font-mono); font-size:10px; font-weight:500; flex:none; }
+    .rh-mv.up { color:var(--rh-up); } .rh-mv.down { color:var(--rh-down); } .rh-mv.new { color:var(--accent); } .rh-mv.flat { color:var(--muted); opacity:.4; }
+    .rh-empty { padding:8px 13px; color:var(--muted); opacity:.35; font-family:var(--font-mono); font-size:11px; }
+    .rh-stkcol { position:sticky; left:0; z-index:1; background:var(--card); border-right:0.5px solid var(--border); min-width:188px; }
+    .rh-scroll thead th.rh-stkcol { background:var(--bg3); z-index:3; }
+    .rh-stkcell { display:flex; align-items:center; gap:8px; padding:9px 13px; }
+    .rh-stkcell .rh-nm { display:flex; flex-direction:column; line-height:1.2; }
+    .rh-stkcell .rh-nm .t { font-family:var(--font-mono); font-size:12px; font-weight:500; }
+    .rh-stkcell .rh-nm .n { font-size:10px; color:var(--muted); }
+    .rh-hchip { font-family:var(--font-mono); font-size:8px; letter-spacing:.06em; text-transform:uppercase; color:var(--amber); border:0.5px solid var(--amber); border-radius:3px; padding:2px 4px; }
+    .rh-rk { padding:9px 12px; text-align:center; font-family:var(--font-mono); font-size:12px; font-variant-numeric:tabular-nums; }
+    .rh-rk.out { color:var(--muted); opacity:.3; }
+    .rh-rk.hr { color:var(--amber); }
+    .rh-scroll tr.hr td.rh-stkcol { background:rgba(251,191,36,0.09); }
+    .rh-spark { padding:7px 12px; }
+    .rh-spark svg { display:block; }
+    .rh-status { font-size:11px; color:var(--muted); font-family:var(--font-mono); min-height:16px; }
+    .rh-status.err { color:var(--red); }
+    .rh-bar { display:inline-block; width:120px; height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; vertical-align:middle; margin-left:6px; }
+    .rh-bar i { display:block; height:100%; background:var(--accent); }
   </style>
 </head>
 <body>
@@ -1068,6 +1140,7 @@
         <button class="nav-btn" onclick="switchTab('trades', this)">Trade Log</button>
         <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
         <button class="nav-btn" onclick="switchTab('screener', this)">⬡ Discovery</button>
+        <button class="nav-btn" onclick="switchTab('rankhistory', this)">📈 Rank History</button>
       </div>
 
       <div id="error-area"></div>
@@ -1466,6 +1539,32 @@
         </div>
       </div>
 
+      <!-- Rank History Tab — isolated feature; no dependency on other tabs -->
+      <div id="tab-rankhistory" style="display:none">
+        <div class="rh-wrap">
+          <div class="rh-head">
+            <div>
+              <div class="rh-title">Rank History<span class="rh-info" tabindex="0" role="button" aria-label="How the rank is calculated">i<span class="rh-tip" role="tooltip"><h4>Composite momentum rank</h4><p>Every universe stock is scored on five momentum measures, each ranked across the whole universe, then combined as a weighted sum. Lower total = stronger momentum.</p><ul><li><span>Proximity to 52-week high</span><b>&times;2</b></li><li><span>6-month return, skipping last month</span><b>&times;2</b></li><li><span>3-month return, skipping last month</span><b>&times;2</b></li><li><span>1-month return (after the skip)</span><b>&times;1</b></li><li><span>Volatility-adjusted return (daily mean &divide; std, 126d)</span><b>&times;1</b></li></ul><p class="foot">Skip-month follows the Jegadeesh-Titman convention. No filters &mdash; pure rank. Captured once a month and frozen.</p></span></span></div>
+              <div class="rh-sub">Pure-momentum composite rank of the universe, snapshotted monthly and frozen. Watch a holding&rsquo;s rank decay &mdash; the exit signal the momentum research supports.</div>
+            </div>
+            <div class="rh-actions">
+              <div class="rh-seg" id="rh-view"><span class="rh-lbl">View</span><button type="button" data-v="grid" class="on">Grid</button><button type="button" data-v="traj">Trajectory</button></div>
+              <div class="rh-seg" id="rh-rows"><span class="rh-lbl">Rows</span><button type="button" data-n="12" class="on">12</button><button type="button" data-n="25">25</button><button type="button" data-n="50">50</button></div>
+              <div class="rh-seg" id="rh-range"><span class="rh-lbl">Range</span><button type="button" data-r="6">6</button><button type="button" data-r="12" class="on">12</button><button type="button" data-r="24">24</button><button type="button" data-r="0">All</button></div>
+              <button class="rh-capture" id="rh-capture-btn" onclick="rhCapture()">Capture this month</button>
+            </div>
+          </div>
+          <div class="rh-legend"><span>vs. previous month:</span><span class="up">&#9650; n</span> up n<span class="down">&#9660; n</span> down n<span class="new">&#9679; NEW</span> first in top&nbsp;50<span><span class="hsw"></span>held</span><span style="margin-left:auto">Snapshots kept indefinitely &mdash; delete a month with &#128465;</span></div>
+          <div class="rh-panel">
+            <div class="rh-scroll" id="rh-scroll">
+              <div id="rh-grid"></div>
+              <div id="rh-traj" style="display:none"></div>
+            </div>
+          </div>
+          <div class="rh-status" id="rh-status"></div>
+        </div>
+      </div>
+
       <!-- WoW Stock Detail Modal -->
       <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
         <div class="wow-modal" id="wow-modal">
@@ -1497,7 +1596,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260828.11'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260901.12'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2788,11 +2887,12 @@
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio','trades','wow','screener'].forEach(t =>
+    ['portfolio','trades','wow','screener','rankhistory'].forEach(t =>
       document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
     );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    if (tab === 'rankhistory' && window.rhEnter) window.rhEnter();
   }
 
   // ============================================================
@@ -4211,6 +4311,324 @@
   document.title = `🇮🇳 India Stock Tracker v2 · ${APP_VERSION}`;
   document.getElementById('app-footer').textContent =
     `Phase 4 · ${APP_VERSION} · Portfolio · WoW Tracker · Discovery · Live prices via Yahoo Finance`;
+
+  // ===================================================================
+  // RANK HISTORY  (isolated feature)
+  //   reads : db, universe, trades, PROXY, YF_BASE, (SCR_YF_OVERRIDES if present)
+  //   writes: rank_history table only  •  mutates no shared state
+  //   carries its own ranking math — does not call scrCalc / scrRank
+  // ===================================================================
+  (function(){
+    const RH_TOPN = 50;
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const SKIP = 21, TD = { m1:21, m3:63, m6:126, y1:252 };
+
+    let st = { view:'grid', rows:12, range:12 };
+    let data = null, loaded = false, loading = false, wired = false;
+
+    const el = id => document.getElementById(id);
+    const bare = t => !t ? t : (t.indexOf(':') >= 0 ? t.split(':').pop() : t).toUpperCase();
+    const mLabel = m => MON[+m.slice(5) - 1] + ' ' + m.slice(0,4);
+    const moShort = m => MON[+m.slice(5) - 1];
+    const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[x]));
+    function thisMonth(){ const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+    function status(msg, isErr){ const s = el('rh-status'); if (!s) return; s.innerHTML = msg || ''; s.className = 'rh-status' + (isErr ? ' err' : ''); }
+    function heldSet(){ const h = {}; try { (trades || []).forEach(t => { h[bare(t.ticker)] = 1; }); } catch (e) {} return h; }
+
+    // ---------- load ----------
+    async function load(){
+      loading = true; status('Loading rank history…');
+      try {
+        const res = await db.from('rank_history').select('*')
+          .order('month', { ascending:true }).order('rank', { ascending:true }).range(0, 99999);
+        if (res.error) throw res.error;
+        const months = [], byMonth = {}, byTicker = {}, meta = {};
+        (res.data || []).forEach(r => {
+          if (!byMonth[r.month]) { byMonth[r.month] = []; months.push(r.month); meta[r.month] = { src:r.source || 'live', captured:r.captured_at, n:r.universe_size }; }
+          byMonth[r.month].push(r);
+          (byTicker[r.ticker] = byTicker[r.ticker] || {})[r.month] = r.rank;
+        });
+        months.sort();
+        data = { months, byMonth, byTicker, meta };
+        loaded = true; loading = false;
+        status(months.length ? '' : 'No snapshots yet — click “Capture ' + mLabel(thisMonth()) + '”.');
+        render(); updateCaptureBtn();
+      } catch (e) {
+        loading = false;
+        const hint = /rank_history|relation.*does not exist|schema cache/i.test(e.message || '')
+          ? ' — the rank_history table may not exist yet (run the migration SQL).' : '';
+        status('Could not load rank history: ' + (e.message || e) + hint, true);
+      }
+    }
+
+    window.rhEnter = function(){
+      wireOnce();
+      if (!loaded && !loading) load();
+      else { render(); updateCaptureBtn(); }
+    };
+
+    // ---------- capture (self-contained) ----------
+    function yfSym(ticker, exchange){
+      const b = bare(ticker);
+      try { if (typeof SCR_YF_OVERRIDES !== 'undefined' && (b in SCR_YF_OVERRIDES)) return SCR_YF_OVERRIDES[b]; } catch (e) {}
+      return b + (exchange === 'BSE' ? '.BO' : '.NS');
+    }
+    function retSkip(c, n){
+      if (c.length < n + SKIP + 1) return null;
+      const a = c[c.length - 1 - SKIP], p = c[c.length - 1 - SKIP - n];
+      return p > 0 ? ((a - p) / p) * 100 : null;
+    }
+    function hi252(c){ const s = c.slice(-252); return s.length ? Math.max.apply(null, s) : null; }
+    function adjRetBT(c){ // backtest formula: mean / std of daily simple returns, last 126d
+      if (c.length < TD.m6 + 1) return null;
+      const s = c.slice(-TD.m6 - 1), r = [];
+      for (let i = 1; i < s.length; i++) if (s[i-1] > 0) r.push((s[i] - s[i-1]) / s[i-1]);
+      if (r.length < 2) return null;
+      const m = r.reduce((x, y) => x + y, 0) / r.length;
+      const v = r.reduce((x, y) => x + (y - m) * (y - m), 0) / r.length;
+      const sd = Math.sqrt(v);
+      return sd > 0 ? m / sd : null;
+    }
+    function fetchTO(url, ms){
+      const c = new AbortController(); const t = setTimeout(() => c.abort(), ms || 20000);
+      return fetch(url, { signal:c.signal }).finally(() => clearTimeout(t));
+    }
+    async function fetch1Y(ticker, exchange){
+      const sym = yfSym(ticker, exchange); if (!sym) return null;
+      const now = Math.floor(Date.now() / 1000), p1 = now - 380 * 86400;
+      const url = PROXY + encodeURIComponent(YF_BASE + sym + '?interval=1d&period1=' + p1 + '&period2=' + now);
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const r = await fetchTO(url);
+          if (!r.ok) { if (attempt === 2) return null; continue; }
+          const j = await r.json();
+          const res = j && j.chart && j.chart.result && j.chart.result[0];
+          if (!res) return null;
+          const cl = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+          const closes = [];
+          for (let i = 0; i < cl.length; i++) if (cl[i] != null) closes.push(cl[i]);
+          return closes;
+        } catch (e) {
+          if (attempt === 2) return null;
+          await new Promise(z => setTimeout(z, 1000 * attempt));
+        }
+      }
+      return null;
+    }
+
+    async function rhCapture(){
+      if (!data) { status('Still loading — try again in a moment.'); return; }
+      const m = thisMonth();
+      if (data.byMonth[m]) { status(mLabel(m) + ' is already captured and frozen.'); return; }
+      const btn = el('rh-capture-btn'); btn.disabled = true;
+      try {
+        status('Fetching universe…');
+        const u = await db.from('universe').select('ticker, stock_name, exchange').eq('active', true).range(0, 99999);
+        if (u.error) throw u.error;
+        const univ = (u.data || []).filter(x => x.ticker);
+        if (!univ.length) throw new Error('universe table is empty');
+
+        const scored = []; let done = 0; const total = univ.length, BATCH = 6;
+        for (let i = 0; i < univ.length; i += BATCH) {
+          const slice = univ.slice(i, i + BATCH);
+          await Promise.all(slice.map(async s => {
+            const c = await fetch1Y(s.ticker, s.exchange);
+            done++;
+            if (c && c.length >= TD.m6 + SKIP + 1) {
+              const price = c[c.length - 1], hi = hi252(c);
+              scored.push({
+                ticker:s.ticker, stock_name:s.stock_name,
+                score52w: (hi && price) ? price / hi : null,
+                r6: retSkip(c, TD.m6), r3: retSkip(c, TD.m3), r1: retSkip(c, TD.m1),
+                adj: adjRetBT(c)
+              });
+            }
+          }));
+          const pct = Math.round(done / total * 100);
+          status('Fetching prices ' + done + ' / ' + total + ' <span class="rh-bar"><i style="width:' + pct + '%"></i></span>');
+          if (i + BATCH < univ.length) await new Promise(z => setTimeout(z, 500));
+        }
+        if (scored.length < 20) throw new Error('only ' + scored.length + ' stocks returned usable price data');
+
+        ['score52w','r6','r3','r1','adj'].forEach(k => {
+          const valid = scored.filter(s => s[k] != null).sort((a, b) => b[k] - a[k]);
+          valid.forEach((s, idx) => { s['rk_' + k] = idx + 1; });
+          const med = Math.round(valid.length / 2) || 1;
+          scored.filter(s => s[k] == null).forEach(s => { s['rk_' + k] = med; });
+        });
+        scored.forEach(s => { s.composite = s.rk_score52w*2 + s.rk_r6*2 + s.rk_r3*2 + s.rk_r1*1 + s.rk_adj*1; });
+        scored.sort((a, b) => a.composite - b.composite);
+
+        const stamp = new Date().toISOString();
+        const payload = scored.slice(0, RH_TOPN).map((s, idx) => ({
+          month:m, rank:idx + 1, ticker:s.ticker, stock_name:s.stock_name,
+          composite:s.composite, score52w:s.score52w,
+          ret6m_skip:s.r6, ret3m_skip:s.r3, ret1m_skip:s.r1, adj_ret:s.adj,
+          universe_size:scored.length, source:'live', captured_at:stamp
+        }));
+        status('Saving snapshot…');
+        const ins = await db.from('rank_history').insert(payload);
+        if (ins.error) throw ins.error;
+        loaded = false; await load();
+        status('Captured ' + mLabel(m) + ' — top ' + payload.length + ' of ' + scored.length + ' ranked stocks. Month frozen.');
+      } catch (e) {
+        status('Capture failed: ' + (e.message || e), true);
+        btn.disabled = false;
+      }
+    }
+    window.rhCapture = rhCapture;
+
+    // ---------- render ----------
+    const liveMonths = () => data ? data.months.slice() : [];
+    const windowMonths = () => { const lm = liveMonths(); return st.range === 0 ? lm : lm.slice(-st.range); };
+    function prevMonth(m){ const lm = liveMonths(), i = lm.indexOf(m); return i > 0 ? lm[i - 1] : null; }
+    function rankOf(tk, m){ const b = data && data.byTicker[tk]; return b && b[m] != null ? b[m] : null; }
+    function marker(tk, m){
+      const pm = prevMonth(m); if (!pm) return null;
+      const cur = rankOf(tk, m), prev = rankOf(tk, pm);
+      if (cur == null) return null;
+      if (prev == null) return { c:'new', t:'● NEW' };
+      const d = prev - cur;
+      if (d > 0) return { c:'up', t:'▲' + d };
+      if (d < 0) return { c:'down', t:'▼' + (-d) };
+      return { c:'flat', t:'·' };
+    }
+    function yearBands(ms){
+      const o = []; let c = null, n = 0;
+      ms.forEach(m => { const y = m.slice(0,4); if (y !== c) { if (c) o.push([c, n]); c = y; n = 1; } else n++; });
+      if (c) o.push([c, n]);
+      return o;
+    }
+    function wireDel(root){
+      root.querySelectorAll('[data-del]').forEach(b => {
+        b.onclick = () => {
+          const m = b.getAttribute('data-del');
+          if (!confirm('Delete the ' + mLabel(m) + ' snapshot?\n\nRemoves every ranked row for that month. Snapshots are never auto-purged — this is the only way to remove one.')) return;
+          db.from('rank_history').delete().eq('month', m).then(r => {
+            if (r.error) { status('Delete failed: ' + r.error.message, true); return; }
+            loaded = false; load();
+            status(mLabel(m) + ' snapshot deleted.');
+          });
+        };
+      });
+    }
+
+    function render(){
+      if (!data) return;
+      const g = st.view === 'grid';
+      el('rh-grid').style.display = g ? '' : 'none';
+      el('rh-traj').style.display = g ? 'none' : '';
+      if (!data.months.length) { el('rh-grid').innerHTML = ''; el('rh-traj').innerHTML = ''; return; }
+      g ? renderGrid() : renderTraj();
+    }
+
+    function renderGrid(){
+      const ms = windowMonths(), rowsN = Math.min(st.rows, RH_TOPN), held = heldSet();
+      const cols = ms.map(m => (data.byMonth[m] || []).slice().sort((a, b) => a.rank - b.rank));
+      const bands = yearBands(ms);
+      let h = '<div class="rh-cap">Each month ranked independently — the #1 slot is that month’s strongest name. Showing ' + ms.length + ' of ' + data.months.length + ' months · scroll ← for older.</div>';
+      h += '<table><thead><tr class="rh-yrow"><th class="rh-corner"></th>';
+      bands.forEach(b => { h += '<th colspan="' + b[1] + '">' + b[0] + '</th>'; });
+      h += '</tr><tr><th class="rh-corner">Rank</th>';
+      ms.forEach(m => {
+        const mt = data.meta[m] || {}, src = mt.src || 'live';
+        h += '<th class="rh-mhead"><div class="rh-mo">' + moShort(m) + ' <span class="rh-src ' + (src === 'live' ? 'live' : '') + '">' + esc(src) + '</span></div>' +
+             (mt.captured ? '<div class="rh-capd">' + esc(('' + mt.captured).slice(0, 10)) + '</div>' : '') +
+             '<button class="rh-del" title="Delete ' + esc(mLabel(m)) + '" data-del="' + m + '">🗑</button></th>';
+      });
+      h += '</tr></thead><tbody>';
+      for (let i = 1; i <= rowsN; i++) {
+        h += '<tr><td class="rh-slot">#' + i + '</td>';
+        ms.forEach((m, mi) => {
+          const row = cols[mi][i - 1];
+          if (!row) { h += '<td><div class="rh-empty">—</div></td>'; return; }
+          const b = bare(row.ticker), mk = marker(row.ticker, m), isH = held[b];
+          h += '<td><div class="rh-cell' + (isH ? ' hold' : '') + '"><span class="rh-tk" title="' +
+               esc((row.stock_name || '') + (row.composite != null ? ' · composite ' + Math.round(row.composite) : '')) + '">' + esc(b) + '</span>' +
+               (mk ? '<span class="rh-mv ' + mk.c + '">' + mk.t + '</span>' : '<span class="rh-mv flat">·</span>') + '</div></td>';
+        });
+        h += '</tr>';
+      }
+      h += '</tbody></table>';
+      el('rh-grid').innerHTML = h;
+      wireDel(el('rh-grid'));
+    }
+
+    function spark(tk, ms){
+      const pts = ms.map(m => rankOf(tk, m)), vals = pts.filter(v => v != null);
+      const w = 64, hh = 18, pad = 2;
+      if (vals.length < 2) return '<svg width="' + w + '" height="' + hh + '"></svg>';
+      const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), sp = (mx - mn) || 1;
+      const step = (w - pad * 2) / (ms.length - 1);
+      let d = '', last = null;
+      pts.forEach((v, i) => {
+        if (v == null) return;
+        const x = pad + i * step, y = pad + ((v - mn) / sp) * (hh - pad * 2);
+        d += (d === '' ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+        last = { x, y };
+      });
+      const col = heldSet()[bare(tk)] ? 'var(--amber)' : 'var(--accent)';
+      return '<svg width="' + w + '" height="' + hh + '" fill="none"><path d="' + d + '" stroke="' + col +
+             '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+             (last ? '<circle cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="2" fill="' + col + '"/>' : '') + '</svg>';
+    }
+
+    function renderTraj(){
+      const ms = windowMonths(), last = ms[ms.length - 1], held = heldSet();
+      const seen = {};
+      ms.forEach(m => (data.byMonth[m] || []).forEach(r => { seen[r.ticker] = r.stock_name || r.ticker; }));
+      const order = Object.keys(seen).sort((a, b) => {
+        const ha = held[bare(a)] ? 0 : 1, hb = held[bare(b)] ? 0 : 1;
+        if (ha !== hb) return ha - hb;
+        const ra = rankOf(a, last), rb = rankOf(b, last);
+        return (ra == null ? 9999 : ra) - (rb == null ? 9999 : rb);
+      });
+      const bands = yearBands(ms);
+      let h = '<div class="rh-cap">Rows sorted by ' + mLabel(last) + ' rank · holdings pinned on top · read across a row for its rank each month.</div>';
+      h += '<table><thead><tr class="rh-yrow"><th class="rh-stkcol rh-corner"></th>';
+      bands.forEach(b => { h += '<th colspan="' + b[1] + '">' + b[0] + '</th>'; });
+      h += '<th></th></tr><tr><th class="rh-stkcol">Stock</th>';
+      ms.forEach(m => {
+        h += '<th class="rh-mhead" style="min-width:60px;text-align:center"><div class="rh-mo" style="justify-content:center;font-size:11px">' + moShort(m) +
+             '</div><button class="rh-del" style="right:3px" title="Delete ' + esc(mLabel(m)) + '" data-del="' + m + '">🗑</button></th>';
+      });
+      h += '<th style="min-width:76px">Trend</th></tr></thead><tbody>';
+      order.forEach(tk => {
+        const b = bare(tk), isH = held[b];
+        h += '<tr' + (isH ? ' class="hr"' : '') + '><td class="rh-stkcol"><div class="rh-stkcell"><div class="rh-nm"><span class="t">' +
+             esc(b) + '</span><span class="n">' + esc(seen[tk]) + '</span></div>' + (isH ? '<span class="rh-hchip">held</span>' : '') + '</div></td>';
+        ms.forEach(m => { const r = rankOf(tk, m); h += '<td class="rh-rk' + (r == null ? ' out' : '') + (isH ? ' hr' : '') + '">' + (r == null ? '—' : r) + '</td>'; });
+        h += '<td class="rh-spark">' + spark(tk, ms) + '</td></tr>';
+      });
+      h += '</tbody></table>';
+      el('rh-traj').innerHTML = h;
+      wireDel(el('rh-traj'));
+    }
+
+    function updateCaptureBtn(){
+      const btn = el('rh-capture-btn'); if (!btn) return;
+      const m = thisMonth(), locked = data && data.byMonth[m];
+      btn.textContent = locked ? mLabel(m) + ' captured' : 'Capture ' + mLabel(m);
+      btn.disabled = !!locked;
+    }
+
+    function wireOnce(){
+      if (wired) return; wired = true;
+      const seg = (id, attr, key, cast) => {
+        const box = el(id); if (!box) return;
+        box.querySelectorAll('button').forEach(bn => {
+          bn.onclick = () => {
+            box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === bn));
+            st[key] = cast(bn.getAttribute(attr));
+            render();
+          };
+        });
+      };
+      seg('rh-view', 'data-v', 'view', String);
+      seg('rh-rows', 'data-n', 'rows', Number);
+      seg('rh-range', 'data-r', 'range', Number);
+    }
+  })();
 </script>
 </body>
 </html>
