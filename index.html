@@ -1027,7 +1027,7 @@
     }
 
     /* ===== RANK HISTORY (isolated feature — all selectors .rh-*) ===== */
-    .rh-wrap { --rh-up:#4ade80; --rh-down:#f87171; display:flex; flex-direction:column; gap:14px; }
+    .rh-wrap { --rh-up:#4ade80; --rh-down:#f87171; --rh-clean:#4ade80; --rh-choppy:#fbbf24; --rh-flat:#8a8492; display:flex; flex-direction:column; gap:14px; }
     .rh-head { display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; justify-content:space-between; }
     .rh-title { font-family:var(--font-display,var(--font-mono)); font-weight:600; font-size:20px; display:inline-flex; align-items:center; gap:8px; position:relative; }
     .rh-info { width:18px; height:18px; border-radius:50%; border:1px solid var(--border2); background:var(--bg3); color:var(--muted); font-size:11px; font-style:italic; font-family:var(--font-body); display:inline-flex; align-items:center; justify-content:center; cursor:help; }
@@ -1097,6 +1097,26 @@
     .rh-status.err { color:var(--red); }
     .rh-bar { display:inline-block; width:120px; height:4px; background:var(--bg3); border-radius:2px; overflow:hidden; vertical-align:middle; margin-left:6px; }
     .rh-bar i { display:block; height:100%; background:var(--accent); }
+    /* --- Trend view (3rd view in the Rank History tab) --- */
+    .rh-ctrls-grp { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; }
+    .rh-tq { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+    .rh-tq th { background:var(--bg3); position:sticky; top:0; z-index:2; border-bottom:0.5px solid var(--border); padding:10px 13px; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:left; white-space:nowrap; }
+    .rh-tq td { padding:9px 13px; border-bottom:0.5px solid var(--border); vertical-align:middle; white-space:nowrap; }
+    .rh-tq tbody tr:last-child td { border-bottom:none; }
+    .rh-tq tbody tr:hover td { background:rgba(167,139,250,0.05); }
+    .rh-tq tr.hr td { background:rgba(251,191,36,0.09); }
+    .rh-tq-rank { font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+    .rh-tq-cell { display:flex; align-items:center; gap:11px; }
+    .rh-tq-glyph { flex:none; }
+    .rh-tq-meta { display:flex; flex-direction:column; gap:2px; }
+    .rh-tq-ang { font-family:var(--font-mono); font-size:14px; font-weight:500; font-variant-numeric:tabular-nums; }
+    .rh-tq-char { font-family:var(--font-mono); font-size:10px; }
+    .rh-tq-lin { display:flex; flex-direction:column; gap:4px; min-width:74px; }
+    .rh-tq-lin span:first-child { font-family:var(--font-mono); font-size:12px; font-variant-numeric:tabular-nums; }
+    .rh-tq-bar { height:4px; border-radius:2px; background:var(--bg3); overflow:hidden; }
+    .rh-tq-bar i { display:block; height:100%; }
+    .rh-tq-dd { font-family:var(--font-mono); font-size:12.5px; text-align:right; color:var(--red); font-variant-numeric:tabular-nums; }
+    .rh-tq svg { display:block; }
   </style>
 </head>
 <body>
@@ -1548,17 +1568,25 @@
               <div class="rh-sub">Pure-momentum composite rank of the universe, snapshotted monthly and frozen. Watch a holding&rsquo;s rank decay &mdash; the exit signal the momentum research supports.</div>
             </div>
             <div class="rh-actions">
-              <div class="rh-seg" id="rh-view"><span class="rh-lbl">View</span><button type="button" data-v="grid" class="on">Grid</button><button type="button" data-v="traj">Trajectory</button></div>
-              <div class="rh-seg" id="rh-rows"><span class="rh-lbl">Rows</span><button type="button" data-n="12" class="on">12</button><button type="button" data-n="25">25</button><button type="button" data-n="50">50</button></div>
-              <div class="rh-seg" id="rh-range"><span class="rh-lbl">Range</span><button type="button" data-r="6">6</button><button type="button" data-r="12" class="on">12</button><button type="button" data-r="24">24</button><button type="button" data-r="0">All</button></div>
-              <button class="rh-capture" id="rh-capture-btn" onclick="rhCapture()">Capture this month</button>
+              <div class="rh-seg" id="rh-view"><span class="rh-lbl">View</span><button type="button" data-v="grid" class="on">Grid</button><button type="button" data-v="traj">Trajectory</button><button type="button" data-v="trend">Trend</button></div>
+              <span class="rh-ctrls-grp" id="rh-gt-ctrls">
+                <div class="rh-seg" id="rh-rows"><span class="rh-lbl">Rows</span><button type="button" data-n="12" class="on">12</button><button type="button" data-n="25">25</button><button type="button" data-n="50">50</button></div>
+                <div class="rh-seg" id="rh-range"><span class="rh-lbl">Range</span><button type="button" data-r="6">6</button><button type="button" data-r="12" class="on">12</button><button type="button" data-r="24">24</button><button type="button" data-r="0">All</button></div>
+                <button class="rh-capture" id="rh-capture-btn" onclick="rhCapture()">Capture this month</button>
+              </span>
+              <span class="rh-ctrls-grp" id="rh-tr-ctrls" style="display:none">
+                <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl">Window</span><button type="button" data-tw="1">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3" class="on">3Y</button><button type="button" data-tw="5">5Y</button></div>
+                <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl">Sort</span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button></div>
+                <button class="rh-capture" id="rh-scan-btn" onclick="rhScanTrends()">Scan trends</button>
+              </span>
             </div>
           </div>
-          <div class="rh-legend"><span>vs. previous month:</span><span class="up">&#9650; n</span> up n<span class="down">&#9660; n</span> down n<span class="new">&#9679; NEW</span> first in top&nbsp;50<span><span class="hsw"></span>held</span><span style="margin-left:auto">Snapshots kept indefinitely &mdash; delete a month with &#128465;</span></div>
+          <div class="rh-legend" id="rh-legend"><span>vs. previous month:</span><span class="up">&#9650; n</span> up n<span class="down">&#9660; n</span> down n<span class="new">&#9679; NEW</span> first in top&nbsp;50<span><span class="hsw"></span>held</span><span style="margin-left:auto">Snapshots kept indefinitely &mdash; delete a month with &#128465;</span></div>
           <div class="rh-panel">
             <div class="rh-scroll" id="rh-scroll">
               <div id="rh-grid"></div>
               <div id="rh-traj" style="display:none"></div>
+              <div id="rh-trend" style="display:none"></div>
             </div>
           </div>
           <div class="rh-status" id="rh-status"></div>
@@ -1596,7 +1624,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260901.12'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260902.13'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4323,8 +4351,9 @@
     const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const SKIP = 21, TD = { m1:21, m3:63, m6:126, y1:252 };
 
-    let st = { view:'grid', rows:12, range:12 };
+    let st = { view:'grid', rows:12, range:12, tqWin:3, tqSort:'lin' };
     let data = null, loaded = false, loading = false, wired = false;
+    let tqData = null, tqLoaded = false;   // Trend view — cached in localStorage ('rh_trend_v1')
 
     const el = id => document.getElementById(id);
     const bare = t => !t ? t : (t.indexOf(':') >= 0 ? t.split(':').pop() : t).toUpperCase();
@@ -4363,8 +4392,10 @@
 
     window.rhEnter = function(){
       wireOnce();
+      if (!tqLoaded) { tqLoaded = true; try { const raw = localStorage.getItem('rh_trend_v1'); if (raw) tqData = JSON.parse(raw); } catch (e) {} }
+      render();                              // Trend view works without rank_history data
       if (!loaded && !loading) load();
-      else { render(); updateCaptureBtn(); }
+      else updateCaptureBtn();
     };
 
     // ---------- capture (self-contained) ----------
@@ -4514,12 +4545,184 @@
     }
 
     function render(){
+      const v = st.view;
+      ['grid','traj','trend'].forEach(x => { const e = el('rh-' + x); if (e) e.style.display = (v === x) ? '' : 'none'; });
+      const gt = el('rh-gt-ctrls'), tr = el('rh-tr-ctrls'), lg = el('rh-legend');
+      if (gt) gt.style.display = (v === 'trend') ? 'none' : 'flex';
+      if (tr) tr.style.display = (v === 'trend') ? 'flex' : 'none';
+      if (lg) lg.style.display = (v === 'trend') ? 'none' : 'flex';
+      if (v === 'trend') { renderTrend(); return; }
       if (!data) return;
-      const g = st.view === 'grid';
-      el('rh-grid').style.display = g ? '' : 'none';
-      el('rh-traj').style.display = g ? 'none' : '';
       if (!data.months.length) { el('rh-grid').innerHTML = ''; el('rh-traj').innerHTML = ''; return; }
-      g ? renderGrid() : renderTraj();
+      (v === 'grid') ? renderGrid() : renderTraj();
+    }
+
+    // ---------- Trend view — angle & straightness of the multi-year price line ----------
+    const TQ_BARS = { 1:252, 2:504, 3:756, 5:1260 };
+
+    async function fetchAdj(ticker, exchange, p1, p2){
+      const sym = yfSym(ticker, exchange); if (!sym) return null;
+      const url = PROXY + encodeURIComponent(YF_BASE + sym + '?interval=1d&period1=' + p1 + '&period2=' + p2);
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const r = await fetchTO(url);
+          if (!r.ok) { if (attempt === 2) return null; continue; }
+          const j = await r.json();
+          const res = j && j.chart && j.chart.result && j.chart.result[0];
+          if (!res) return null;
+          let arr = res.indicators && res.indicators.adjclose && res.indicators.adjclose[0] && res.indicators.adjclose[0].adjclose;
+          if (!arr || !arr.length) arr = res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close;
+          if (!arr) return null;
+          const out = [];
+          for (let k = 0; k < arr.length; k++) if (arr[k] != null && arr[k] > 0) out.push(arr[k]);
+          return out;
+        } catch (e) {
+          if (attempt === 2) return null;
+          await new Promise(z => setTimeout(z, 1000 * attempt));
+        }
+      }
+      return null;
+    }
+
+    function computeWindow(closes, W){
+      const sl = closes.slice(-TQ_BARS[W]);
+      const n = sl.length;
+      if (n < 60) return null;
+      let sx = 0, sy = 0, sxx = 0, sxy = 0; const ys = new Array(n);
+      for (let i = 0; i < n; i++) { const y = Math.log(sl[i]); ys[i] = y; sx += i; sy += y; sxx += i * i; sxy += i * y; }
+      const den = n * sxx - sx * sx;
+      const slope = den ? (n * sxy - sx * sy) / den : 0;
+      const b0 = (sy - slope * sx) / n;
+      let ssr = 0, sst = 0; const ybar = sy / n;
+      for (let i = 0; i < n; i++) { const f = b0 + slope * i; ssr += (ys[i] - f) * (ys[i] - f); sst += (ys[i] - ybar) * (ys[i] - ybar); }
+      const r2 = sst ? Math.max(0, Math.min(1, 1 - ssr / sst)) : 0;
+      const annual = Math.exp(slope * 252) - 1;                 // CAGR of the fitted trend
+      const deg = Math.max(-85, Math.min(85, Math.round(annual / 0.30 * 45)));  // 45° ≈ 30%/yr
+      let pk = sl[0], mdd = 0;
+      for (let i = 0; i < n; i++) { if (sl[i] > pk) pk = sl[i]; const dd = (sl[i] - pk) / pk; if (dd < mdd) mdd = dd; }
+      const K = 28, s = [], mn = Math.min.apply(null, sl), mx = Math.max.apply(null, sl), sp = (mx - mn) || 1;
+      const stp = (n - 1) / (K - 1);
+      for (let i = 0; i < K; i++) s.push(Math.round((sl[Math.round(i * stp)] - mn) / sp * 1000));
+      return { a: deg, r: Math.round(r2 * 100) / 100, d: Math.round(mdd * 100), y: Math.round(n / 252 * 10) / 10, s: s };
+    }
+
+    function tqChar(deg, r2){
+      if (deg < -8)   return { key:'down',   label:'downtrend' };
+      if (deg <= 8)   return { key:'flat',   label:'sideways' };
+      if (r2 >= 0.85) return { key:'clean',  label:'clean climb' };
+      if (r2 >= 0.60) return { key:'choppy', label:'choppy climb' };
+      return { key:'choppy', label:'erratic climb' };
+    }
+    function tqColor(k){ return { clean:'var(--rh-clean)', choppy:'var(--rh-choppy)', down:'var(--rh-down)', flat:'var(--rh-flat)' }[k]; }
+
+    function tqGlyph(deg, r2, key){
+      const W = 48, H = 32, ox = 4, oy = H - 4, len = 40;
+      const rad = Math.max(-85, Math.min(85, deg)) * Math.PI / 180;
+      const x2 = ox + Math.cos(rad) * len, y2 = oy - Math.sin(rad) * len;
+      const gx = ox + Math.cos(Math.PI / 4) * len, gy = oy - Math.sin(Math.PI / 4) * len;
+      const dash = r2 >= 0.85 ? '' : (r2 >= 0.60 ? ' stroke-dasharray="5 3"' : ' stroke-dasharray="1.6 3"');
+      const col = tqColor(key);
+      return '<svg class="rh-tq-glyph" width="' + W + '" height="' + H + '" fill="none" aria-hidden="true">' +
+        '<line x1="' + ox + '" y1="' + oy + '" x2="' + (ox + len + 2) + '" y2="' + oy + '" stroke="var(--border2)" stroke-width="1"/>' +
+        '<line x1="' + ox + '" y1="' + oy + '" x2="' + gx.toFixed(1) + '" y2="' + gy.toFixed(1) + '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="1.5 2" opacity="0.45"/>' +
+        '<line x1="' + ox + '" y1="' + oy + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="' + col + '" stroke-width="2"' + dash + ' stroke-linecap="round"/>' +
+        '</svg>';
+    }
+    function tqSparkPath(s, col){
+      const w = 110, h = 26, pad = 3;
+      if (!s || s.length < 2) return '<svg width="' + w + '" height="' + h + '"></svg>';
+      const step = (w - pad * 2) / (s.length - 1); let d = '';
+      for (let i = 0; i < s.length; i++) { const x = pad + i * step, y = h - pad - (s[i] / 1000) * (h - pad * 2); d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+      const lx = pad + (s.length - 1) * step, ly = h - pad - (s[s.length - 1] / 1000) * (h - pad * 2);
+      return '<svg width="' + w + '" height="' + h + '" fill="none" aria-hidden="true"><path d="' + d + '" stroke="' + col +
+             '" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="1.8" fill="' + col + '"/></svg>';
+    }
+
+    async function rhScanTrends(){
+      const btn = el('rh-scan-btn'); if (btn) btn.disabled = true;
+      try {
+        status('Fetching universe…');
+        const u = await db.from('universe').select('ticker, stock_name, exchange').eq('active', true).range(0, 99999);
+        if (u.error) throw u.error;
+        const univ = (u.data || []).filter(x => x.ticker);
+        if (!univ.length) throw new Error('universe table is empty');
+        const now = Math.floor(Date.now() / 1000), p1 = now - Math.round(5.05 * 365 * 86400);
+        const tq = {}; let done = 0; const total = univ.length, BATCH = 6;
+        for (let i = 0; i < univ.length; i += BATCH) {
+          const slice = univ.slice(i, i + BATCH);
+          await Promise.all(slice.map(async s => {
+            const closes = await fetchAdj(s.ticker, s.exchange, p1, now);
+            done++;
+            if (closes && closes.length >= 60) {
+              const rec = { n: s.stock_name || bare(s.ticker), w: {} };
+              [1, 2, 3, 5].forEach(W => { const m = computeWindow(closes, W); if (m) rec.w[W] = m; });
+              if (Object.keys(rec.w).length) tq[bare(s.ticker)] = rec;
+            }
+          }));
+          const pct = Math.round(done / total * 100);
+          status('Scanning trends ' + done + ' / ' + total + ' <span class="rh-bar"><i style="width:' + pct + '%"></i></span>');
+          if (i + BATCH < univ.length) await new Promise(z => setTimeout(z, 500));
+        }
+        if (!Object.keys(tq).length) throw new Error('no stocks returned usable price data');
+        tqData = { scannedAt: Date.now(), count: Object.keys(tq).length, tq: tq };
+        try { localStorage.setItem('rh_trend_v1', JSON.stringify(tqData)); }
+        catch (e) { status('Scanned ' + tqData.count + ' — but the result was too big to cache in this browser.', true); render(); if (btn) btn.disabled = false; return; }
+        status('Scanned ' + tqData.count + ' stocks · ' + new Date().toISOString().slice(0, 10));
+        render();
+      } catch (e) {
+        status('Trend scan failed: ' + (e.message || e), true);
+      }
+      if (el('rh-scan-btn')) el('rh-scan-btn').disabled = false;
+    }
+    window.rhScanTrends = rhScanTrends;
+
+    function renderTrend(){
+      const box = el('rh-trend'); if (!box) return;
+      if (!tqData || !tqData.tq) {
+        box.innerHTML = '<div class="rh-cap">No trend scan yet. Click <b>“Scan trends”</b> — a full-universe 5-year price pull (~3–6 min). Results are cached in this browser.</div>';
+        return;
+      }
+      const W = st.tqWin, held = heldSet();
+      const latest = (data && data.months && data.months.length) ? data.months[data.months.length - 1] : null;
+      const rk = {};
+      if (latest) (data.byMonth[latest] || []).forEach(r => { rk[bare(r.ticker)] = r.rank; });
+
+      const list = Object.keys(tqData.tq).map(k => {
+        const rec = tqData.tq[k];
+        const m = rec.w[W] || rec.w[5] || rec.w[3] || rec.w[2] || rec.w[1];
+        return { k, name: rec.n, m, rank: (rk[k] != null ? rk[k] : null), held: !!held[k] };
+      }).filter(x => x.m);
+
+      list.sort((a, b) => {
+        if (st.tqSort === 'lin') return b.m.r - a.m.r;
+        if (st.tqSort === 'ang') return b.m.a - a.m.a;
+        if (st.tqSort === 'dd')  return b.m.d - a.m.d;   // -7 before -40
+        return (a.rank == null ? 99999 : a.rank) - (b.rank == null ? 99999 : b.rank);
+      });
+
+      const age = Math.floor((Date.now() - tqData.scannedAt) / 86400000);
+      const ageTxt = age <= 0 ? 'today' : age + ' day' + (age > 1 ? 's' : '') + ' ago';
+      let h = '<div class="rh-cap">Angle &amp; straightness of each stock’s <b>' + W + '-year</b> price line (adjusted close) · ' +
+              list.length + ' stocks · scanned ' + ageTxt + (age >= 7 ? ' · <b>rescan for fresh data</b>' : '') + ' · 45° ≈ 30%/yr</div>';
+      h += '<table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
+           '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th></tr></thead><tbody>';
+      list.forEach(x => {
+        const m = x.m, ch = tqChar(m.a, m.r), col = tqColor(ch.key);
+        const yrs = (m.y < W) ? ' <span style="color:var(--muted)">(' + m.y + 'y)</span>' : '';
+        h += '<tr' + (x.held ? ' class="hr"' : '') + '>' +
+          '<td><div class="rh-stkcell"><div class="rh-nm"><span class="t">' + esc(x.k) + '</span><span class="n">' + esc(x.name || '') + '</span></div>' +
+            (x.held ? '<span class="rh-hchip">held</span>' : '') + '</div></td>' +
+          '<td class="rh-tq-rank">' + (x.rank != null ? '#' + x.rank : '—') + '</td>' +
+          '<td><div class="rh-tq-cell">' + tqGlyph(m.a, m.r, ch.key) +
+            '<div class="rh-tq-meta"><span class="rh-tq-ang">' + (m.a > 0 ? '+' : '') + m.a + '°' + yrs + '</span>' +
+            '<span class="rh-tq-char" style="color:' + col + '">' + ch.label + '</span></div></div></td>' +
+          '<td><div class="rh-tq-lin"><span>' + m.r.toFixed(2) + '</span><span class="rh-tq-bar"><i style="width:' + Math.round(m.r * 100) + '%;background:' + col + '"></i></span></div></td>' +
+          '<td class="rh-tq-dd">' + m.d + '%</td>' +
+          '<td>' + tqSparkPath(m.s, col) + '</td>' +
+        '</tr>';
+      });
+      h += '</tbody></table>';
+      box.innerHTML = h;
     }
 
     function renderGrid(){
@@ -4627,6 +4830,8 @@
       seg('rh-view', 'data-v', 'view', String);
       seg('rh-rows', 'data-n', 'rows', Number);
       seg('rh-range', 'data-r', 'range', Number);
+      seg('rh-tqwin', 'data-tw', 'tqWin', Number);
+      seg('rh-tqsort', 'data-ts', 'tqSort', String);
     }
   })();
 </script>
