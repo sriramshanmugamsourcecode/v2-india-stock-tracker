@@ -1627,7 +1627,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260903.14'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260903.15'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4365,7 +4365,16 @@
     const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[x]));
     function thisMonth(){ const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
     function status(msg, isErr){ const s = el('rh-status'); if (!s) return; s.innerHTML = msg || ''; s.className = 'rh-status' + (isErr ? ' err' : ''); }
-    function heldSet(){ const h = {}; try { (trades || []).forEach(t => { h[bare(t.ticker)] = 1; }); } catch (e) {} return h; }
+    function heldSet(){
+      const q = {};
+      try { (trades || []).forEach(t => {
+        const k = bare(t.ticker), n = Number(t.qty) || 0;
+        q[k] = (q[k] || 0) + (t.action === 'BUY' ? n : -n);
+      }); } catch (e) {}
+      const h = {};
+      Object.keys(q).forEach(k => { if (q[k] > 1e-6) h[k] = 1; });   // only current net-positive holdings
+      return h;
+    }
 
     // ---------- load ----------
     async function load(){
