@@ -1117,6 +1117,8 @@
     .rh-tq-bar i { display:block; height:100%; }
     .rh-tq-dd { font-family:var(--font-mono); font-size:12.5px; text-align:right; color:var(--red); font-variant-numeric:tabular-nums; }
     .rh-tq svg { display:block; }
+    .rh-tq-sep td { padding:0; height:0; border-bottom:1.5px solid var(--border2); }
+    .rh-tq-sep:hover td { background:none; }
   </style>
 </head>
 <body>
@@ -1577,6 +1579,7 @@
               <span class="rh-ctrls-grp" id="rh-tr-ctrls" style="display:none">
                 <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl">Window</span><button type="button" data-tw="1">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3" class="on">3Y</button><button type="button" data-tw="5">5Y</button></div>
                 <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl">Sort</span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button></div>
+                <div class="rh-seg" id="rh-tqhold"><span class="rh-lbl">Holdings on top</span><button type="button" data-h="1" class="on">On</button><button type="button" data-h="0">Off</button></div>
                 <button class="rh-capture" id="rh-scan-btn" onclick="rhScanTrends()">Scan trends</button>
               </span>
             </div>
@@ -1624,7 +1627,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260902.13'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260903.14'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4351,7 +4354,7 @@
     const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const SKIP = 21, TD = { m1:21, m3:63, m6:126, y1:252 };
 
-    let st = { view:'grid', rows:12, range:12, tqWin:3, tqSort:'lin' };
+    let st = { view:'grid', rows:12, range:12, tqWin:3, tqSort:'lin', tqHold:1 };
     let data = null, loaded = false, loading = false, wired = false;
     let tqData = null, tqLoaded = false;   // Trend view — cached in localStorage ('rh_trend_v1')
 
@@ -4693,22 +4696,29 @@
         return { k, name: rec.n, m, rank: (rk[k] != null ? rk[k] : null), held: !!held[k] };
       }).filter(x => x.m);
 
+      // character bucket: clean-up (0) < choppy/erratic-up (1) < sideways (2) < downtrend (3)
+      const bucket = m => (m.a < -8) ? 3 : (m.a <= 8) ? 2 : (m.r >= 0.85) ? 0 : 1;
       list.sort((a, b) => {
-        if (st.tqSort === 'lin') return b.m.r - a.m.r;
-        if (st.tqSort === 'ang') return b.m.a - a.m.a;
+        if (st.tqHold) { const ha = a.held ? 0 : 1, hb = b.held ? 0 : 1; if (ha !== hb) return ha - hb; }
+        if (st.tqSort === 'lin') { const d = bucket(a.m) - bucket(b.m); return d || (b.m.r - a.m.r); }
+        if (st.tqSort === 'ang') { const d = bucket(a.m) - bucket(b.m); return d || (b.m.a - a.m.a); }
         if (st.tqSort === 'dd')  return b.m.d - a.m.d;   // -7 before -40
         return (a.rank == null ? 99999 : a.rank) - (b.rank == null ? 99999 : b.rank);
       });
 
       const age = Math.floor((Date.now() - tqData.scannedAt) / 86400000);
       const ageTxt = age <= 0 ? 'today' : age + ' day' + (age > 1 ? 's' : '') + ' ago';
+      const sortTxt = { lin:'straightest first (clean climbs → choppy → sideways → downtrends)', ang:'steepest first, clean climbs on top', dd:'shallowest drawdown first', rank:'by composite momentum rank' }[st.tqSort];
       let h = '<div class="rh-cap">Angle &amp; straightness of each stock’s <b>' + W + '-year</b> price line (adjusted close) · ' +
-              list.length + ' stocks · scanned ' + ageTxt + (age >= 7 ? ' · <b>rescan for fresh data</b>' : '') + ' · 45° ≈ 30%/yr</div>';
+              list.length + ' stocks · ' + sortTxt + (st.tqHold ? ' · holdings pinned' : '') +
+              ' · scanned ' + ageTxt + (age >= 7 ? ' · <b>rescan for fresh data</b>' : '') + ' · 45° ≈ 30%/yr</div>';
       h += '<table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
            '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th></tr></thead><tbody>';
-      list.forEach(x => {
+      let sepDone = false;
+      list.forEach((x, ix) => {
         const m = x.m, ch = tqChar(m.a, m.r), col = tqColor(ch.key);
         const yrs = (m.y < W) ? ' <span style="color:var(--muted)">(' + m.y + 'y)</span>' : '';
+        if (st.tqHold && !sepDone && ix > 0 && !x.held && list[ix - 1].held) { h += '<tr class="rh-tq-sep"><td colspan="6"></td></tr>'; sepDone = true; }
         h += '<tr' + (x.held ? ' class="hr"' : '') + '>' +
           '<td><div class="rh-stkcell"><div class="rh-nm"><span class="t">' + esc(x.k) + '</span><span class="n">' + esc(x.name || '') + '</span></div>' +
             (x.held ? '<span class="rh-hchip">held</span>' : '') + '</div></td>' +
@@ -4832,6 +4842,7 @@
       seg('rh-range', 'data-r', 'range', Number);
       seg('rh-tqwin', 'data-tw', 'tqWin', Number);
       seg('rh-tqsort', 'data-ts', 'tqSort', String);
+      seg('rh-tqhold', 'data-h', 'tqHold', Number);
     }
   })();
 </script>
