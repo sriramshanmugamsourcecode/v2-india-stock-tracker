@@ -1119,6 +1119,69 @@
     .rh-tq svg { display:block; }
     .rh-tq-sep td { padding:0; height:0; border-bottom:1.5px solid var(--border2); }
     .rh-tq-sep:hover td { background:none; }
+
+    /* ===== PATTERN LOOKUP (isolated feature — all selectors .lk-*) ===== */
+    .lk-panel { margin: 14px 16px 22px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .lk-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 14px 18px; border-bottom: 0.5px solid var(--border); }
+    .lk-head .lk-chev { color: var(--muted); transition: transform .15s; flex: none; }
+    .lk-panel.lk-collapsed .lk-chev { transform: rotate(-90deg); }
+    .lk-panel.lk-collapsed .lk-body { display: none; }
+    .lk-head h3 { font-family: var(--font-display, var(--font-mono)); font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .lk-head .lk-cnt { font-size: 11px; color: var(--muted); background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 999px; padding: 2px 8px; }
+    .lk-head .lk-sp { flex: 1; }
+    .lk-body { padding: 18px; }
+    .lk-sub { font-size: 12px; color: var(--muted); max-width: 66ch; margin-bottom: 14px; }
+    .lk-inrow { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .lk-field { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 8px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 9px; padding: 0 12px; }
+    .lk-field input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font-family: var(--font-mono); font-size: 13px; letter-spacing: .02em; padding: 11px 0; }
+    .lk-field input::placeholder { color: var(--muted); font-family: var(--font-body); }
+    .lk-addbtn { font-family: var(--font-body); font-size: 13px; font-weight: 600; background: var(--accent2); color: #fff; border: 0; border-radius: 9px; padding: 10px 20px; cursor: pointer; }
+    .lk-hint2 { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+    .lk-allbar { display: none; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; padding: 10px 13px; margin-bottom: 16px; }
+    .lk-allbar .lk-al { display: flex; flex-direction: column; gap: 2px; }
+    .lk-allbar .lk-al .a { font-size: 12px; font-weight: 600; }
+    .lk-allbar .lk-al .b { font-size: 10.5px; color: var(--muted); }
+    .lk-copy, .lk-allcopy { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-body); font-size: 11.5px; font-weight: 600; background: none; color: var(--accent); border: 0.5px solid var(--accent); border-radius: 7px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+    .lk-allcopy { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+    .lk-copy:hover { background: rgba(167,139,250,.08); }
+    .lk-copy.done, .lk-allcopy.done { color: var(--blue); border-color: var(--blue); background: none; }
+    .lk-copy svg, .lk-allcopy svg { flex: none; }
+    .lk-none { font-size: 12px; color: var(--muted); padding: 10px 2px; }
+    .lk-stock { background: var(--card); border: 0.5px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+    .lk-sh { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 0.5px solid var(--border); background: var(--bg3); }
+    .lk-sh .lk-sym { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+    .lk-sh .lk-nm { font-size: 12px; color: var(--muted); }
+    .lk-sh .lk-held { font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--amber); border: 0.5px solid var(--amber); border-radius: 4px; padding: 1px 4px; }
+    .lk-sh .lk-sp { flex: 1; }
+    .lk-sh .lk-del { background: none; border: 0.5px solid var(--border2); color: var(--muted); border-radius: 7px; width: 26px; height: 26px; font-size: 14px; cursor: pointer; line-height: 1; flex: none; }
+    .lk-sh .lk-del:hover { color: var(--red); border-color: rgba(248,113,113,.4); }
+    .lk-load, .lk-err { padding: 16px 15px; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .lk-err { color: var(--red); }
+    .lk-retry { background: none; border: 0.5px solid var(--border2); color: var(--muted); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer; margin-left: 6px; }
+    .lk-sb { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); }
+    .lk-mt { border-right: 0.5px solid var(--border); }
+    .lk-mt table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    .lk-mt th, .lk-mt td { padding: 6px 14px; text-align: left; border-bottom: 0.5px solid var(--border); }
+    .lk-mt th { font-weight: 400; color: var(--muted); white-space: nowrap; }
+    .lk-mt td { font-family: var(--font-mono); text-align: right; color: var(--text); }
+    .lk-mt tr:last-child th, .lk-mt tr:last-child td { border-bottom: 0; }
+    .lk-mt .lk-grp td { font-family: var(--font-body); text-align: left; color: var(--muted); background: var(--bg2); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 14px; }
+    .lk-ti { display: block; font-family: var(--font-body); font-size: 9px; color: var(--muted); margin-top: 1px; }
+    .lk-pos { color: var(--accent); } .lk-neg { color: var(--red); } .lk-warn { color: var(--amber); } .lk-mut { color: var(--muted); }
+    .lk-read { padding: 13px 14px; display: flex; flex-direction: column; gap: 11px; }
+    .lk-sig { display: flex; gap: 6px; flex-wrap: wrap; }
+    .lk-tag { font-size: 10px; letter-spacing: .02em; border-radius: 5px; padding: 3px 7px; border: 0.5px solid var(--border2); color: var(--muted); }
+    .lk-tag.v { color: var(--accent); border-color: rgba(167,139,250,.4); }
+    .lk-tag.a { color: var(--amber); border-color: rgba(251,191,36,.4); }
+    .lk-tag.r { color: var(--red); border-color: rgba(248,113,113,.4); }
+    .lk-tag.b { color: var(--blue); border-color: rgba(96,165,250,.4); }
+    .lk-verdict { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .lk-vlbl { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .lk-hint { font-size: 10.5px; color: var(--muted); }
+    .lk-hint a { color: var(--accent); }
+    .lk-foot { margin-top: 16px; font-size: 10.5px; color: var(--muted); line-height: 1.6; }
+    .lk-foot b { color: var(--text); font-weight: 600; }
+    @media (max-width: 640px) { .lk-sb { grid-template-columns: 1fr; } .lk-mt { border-right: 0; border-bottom: 0.5px solid var(--border); } }
   </style>
 </head>
 <body>
@@ -1385,6 +1448,34 @@
 
       <!-- ── Screener Tab ── -->
       <div id="tab-screener" style="display:none">
+
+        <!-- Pattern Lookup — isolated feature (.lk-*), no dependency on the screener -->
+        <div id="lk-panel" class="lk-panel">
+          <div class="lk-head" id="lk-head">
+            <svg class="lk-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+            <h3>Pattern Lookup</h3>
+            <span class="lk-cnt" id="lk-count">0 stocks</span>
+            <span class="lk-sp"></span>
+          </div>
+          <div class="lk-body" id="lk-body">
+            <div class="lk-sub">Add NSE tickers. Each gets every metric the screener measures plus quick rule-based signals. For a written verdict, copy a prompt and paste it into claude.ai — the app makes no AI call. Your list is remembered on this device.</div>
+            <div class="lk-inrow">
+              <label class="lk-field">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5;flex:none"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input id="lk-input" placeholder="ANANDRATHI, CPPLUS, SSWL  ·  comma or space separated" autocomplete="off" spellcheck="false">
+              </label>
+              <button class="lk-addbtn" id="lk-add">Add</button>
+            </div>
+            <div class="lk-hint2">Tickers only. Up to 8. History window 5y adjusted daily closes.</div>
+            <div class="lk-allbar" id="lk-allbar">
+              <div class="lk-al"><span class="a">Combined prompt — all stocks together</span><span class="b">One paste into Claude → a comparison table + a paragraph each.</span></div>
+              <button class="lk-allcopy" id="lk-allcopy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy combined</button>
+            </div>
+            <div id="lk-list"></div>
+            <div class="lk-foot"><b>Metrics:</b> 5y Yahoo adjusted daily closes via the existing proxy; skip-month = Jegadeesh–Titman 21-day skip. Signal chips are fixed rules — instant, offline. <b>No API key, no AI call, no cost</b> — the panel only builds the prompt text.</div>
+          </div>
+        </div>
+
         <div class="scr-wrap">
 
           <!-- Sidebar filters -->
@@ -1627,7 +1718,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260903.15'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260909.16'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2924,6 +3015,7 @@
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (tab === 'rankhistory' && window.rhEnter) window.rhEnter();
+    if (tab === 'screener' && window.lkEnter) window.lkEnter();
   }
 
   // ============================================================
@@ -4853,6 +4945,365 @@
       seg('rh-tqsort', 'data-ts', 'tqSort', String);
       seg('rh-tqhold', 'data-h', 'tqHold', Number);
     }
+  })();
+
+  // ===================================================================
+  // PATTERN LOOKUP  (isolated feature — all selectors .lk-*)
+  //   reads : PROXY, YF_BASE, trades, (SCR_YF_OVERRIDES if present)
+  //   writes: localStorage 'lk_tickers_v1' / 'lk_open_v1'  •  mutates no shared state
+  //   builds a copy-paste prompt only — makes no AI call
+  //   carries its own fetch + metric math — calls nothing in the screener
+  // ===================================================================
+  (function(){
+    const LSK = 'lk_tickers_v1', LSO = 'lk_open_v1', MAXN = 8, SKIP = 21;
+    const RET = { m1:21, m3:63, m6:126, y1:252 };
+    let items = [];                 // { key, ticker, name, exch, state, m, err, held }
+    let entered = false, wired = false;
+
+    const el = id => document.getElementById(id);
+    const bare = t => !t ? '' : (t.indexOf(':') >= 0 ? t.split(':').pop() : t).toUpperCase();
+    const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[x]));
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const f1 = v => (v == null || isNaN(v)) ? 'n/a' : (Math.round(v * 10) / 10).toFixed(1);
+    const f2 = v => (v == null || isNaN(v)) ? 'n/a' : (Math.round(v * 100) / 100).toFixed(2);
+    const f0 = v => (v == null || isNaN(v)) ? 'n/a' : String(Math.round(v));
+
+    // ---------- persistence ----------
+    function saveList(){ try { localStorage.setItem(LSK, JSON.stringify(items.map(x => x.ticker))); } catch (e) {} }
+    function readList(){ try { return JSON.parse(localStorage.getItem(LSK)) || []; } catch (e) { return []; } }
+
+    // ---------- held (net BUY − SELL qty > 0) ----------
+    function heldSet(){
+      const q = {};
+      try { (trades || []).forEach(t => {
+        const k = bare(t.ticker);
+        q[k] = (q[k] || 0) + ((t.action === 'BUY' ? 1 : -1) * (Number(t.qty) || 0));
+      }); } catch (e) {}
+      const h = {}; Object.keys(q).forEach(k => { if (q[k] > 1e-6) h[k] = 1; }); return h;
+    }
+
+    // ---------- fetch ----------
+    function fetchTO(url, ms){
+      const c = new AbortController(); const t = setTimeout(() => c.abort(), ms || 20000);
+      return fetch(url, { signal: c.signal }).finally(() => clearTimeout(t));
+    }
+    function yfCandidates(b, exch){
+      let ov; try { if (typeof SCR_YF_OVERRIDES !== 'undefined' && (b in SCR_YF_OVERRIDES)) ov = SCR_YF_OVERRIDES[b]; } catch (e) {}
+      if (ov === null) return [];
+      if (ov) return [ov];
+      return exch === 'BSE' ? [b + '.BO', b + '.NS'] : [b + '.NS', b + '.BO'];
+    }
+    async function fetchChart(sym){
+      const now = Math.floor(Date.now() / 1000), p1 = now - Math.round(5.05 * 365 * 86400);
+      const url = PROXY + encodeURIComponent(YF_BASE + sym + '?interval=1d&period1=' + p1 + '&period2=' + now);
+      for (let a = 1; a <= 2; a++) {
+        try {
+          const r = await fetchTO(url); if (!r.ok) { if (a === 2) return null; continue; }
+          const j = await r.json();
+          const res = j && j.chart && j.chart.result && j.chart.result[0];
+          if (!res || !res.timestamp) return null;
+          const q = res.indicators && res.indicators.quote && res.indicators.quote[0];
+          const ac = res.indicators && res.indicators.adjclose && res.indicators.adjclose[0];
+          const raw = (q && q.close) || [];
+          const adj = (ac && ac.adjclose) || raw;
+          const ts = res.timestamp, C = [], A = [], T = [];
+          for (let i = 0; i < raw.length; i++) {
+            if (raw[i] == null || adj[i] == null) continue;
+            C.push(raw[i]); A.push(adj[i]); T.push(ts[i]);
+          }
+          if (C.length < 30) return null;
+          return { C, A, T, name: (res.meta && (res.meta.longName || res.meta.shortName)) || '' };
+        } catch (e) { if (a === 2) return null; await new Promise(z => setTimeout(z, 1000 * a)); }
+      }
+      return null;
+    }
+
+    // ---------- metric helpers ----------
+    const iso = u => new Date(u * 1000).toISOString().slice(0, 10);
+    function sma(a, n){ if (a.length < n) return null; let s = 0; for (let i = a.length - n; i < a.length; i++) s += a[i]; return s / n; }
+    function ret(a, n){ if (a.length < n + 1) return null; const p = a[a.length - 1 - n]; return p > 0 ? (a[a.length - 1] - p) / p * 100 : null; }
+    function retSkip(a, n){ if (a.length < n + SKIP + 1) return null; const x = a[a.length - 1 - SKIP], p = a[a.length - 1 - SKIP - n]; return p > 0 ? (x - p) / p * 100 : null; }
+    function annVol(a, n){
+      if (a.length < n + 1) return null; const r = [];
+      for (let i = a.length - n; i < a.length; i++) if (a[i - 1] > 0) r.push(Math.log(a[i] / a[i - 1]));
+      if (r.length < 2) return null;
+      const m = r.reduce((x, y) => x + y, 0) / r.length;
+      const v = r.reduce((x, y) => x + (y - m) * (y - m), 0) / (r.length - 1);
+      return Math.sqrt(v) * Math.sqrt(252) * 100;
+    }
+    function maxDD(a){ let pk = a[0], dd = 0; for (let i = 0; i < a.length; i++) { if (a[i] > pk) pk = a[i]; const d = (a[i] - pk) / pk; if (d < dd) dd = d; } return dd * 100; }
+    function logfit(a){
+      const sl = a.slice(-Math.min(a.length, 756)), n = sl.length; if (n < 60) return {};
+      let sx = 0, sy = 0, sxx = 0, sxy = 0; const y = new Array(n);
+      for (let i = 0; i < n; i++) { const v = Math.log(sl[i]); y[i] = v; sx += i; sy += v; sxx += i * i; sxy += i * v; }
+      const den = n * sxx - sx * sx, slope = den ? (n * sxy - sx * sy) / den : 0, b0 = (sy - slope * sx) / n;
+      let ssr = 0, sst = 0; const yb = sy / n;
+      for (let i = 0; i < n; i++) { const fi = b0 + slope * i; ssr += (y[i] - fi) * (y[i] - fi); sst += (y[i] - yb) * (y[i] - yb); }
+      const r2 = sst ? clamp(1 - ssr / sst, 0, 1) : 0;
+      const cagr = (Math.exp(slope * 252) - 1) * 100;
+      const deg = clamp(Math.round(cagr / 30 * 45), -85, 85);
+      return { cagr, r2, deg };
+    }
+    function shape(m){
+      const ann = (r, mo) => r == null ? null : (Math.pow(1 + r / 100, 12 / mo) - 1) * 100;
+      const near = [ann(m.r1, 1), ann(m.r3, 3)].filter(v => v != null);
+      const long = [ann(m.r6, 6), ann(m.r12, 12)].filter(v => v != null);
+      if (!near.length || !long.length) return 'n/a';
+      const nb = near.reduce((a, b) => a + b, 0) / near.length;
+      const lb = long.reduce((a, b) => a + b, 0) / long.length;
+      if ((m.r12 != null && m.r12 <= 0) && (m.r6 != null && m.r6 <= 0)) return 'no momentum';
+      if (nb < 0) return 'fading';
+      if (nb > lb * 1.15) return 'accelerating';
+      if (nb < lb * 0.5) return 'front-loaded';
+      return 'steady';
+    }
+    function momo(m){
+      const c = [];
+      if (m.gap != null) c.push([clamp(100 - m.gap * 2, 0, 100), 2]);
+      if (m.rs6 != null) c.push([clamp(50 + m.rs6, 0, 100), 2]);
+      if (m.rs3 != null) c.push([clamp(50 + m.rs3 * 1.5, 0, 100), 2]);
+      if (m.r1 != null) c.push([clamp(50 + m.r1 * 3, 0, 100), 1]);
+      if (m.r2q != null) c.push([clamp(m.r2q * 60 + (m.deg > 0 ? Math.min(40, m.deg / 2) : 0), 0, 100), 1]);
+      if (!c.length) return null;
+      let sw = 0, sv = 0; c.forEach(p => { sv += p[0] * p[1]; sw += p[1]; });
+      return Math.round(sv / sw);
+    }
+    function compute(d){
+      const C = d.C, A = d.A, T = d.T, L = C.length;
+      let hi = C[0], hiIdx = 0, lo = C[0];
+      for (let i = 0; i < L; i++) { if (C[i] > hi) { hi = C[i]; hiIdx = i; } if (C[i] < lo) lo = C[i]; }
+      const price = C[L - 1];
+      const d50 = sma(C, 50), d100 = sma(C, 100), d200 = sma(C, 200);
+      const lf = logfit(A);
+      let rdd = 0; const rs = A.slice(-60); let rpk = rs.length ? rs[0] : 0;
+      for (let i = 0; i < rs.length; i++) { if (rs[i] > rpk) rpk = rs[i]; const x = rpk > 0 ? (rs[i] - rpk) / rpk : 0; if (x < rdd) rdd = x; }
+      const m = {
+        bars: L, start: iso(T[0]), end: iso(T[L - 1]),
+        price: price, hi: hi, lo: lo, gap: hi > 0 ? (hi - price) / hi * 100 : null, sinceHi: (L - 1) - hiIdx,
+        d50: d50, d100: d100, d200: d200,
+        stacked: (d50 != null && d100 != null && d200 != null && price > d50 && d50 > d100 && d100 > d200),
+        belowD200: (d200 != null && price < d200),
+        r1: ret(A, RET.m1), r3: ret(A, RET.m3), r6: ret(A, RET.m6), r12: ret(A, RET.y1),
+        rs3: retSkip(A, RET.m3), rs6: retSkip(A, RET.m6),
+        vol: annVol(A, 63), mdd: maxDD(A), rdd: rdd * 100,
+        cagr: lf.cagr, r2q: lf.r2, deg: lf.deg,
+      };
+      m.shape = shape(m);
+      m.score = momo(m);
+      return m;
+    }
+
+    // ---------- rule-based signal chips ----------
+    function signals(m, held){
+      const out = [];
+      if (m.gap != null) {
+        if (m.gap <= 2) out.push(['v', 'at 5y high']);
+        else if (m.gap <= 10) out.push(['v', 'near highs']);
+        else if (m.gap >= 25) out.push(['r', 'well below highs']);
+      }
+      if (m.stacked) out.push(['v', 'DMAs stacked']);
+      else if (m.belowD200) out.push(['r', 'below 200-DMA']);
+      if (m.shape === 'accelerating') out.push(['v', 'accelerating']);
+      else if (m.shape === 'front-loaded') out.push(['a', 'front-loaded']);
+      else if (m.shape === 'fading') out.push(['r', 'fading']);
+      else if (m.shape === 'no momentum') out.push(['r', 'no momentum']);
+      if (m.vol != null && m.vol < 22 && m.r2q != null && m.r2q >= 0.8) out.push(['v', 'smooth compounder']);
+      else if (m.vol != null && m.vol > 35) out.push(['a', 'high-vol']);
+      if (m.r2q != null && m.r2q < 0.4) out.push(['r', 'roller-coaster']);
+      if (m.bars < 260) out.push(['a', 'young listing']);
+      if (m.rdd != null && m.rdd < -15) out.push(['r', 'deep recent drawdown']);
+      if (held) out.push(['b', 'in your holdings']);
+      return out;
+    }
+
+    // ---------- prompt builder (no AI call) ----------
+    const INSTR_ONE =
+      'You are a markets analyst. Below are computed price and momentum metrics for an Indian-listed ' +
+      'stock. In one paragraph (90-130 words), plain and concrete, explain what the pattern shows: trend ' +
+      'direction and where price sits vs its high and moving averages; whether momentum is accelerating ' +
+      'or fading (near-term pace vs longer-term pace); trend quality (smooth vs jumpy, from volatility ' +
+      'and R^2); any listing-age / liquidity / lock-in caveat; and the single biggest risk right now. ' +
+      'No bullet points, no headings, no investment advice. Use only the numbers given.';
+    const INSTR_ALL = n =>
+      'You are a markets analyst. Below are computed price and momentum metrics for ' + n + ' Indian-listed ' +
+      'stocks. First give a short comparison table (one row per stock: trend position, momentum shape, ' +
+      'trend quality, verdict). Then one paragraph (90-130 words) per stock explaining what its pattern ' +
+      'shows: trend direction and where price sits vs its high and moving averages; whether momentum is ' +
+      'accelerating or fading; trend quality (smooth vs jumpy); any listing-age / liquidity / lock-in ' +
+      'caveat; the single biggest risk now. Plain and concrete. No investment advice. Use only the numbers given.';
+
+    function block(it, combined){
+      const m = it.m, L = [];
+      L.push(combined
+        ? ('=== ' + it.ticker + (it.name ? ' (' + it.name + ')' : '') + ' ===')
+        : ('Stock: ' + it.ticker + (it.name ? ' (' + it.name + ')' : '')));
+      L.push('History: ' + m.bars + ' daily bars, ' + m.start + ' to ' + m.end);
+      L.push('Last price: ' + f2(m.price));
+      L.push('High / low over window: ' + f2(m.hi) + ' / ' + f2(m.lo));
+      L.push('Gap below high: ' + f1(m.gap) + '%  (that high was ' + m.sinceHi + ' bars ago)');
+      L.push('DMA 50 / 100 / 200: ' + f0(m.d50) + ' / ' + f0(m.d100) + ' / ' + f0(m.d200) + '  (price above all three: ' + m.stacked + ')');
+      L.push('Return 1M / 3M / 6M / 1Y: ' + f1(m.r1) + '% / ' + f1(m.r3) + '% / ' + f1(m.r6) + '% / ' + f1(m.r12) + '%');
+      L.push('Skip-month return 3M / 6M: ' + f1(m.rs3) + '% / ' + f1(m.rs6) + '%');
+      L.push('Annualised volatility (63d): ' + f1(m.vol) + '%');
+      L.push('Max drawdown over window: ' + f1(m.mdd) + '%');
+      L.push('Log-fit CAGR: ' + f1(m.cagr) + '%   straightness R^2: ' + f2(m.r2q) + '   angle: ' + f0(m.deg) + ' deg');
+      L.push('Self-scored momentum (0-100, not a cross-sectional rank): ' + (m.score == null ? 'n/a' : m.score));
+      L.push('Currently held in portfolio: ' + !!it.held);
+      return L.join('\n');
+    }
+    function promptOne(it){ return INSTR_ONE + '\n\n' + block(it, false); }
+    function promptAll(){
+      const ok = items.filter(x => x.state === 'ok');
+      return INSTR_ALL(ok.length) + '\n\n' + ok.map(x => block(x, true)).join('\n\n');
+    }
+
+    // ---------- render ----------
+    const copyIco = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const checkIco = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>';
+
+    function mtable(m){
+      const S = (v, u) => v == null || isNaN(v) ? '<span class="lk-mut">n/a</span>' : (v > 0 && u === '%' ? '+' : '') + f1(v) + (u || '');
+      const dmaTxt = m.stacked ? '<span class="lk-pos">stacked &#9650;</span>'
+        : m.belowD200 ? '<span class="lk-neg">below 200-DMA</span>' : '<span class="lk-mut">mixed</span>';
+      const shpCls = ({ accelerating:'lk-pos', 'front-loaded':'lk-warn', fading:'lk-neg', 'no momentum':'lk-neg' })[m.shape] || '';
+      const gapCls = m.gap == null ? '' : m.gap <= 2 ? 'lk-pos' : m.gap >= 25 ? 'lk-neg' : m.gap >= 10 ? 'lk-warn' : '';
+      const volCls = m.vol == null ? '' : m.vol < 22 ? 'lk-pos' : m.vol > 35 ? 'lk-warn' : '';
+      const r2Cls = m.r2q == null ? '' : m.r2q >= 0.8 ? 'lk-pos' : m.r2q < 0.4 ? 'lk-neg' : '';
+      const scoreTag = m.score == null ? '' : m.score >= 70 ? 'strong' : m.score >= 45 ? 'moderate' : 'weak';
+      return '<table>' +
+        '<tr class="lk-grp"><td colspan="2">History &amp; price</td></tr>' +
+        '<tr><th>Trading history</th><td>' + m.bars + ' bars<span class="lk-ti">' + m.start + ' &rarr; ' + m.end + '</span></td></tr>' +
+        '<tr><th>Last price</th><td>' + f2(m.price) + '</td></tr>' +
+        '<tr><th>High / low (window)</th><td>' + f0(m.hi) + ' / ' + f0(m.lo) + '</td></tr>' +
+        '<tr><th>Gap to high</th><td class="' + gapCls + '">' + f1(m.gap) + '%<span class="lk-ti">' + m.sinceHi + ' bars ago</span></td></tr>' +
+        '<tr class="lk-grp"><td colspan="2">Moving averages</td></tr>' +
+        '<tr><th>50 / 100 / 200 DMA</th><td>' + f0(m.d50) + ' / ' + f0(m.d100) + ' / ' + f0(m.d200) + '</td></tr>' +
+        '<tr><th>DMA structure</th><td>' + dmaTxt + '</td></tr>' +
+        '<tr class="lk-grp"><td colspan="2">Returns</td></tr>' +
+        '<tr><th>1M / 3M / 6M / 1Y</th><td>' + S(m.r1, '%') + ' / ' + S(m.r3, '%') + ' / ' + S(m.r6, '%') + ' / ' + S(m.r12, '%') + '</td></tr>' +
+        '<tr><th>Skip-month 3M / 6M</th><td>' + S(m.rs3, '%') + ' / ' + S(m.rs6, '%') + '</td></tr>' +
+        '<tr><th>Return shape</th><td class="' + shpCls + '">' + m.shape + '</td></tr>' +
+        '<tr class="lk-grp"><td colspan="2">Trend quality</td></tr>' +
+        '<tr><th>Ann. volatility (63d)</th><td class="' + volCls + '">' + f1(m.vol) + '%</td></tr>' +
+        '<tr><th>Max drawdown (window)</th><td>' + f1(m.mdd) + '%</td></tr>' +
+        '<tr><th>Log-fit CAGR / R&sup2;</th><td>' + f0(m.cagr) + '% / <span class="' + r2Cls + '">' + f2(m.r2q) + '</span></td></tr>' +
+        '<tr><th>Trend angle</th><td>' + (m.deg > 0 ? '+' : '') + f0(m.deg) + '&deg;</td></tr>' +
+        '<tr class="lk-grp"><td colspan="2">Momentum (self-scored)</td></tr>' +
+        '<tr><th>Score 0&ndash;100</th><td>' + (m.score == null ? 'n/a' : m.score) + '<span class="lk-ti">' + scoreTag + '</span></td></tr>' +
+        '</table>';
+    }
+
+    function render(){
+      const list = el('lk-list'); if (!list) return;
+      const held = heldSet();
+      items.forEach(it => { it.held = !!held[bare(it.ticker)]; });
+      const okN = items.filter(x => x.state === 'ok').length;
+      const bar = el('lk-allbar'); if (bar) bar.style.display = okN >= 2 ? 'flex' : 'none';
+      const cnt = el('lk-count'); if (cnt) cnt.textContent = items.length + (items.length === 1 ? ' stock' : ' stocks');
+      if (!items.length) { list.innerHTML = '<div class="lk-none">No stocks yet. Add NSE tickers above.</div>'; return; }
+      list.innerHTML = items.map(it => {
+        const head = '<div class="lk-sh"><span class="lk-sym">' + esc(it.ticker) + '</span>' +
+          (it.name ? '<span class="lk-nm">' + esc(it.name) + '</span>' : '') +
+          (it.held ? '<span class="lk-held">held</span>' : '') +
+          '<span class="lk-sp"></span><button class="lk-del" data-k="' + esc(it.key) + '" title="Remove">&times;</button></div>';
+        if (it.state === 'loading') return '<div class="lk-stock">' + head + '<div class="lk-load">Fetching 5y prices&hellip;</div></div>';
+        if (it.state === 'err') return '<div class="lk-stock">' + head + '<div class="lk-err">' + esc(it.err || 'No data') +
+          ' <button class="lk-retry" data-k="' + esc(it.key) + '">retry</button></div></div>';
+        const m = it.m;
+        const sig = signals(m, it.held).map(p => '<span class="lk-tag ' + p[0] + '">' + p[1] + '</span>').join('');
+        const body = '<div class="lk-sb"><div class="lk-mt">' + mtable(m) + '</div>' +
+          '<div class="lk-read"><div class="lk-sig">' + sig + '</div>' +
+          '<div class="lk-verdict"><span class="lk-vlbl">AI verdict</span>' +
+          '<button class="lk-copy" data-k="' + esc(it.key) + '">' + copyIco + 'Copy prompt &mdash; ' + esc(it.ticker) + ' only</button></div>' +
+          '<div class="lk-hint">Paste into <a href="https://claude.ai" target="_blank" rel="noopener">claude.ai</a> &rarr; one paragraph on this stock.</div>' +
+          '</div></div>';
+        return '<div class="lk-stock">' + head + body + '</div>';
+      }).join('');
+    }
+
+    function doCopy(text, btn){
+      const orig = btn.innerHTML;
+      const done = () => { btn.classList.add('done'); btn.innerHTML = checkIco + 'Copied'; setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = orig; }, 1800); };
+      const fb = t => { const a = document.createElement('textarea'); a.value = t; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(a); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => { fb(text); done(); });
+      else { fb(text); done(); }
+    }
+
+    // ---------- actions ----------
+    function tokens(str){ return (str || '').split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean); }
+    async function add(str){
+      const cur = new Set(items.map(x => bare(x.ticker)));
+      let added = 0;
+      tokens(str).forEach(tk => {
+        if (items.length >= MAXN) return;
+        const isBse = tk.toUpperCase().indexOf('BSE:') === 0;
+        const b = bare(tk); if (!b || cur.has(b)) return;
+        cur.add(b);
+        items.push({ key: b + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          ticker: b, name: '', exch: isBse ? 'BSE' : 'NSE', state: 'loading', m: null, err: '', held: false });
+        added++;
+      });
+      if (!added) { render(); return; }
+      saveList(); render();
+      const pend = items.filter(x => x.state === 'loading');
+      for (let i = 0; i < pend.length; i += 4) {
+        await Promise.all(pend.slice(i, i + 4).map(loadOne));
+        render();
+      }
+    }
+    async function loadOne(it){
+      const cands = yfCandidates(bare(it.ticker), it.exch);
+      if (!cands.length) { it.state = 'err'; it.err = 'skipped (no Yahoo symbol)'; return; }
+      let d = null;
+      for (let i = 0; i < cands.length; i++) { d = await fetchChart(cands[i]); if (d) { it.exch = /\.BO$/.test(cands[i]) ? 'BSE' : 'NSE'; break; } }
+      if (!d) { it.state = 'err'; it.err = 'no price data from Yahoo'; return; }
+      try { it.name = d.name || it.name; it.m = compute(d); it.state = 'ok'; }
+      catch (e) { it.state = 'err'; it.err = 'compute failed'; }
+    }
+    function removeKey(k){ const i = items.findIndex(x => x.key === k); if (i < 0) return; items.splice(i, 1); saveList(); render(); }
+    function retryKey(k){ const it = items.find(x => x.key === k); if (!it) return; it.state = 'loading'; it.err = ''; render(); loadOne(it).then(render); }
+
+    // ---------- wire ----------
+    function setOpen(open){
+      const p = el('lk-panel'); if (!p) return;
+      p.classList.toggle('lk-collapsed', !open);
+      try { localStorage.setItem(LSO, open ? '1' : '0'); } catch (e) {}
+    }
+    function wire(){
+      if (wired) return;
+      const p = el('lk-panel'); if (!p) return;
+      wired = true;
+      let open0 = true; try { open0 = localStorage.getItem(LSO) !== '0'; } catch (e) {}
+      setOpen(open0);
+      const head = el('lk-head');
+      if (head) head.addEventListener('click', () => setOpen(el('lk-panel').classList.contains('lk-collapsed')));
+      const inp = el('lk-input'), addb = el('lk-add');
+      if (addb) addb.addEventListener('click', () => { add(inp.value); inp.value = ''; });
+      if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(inp.value); inp.value = ''; } });
+      const allb = el('lk-allcopy');
+      if (allb) allb.addEventListener('click', () => doCopy(promptAll(), allb));
+      const body = el('lk-body');
+      if (body) body.addEventListener('click', e => {
+        const b = e.target.closest && e.target.closest('button'); if (!b) return;
+        if (b.classList.contains('lk-del')) removeKey(b.dataset.k);
+        else if (b.classList.contains('lk-retry')) retryKey(b.dataset.k);
+        else if (b.classList.contains('lk-copy')) {
+          const it = items.find(x => x.key === b.dataset.k);
+          if (it && it.state === 'ok') doCopy(promptOne(it), b);
+        }
+      });
+    }
+
+    window.lkEnter = function(){
+      wire();
+      if (entered) return; entered = true;
+      const saved = readList();
+      if (saved.length) add(saved.join(','));
+      else render();
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+    else wire();
   })();
 </script>
 </body>
