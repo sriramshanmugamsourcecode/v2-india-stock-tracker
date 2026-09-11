@@ -1120,6 +1120,42 @@
     .rh-tq-sep td { padding:0; height:0; border-bottom:1.5px solid var(--border2); }
     .rh-tq-sep:hover td { background:none; }
 
+    /* ---- Rank History: "Not in Top 50" box (part of the .rh-* feature, own rh-nx-* prefix) ---- */
+    .rh-nx { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .rh-nx-head { display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; padding: 12px 16px; }
+    .rh-nx-head .rh-nx-chev { color: var(--muted); transition: transform .15s; flex: none; }
+    .rh-nx.collapsed .rh-nx-chev { transform: rotate(-90deg); }
+    .rh-nx.collapsed .rh-nx-body { display: none; }
+    .rh-nx-head h3 { font-family: var(--font-display, var(--font-mono)); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+    .rh-nx-warn { color: var(--amber); }
+    .rh-nx-cnt { font-size: 10.5px; color: var(--muted); background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 999px; padding: 2px 8px; }
+    .rh-nx-sp { flex: 1; }
+    .rh-nx-body { padding: 0 16px 16px; border-top: 0.5px solid var(--border); padding-top: 14px; }
+    .rh-nx-sub { font-size: 11.5px; color: var(--muted); max-width: 72ch; margin-bottom: 12px; }
+    .rh-nx-sub b { color: var(--text); font-weight: 600; }
+    .rh-nx-search { display: flex; align-items: center; gap: 8px; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; padding: 0 11px; margin-bottom: 12px; }
+    .rh-nx-search svg { opacity: .5; flex: none; }
+    .rh-nx-search input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font-family: var(--font-mono); font-size: 12.5px; padding: 9px 0; }
+    .rh-nx-search input::placeholder { color: var(--muted); font-family: var(--font-body); }
+    .rh-nx-clr { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 13px; padding: 4px; display: none; }
+    .rh-nx-sec-h { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 2px 6px; border-bottom: 0.5px solid var(--border); }
+    .rh-nx-sec-h .n { color: var(--text); font-family: var(--font-mono); letter-spacing: 0; }
+    .rh-nx-scroll { max-height: 320px; overflow-y: auto; border: 0.5px solid var(--border); border-radius: 8px; background: var(--card); margin-top: 8px; }
+    table.rh-nx-t { border-collapse: collapse; width: 100%; font-size: 12px; }
+    .rh-nx-t th { position: sticky; top: 0; background: var(--bg3); text-align: left; font-weight: 400; color: var(--muted); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding: 7px 13px; border-bottom: 0.5px solid var(--border2); }
+    .rh-nx-t td { padding: 6px 13px; border-bottom: 0.5px solid var(--border); }
+    .rh-nx-t tr:last-child td { border-bottom: 0; }
+    .rh-nx-t tr:hover td { background: rgba(167,139,250,.05); }
+    .rh-nx-t .rk { font-family: var(--font-mono); color: var(--muted); width: 42px; }
+    .rh-nx-t .tk { font-family: var(--font-mono); font-weight: 500; }
+    .rh-nx-t .nm { color: var(--muted); }
+    .rh-nx-t tr.hit .tk { color: var(--accent); }
+    .rh-nx-t tr.hit td { background: rgba(167,139,250,.08); }
+    .rh-nx-t .near { color: var(--amber); font-size: 9.5px; letter-spacing: .03em; border: 0.5px solid rgba(251,191,36,.4); border-radius: 4px; padding: 1px 5px; margin-left: 6px; }
+    .rh-nx-t .fail { color: var(--red); }
+    .rh-nx-none { padding: 18px; text-align: center; color: var(--muted); font-size: 11.5px; }
+    .rh-nx-foot { margin-top: 12px; font-size: 10px; color: var(--muted); line-height: 1.6; }
+
     /* ===== PATTERN LOOKUP (isolated feature — all selectors .lk-*) ===== */
     .lk-panel { margin: 14px 16px 22px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
     .lk-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 14px 18px; border-bottom: 0.5px solid var(--border); }
@@ -1684,6 +1720,31 @@
             </div>
           </div>
           <div class="rh-status" id="rh-status"></div>
+
+          <!-- "Not in Top 50" — the rest of the latest local Capture's ranking, incl. fetch failures -->
+          <div class="rh-nx collapsed" id="rh-nx-wrap">
+            <div class="rh-nx-head" id="rh-nx-head">
+              <svg class="rh-nx-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+              <h3><span class="rh-nx-warn">&#9888;</span> Not in Top 50</h3>
+              <span class="rh-nx-cnt" id="rh-nx-cnt">no capture yet</span>
+              <span class="rh-nx-sp"></span>
+            </div>
+            <div class="rh-nx-body" id="rh-nx-body">
+              <div class="rh-nx-sub" id="rh-nx-sub"></div>
+              <div id="rh-nx-content" style="display:none">
+                <div class="rh-nx-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input id="rh-nx-q" placeholder="Search ticker or company&hellip;" autocomplete="off" spellcheck="false">
+                  <button class="rh-nx-clr" id="rh-nx-clr" title="Clear">&times;</button>
+                </div>
+                <div class="rh-nx-sec-h">Ranked, just outside the cut &nbsp;<span class="n" id="rh-nx-ranked-n"></span></div>
+                <div class="rh-nx-scroll"><table class="rh-nx-t"><thead><tr><th>Rank</th><th>Ticker</th><th>Company</th></tr></thead><tbody id="rh-nx-ranked"></tbody></table></div>
+                <div class="rh-nx-sec-h" style="margin-top:14px">Fetch failed &mdash; no price data that day &nbsp;<span class="n" id="rh-nx-fail-n"></span></div>
+                <div class="rh-nx-scroll" style="max-height:160px"><table class="rh-nx-t"><thead><tr><th style="width:44px"></th><th>Ticker</th><th>Company</th></tr></thead><tbody id="rh-nx-failed"></tbody></table></div>
+                <div class="rh-nx-foot">Rank = position in that capture's 5-dimension composite (lower is stronger) &mdash; same formula as the top 50 above, just not normally kept. Computed fresh each time you run Capture and stored only in this browser (not the database), so it reflects the last capture you personally ran here.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1718,7 +1779,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260909.16'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260911.17'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4449,6 +4510,7 @@
     let st = { view:'grid', rows:12, range:12, tqWin:3, tqSort:'lin', tqHold:1 };
     let data = null, loaded = false, loading = false, wired = false;
     let tqData = null, tqLoaded = false;   // Trend view — cached in localStorage ('rh_trend_v1')
+    let notIn50 = null, notIn50Loaded = false;   // "Not in Top 50" box — cached in localStorage ('rh_notin50_v1')
 
     const el = id => document.getElementById(id);
     const bare = t => !t ? t : (t.indexOf(':') >= 0 ? t.split(':').pop() : t).toUpperCase();
@@ -4497,7 +4559,9 @@
     window.rhEnter = function(){
       wireOnce();
       if (!tqLoaded) { tqLoaded = true; try { const raw = localStorage.getItem('rh_trend_v1'); if (raw) tqData = JSON.parse(raw); } catch (e) {} }
+      if (!notIn50Loaded) { notIn50Loaded = true; try { const raw = localStorage.getItem('rh_notin50_v1'); if (raw) notIn50 = JSON.parse(raw); } catch (e) {} }
       render();                              // Trend view works without rank_history data
+      renderNotIn50();
       if (!loaded && !loading) load();
       else updateCaptureBtn();
     };
@@ -4563,7 +4627,7 @@
         const univ = (u.data || []).filter(x => x.ticker);
         if (!univ.length) throw new Error('universe table is empty');
 
-        const scored = []; let done = 0; const total = univ.length, BATCH = 6;
+        const scored = []; const failed = []; let done = 0; const total = univ.length, BATCH = 6;
         for (let i = 0; i < univ.length; i += BATCH) {
           const slice = univ.slice(i, i + BATCH);
           await Promise.all(slice.map(async s => {
@@ -4577,6 +4641,8 @@
                 r6: retSkip(c, TD.m6), r3: retSkip(c, TD.m3), r1: retSkip(c, TD.m1),
                 adj: adjRetBT(c)
               });
+            } else {
+              failed.push({ ticker:s.ticker, name:s.stock_name });
             }
           }));
           const pct = Math.round(done / total * 100);
@@ -4604,6 +4670,15 @@
         status('Saving snapshot…');
         const ins = await db.from('rank_history').insert(payload);
         if (ins.error) throw ins.error;
+        try {
+          notIn50 = {
+            month:m, capturedAt:stamp, totalActive:univ.length, scoredCount:scored.length,
+            failed: failed,
+            ranked: scored.slice(RH_TOPN).map((s, idx) => ({ ticker:s.ticker, name:s.stock_name, rank:RH_TOPN + idx + 1 }))
+          };
+          localStorage.setItem('rh_notin50_v1', JSON.stringify(notIn50));
+        } catch (e) {}
+        renderNotIn50();
         loaded = false; await load();
         status('Captured ' + mLabel(m) + ' — top ' + payload.length + ' of ' + scored.length + ' ranked stocks. Month frozen.');
       } catch (e) {
@@ -4655,10 +4730,49 @@
       if (gt) gt.style.display = (v === 'trend') ? 'none' : 'flex';
       if (tr) tr.style.display = (v === 'trend') ? 'flex' : 'none';
       if (lg) lg.style.display = (v === 'trend') ? 'none' : 'flex';
+      const nxw = el('rh-nx-wrap'); if (nxw) nxw.style.display = (v === 'trend') ? 'none' : '';
       if (v === 'trend') { renderTrend(); return; }
       if (!data) return;
       if (!data.months.length) { el('rh-grid').innerHTML = ''; el('rh-traj').innerHTML = ''; return; }
       (v === 'grid') ? renderGrid() : renderTraj();
+    }
+
+    // ---------- "Not in Top 50" box ----------
+    function renderNotIn50(){
+      const wrap = el('rh-nx-wrap'); if (!wrap) return;
+      const cnt = el('rh-nx-cnt'), sub = el('rh-nx-sub'), content = el('rh-nx-content');
+      if (!notIn50) {
+        cnt.textContent = 'no capture yet';
+        sub.innerHTML = 'Nothing to show yet in this browser. Run <b>Capture this month</b> — every active stock gets scored, and anyone past the top-50 cutoff (or who failed to fetch) will be listed here.';
+        content.style.display = 'none';
+        return;
+      }
+      const total = (notIn50.ranked || []).length + (notIn50.failed || []).length;
+      cnt.textContent = total + ' · ' + mLabel(notIn50.month);
+      sub.innerHTML = 'Rank History doesn’t filter anyone out — every active stock is scored the same 5 ways. This shows where everyone <b>else</b> landed on the ' + mLabel(notIn50.month) + ' capture: ' +
+        notIn50.scoredCount + ' stocks were scored, ' + RH_TOPN + ' made the cut, <b>' + (notIn50.ranked || []).length + '</b> ranked below it and <b>' +
+        (notIn50.failed || []).length + '</b> couldn’t be scored (no usable price data that day).';
+      content.style.display = '';
+      el('rh-nx-ranked-n').textContent = '(' + (notIn50.ranked || []).length + ')';
+      el('rh-nx-fail-n').textContent = '(' + (notIn50.failed || []).length + ')';
+      const rb = el('rh-nx-ranked'), fb = el('rh-nx-failed');
+      rb.innerHTML = (notIn50.ranked || []).map(r =>
+        '<tr data-s="' + esc((r.ticker + ' ' + (r.name || '')).toLowerCase()) + '">' +
+          '<td class="rk">' + r.rank + '</td><td class="tk">' + esc(r.ticker) + '</td>' +
+          '<td class="nm">' + esc(r.name || '') + ' <span class="near">' + (r.rank - RH_TOPN) + ' outside cutoff</span></td>' +
+        '</tr>').join('') || '<tr><td colspan="3" class="rh-nx-none">none</td></tr>';
+      fb.innerHTML = (notIn50.failed || []).map(r =>
+        '<tr data-s="' + esc((r.ticker + ' ' + (r.name || '')).toLowerCase()) + '">' +
+          '<td class="rk fail">&mdash;</td><td class="tk">' + esc(r.ticker) + '</td><td class="nm">' + esc(r.name || '') + '</td>' +
+        '</tr>').join('') || '<tr><td colspan="3" class="rh-nx-none">none</td></tr>';
+    }
+    function nxFilter(q){
+      q = (q || '').trim().toLowerCase();
+      const clr = el('rh-nx-clr'); if (clr) clr.style.display = q ? 'block' : 'none';
+      ['rh-nx-ranked', 'rh-nx-failed'].forEach(id => {
+        const tb = el(id); if (!tb) return;
+        tb.querySelectorAll('tr[data-s]').forEach(r => { r.style.display = (!q || r.dataset.s.indexOf(q) !== -1) ? '' : 'none'; });
+      });
     }
 
     // ---------- Trend view — angle & straightness of the multi-year price line ----------
@@ -4944,6 +5058,11 @@
       seg('rh-tqwin', 'data-tw', 'tqWin', Number);
       seg('rh-tqsort', 'data-ts', 'tqSort', String);
       seg('rh-tqhold', 'data-h', 'tqHold', Number);
+      const nxHead = el('rh-nx-head');
+      if (nxHead) nxHead.addEventListener('click', () => el('rh-nx-wrap').classList.toggle('collapsed'));
+      const nxQ = el('rh-nx-q'), nxClr = el('rh-nx-clr');
+      if (nxQ) nxQ.addEventListener('input', () => nxFilter(nxQ.value));
+      if (nxClr) nxClr.addEventListener('click', () => { nxQ.value = ''; nxFilter(''); });
     }
   })();
 
