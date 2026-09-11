@@ -1492,7 +1492,7 @@
       <div id="tab-screener" style="display:none">
 
         <!-- Pattern Lookup — isolated feature (.lk-*), no dependency on the screener -->
-        <div id="lk-panel" class="lk-panel">
+        <div id="lk-panel" class="lk-panel collapsed">
           <div class="lk-head" id="lk-head">
             <svg class="lk-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
             <h3>Pattern Lookup</h3>
@@ -1710,7 +1710,7 @@
                 <button class="rh-capture" id="rh-capture-btn" onclick="rhCapture()">Capture this month</button>
               </span>
               <span class="rh-ctrls-grp" id="rh-tr-ctrls" style="display:none">
-                <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl rh-ttip">Window<span class="rh-info" tabindex="0" role="button" aria-label="What the Window control does">i<span class="rh-tip" role="tooltip"><h4>Trend window</h4><p>Chooses which lookback the angle, straightness (R&sup2;), drawdown and sparkline are computed over. The underlying 5-year price history is already cached in this browser from the last Scan &mdash; switching windows just re-slices it instantly, no new fetch.</p><ul><li><span>1Y</span><b>252 bars</b></li><li><span>2Y</span><b>504 bars</b></li><li><span>3Y</span><b>756 bars</b></li><li><span>5Y</span><b>1260 bars</b></li></ul><p class="foot">A stock can look clean on 1Y and choppy on 5Y, or the reverse &mdash; checking more than one window is often the point.</p></span></span></span><button type="button" data-tw="1">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3" class="on">3Y</button><button type="button" data-tw="5">5Y</button></div>
+                <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl rh-ttip">Window<span class="rh-info" tabindex="0" role="button" aria-label="What the Window control does">i<span class="rh-tip" role="tooltip"><h4>Trend window</h4><p>Chooses which lookback the angle, straightness (R&sup2;), drawdown and sparkline are computed over. The underlying 5-year price history is already cached in this browser from the last Scan &mdash; switching windows just re-slices it instantly, no new fetch.</p><ul><li><span>1Y</span><b>252 bars</b></li><li><span>2Y</span><b>504 bars</b></li><li><span>3Y</span><b>756 bars</b></li><li><span>5Y</span><b>1260 bars</b></li></ul><p class="foot">A stock can look clean on 1Y and choppy on 5Y, or the reverse &mdash; checking more than one window is often the point.</p></span></span></span><button type="button" data-tw="1" class="on">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3">3Y</button><button type="button" data-tw="5">5Y</button></div>
                 <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl rh-ttip">Sort<span class="rh-info" tabindex="0" role="button" aria-label="What each sort option does">i<span class="rh-tip" role="tooltip"><h4>Sort order</h4><p>All four options group by <b>character bucket</b> first where noted &mdash; clean climb &rarr; choppy/erratic climb &rarr; sideways &rarr; downtrend &mdash; so a steep downtrend never outranks a gentle uptrend.</p><ul><li><span>Straightest</span><b>R&sup2; desc.</b></li><li><span>Steepest</span><b>angle desc.</b></li><li><span>Least DD</span><b>drawdown</b></li><li><span>Rank</span><b>composite</b></li></ul><p class="foot">Straightest and Steepest bucket first, then break ties by straightness or angle. Least DD ignores direction entirely and just finds the calmest ride. Rank uses the latest Grid capture's composite momentum rank; anything outside the top 50 (or never captured) sorts last.</p></span></span></span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button></div>
                 <div class="rh-seg" id="rh-tqhold"><span class="rh-lbl rh-ttip">Holdings on top<span class="rh-info" tabindex="0" role="button" aria-label="What Holdings on top does">i<span class="rh-tip right" role="tooltip"><h4>Holdings on top</h4><p><b>On</b> pins every stock you currently hold to the top of the list, ahead of whatever sort is selected &mdash; so you can eyeball your own portfolio's trend quality first without hunting for it.</p><p class="foot"><b>Off</b> applies the sort to everyone equally, holdings included, so you can see exactly where each holding really sits against the rest of the universe &mdash; useful for spotting a position that's quietly drifted into "choppy" or "downtrend" while stronger names took over.</p></span></span></span><button type="button" data-h="1" class="on">On</button><button type="button" data-h="0">Off</button></div>
                 <span class="rh-ttip"><button class="rh-capture" id="rh-scan-btn" onclick="rhScanTrends()">Scan trends</button><span class="rh-info" tabindex="0" role="button" aria-label="What Scan trends does">i<span class="rh-tip right" role="tooltip"><h4>What &ldquo;Scan trends&rdquo; does</h4><p>Pulls <b>5 years of daily adjusted-close prices</b> for every active stock in your universe from Yahoo Finance, via the same proxy the rest of the app uses &mdash; in batches of 6 with a short pause between batches to stay under rate limits. Typically 5&ndash;9 minutes for the full universe.</p><ul><li><span>Fit</span><b>ln(price) vs. day</b></li><li><span>Angle</span><b>45&deg; &asymp; 30%/yr</b></li><li><span>Straightness</span><b>R&sup2; of fit</b></li><li><span>Drawdown</span><b>worst peak&rarr;trough</b></li></ul><p class="foot">Saved to <b>this browser only</b> (not the database) &mdash; results persist across reloads here, but need a fresh Scan after you add or remove universe stocks, or once flagged stale (a nudge appears after 7 days).</p></span></span></span>
@@ -1785,7 +1785,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260911.18'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260911.22'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -3137,24 +3137,24 @@
     'AJAXENG':     'AJAXENGG.NS',
     'ASMTEC':      'ASMTEC.BO',
     'SMLISUZU':    'SMLMAH.NS',
-    'ISEC':        'ISEC.NS',            // ✅ confirmed
+    'ISEC':        null,                 // was 'ISEC.NS' (dead) — ICICI Securities delisted 2024, absorbed into ICICI Bank — fixed 2026-09-11
     'KALPATPOWR':  'KPIL.NS',
     'LAXMIMACH':   'LMW.NS',             // ✅ confirmed
     'MAHINDCIE':   null,               // not on Yahoo
     'OCCL':        'OCCL.BO',
-    'SEQUENT':     'SEQUENT.BO',
+    'SEQUENT':     null,                 // was 'SEQUENT.BO' (dead) — Sequent Scientific delisted 2023/24 (promoter buyback) — fixed 2026-09-11
     'TRIL':        'TARIL.NS',
     'UTIAMCLTD':   'UTIAMC.NS',
     'IIFLFIN':     'IIFL.NS',
     'IIFLWAM':     '360ONE.NS',          // ✅ confirmed — IIFL Wealth renamed to 360 One
-    'ITDCEM':      'ITDCEM.BO',
+    'ITDCEM':      'ITDCEM.BO',          // ⚠ audited 2026-09-11: dead on Yahoo (.NS and .BO), no replacement found via search — unresolved, needs a manual check
     'JMB':         'JMFINANCIL.NS',
-    'KTIL':        'KIRLOSENG.NS',
+    'KTIL':        'KIRLOSIND.NS',   // was wrongly 'KIRLOSENG.NS' (Kirloskar Oil Engines, a different company) — fixed 2026-09-11
     'IDFC':        'IDFCFIRSTB.NS',
     'DRSNLANKAH':  'AGARWALEYE.NS',      // ✅ confirmed
     'ALEMBICPH':   'APLLTD.NS',        // confirmed
-    'ATFL':        'ATFL.NS',            // ✅ confirmed
-    'PEL':         'PEL.NS',             // ✅ confirmed — Piramal Enterprises
+    'ATFL':        'SUNDROP.NS',         // was 'ATFL.NS' (dead) — Agro Tech Foods renamed Sundrop Brands Ltd — fixed 2026-09-11
+    'PEL':         null,                 // was 'PEL.NS' (dead) — Piramal Enterprises restructured into Piramal Pharma / Piramal Finance (PIRAMALFIN, tracked separately) — fixed 2026-09-11
     'FINOLEXIND':  'FINPIPE.BO',         // ✅ confirmed — Finolex Industries
     'FINOLEX':     'FINCABLES.NS',       // ✅ confirmed — Finolex Cables
 
@@ -4513,7 +4513,7 @@
     const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const SKIP = 21, TD = { m1:21, m3:63, m6:126, y1:252 };
 
-    let st = { view:'grid', rows:12, range:12, tqWin:3, tqSort:'lin', tqHold:1 };
+    let st = { view:'grid', rows:12, range:12, tqWin:1, tqSort:'lin', tqHold:1 };
     let data = null, loaded = false, loading = false, wired = false;
     let tqData = null, tqLoaded = false;   // Trend view — cached in localStorage ('rh_trend_v1')
     let notIn50 = null, notIn50Loaded = false;   // "Not in Top 50" box — cached in localStorage ('rh_notin50_v1')
@@ -5075,12 +5075,12 @@
   // ===================================================================
   // PATTERN LOOKUP  (isolated feature — all selectors .lk-*)
   //   reads : PROXY, YF_BASE, trades, (SCR_YF_OVERRIDES if present)
-  //   writes: localStorage 'lk_tickers_v1' / 'lk_open_v1'  •  mutates no shared state
+  //   writes: localStorage 'lk_tickers_v1' / 'lk_open_v2'  •  mutates no shared state
   //   builds a copy-paste prompt only — makes no AI call
   //   carries its own fetch + metric math — calls nothing in the screener
   // ===================================================================
   (function(){
-    const LSK = 'lk_tickers_v1', LSO = 'lk_open_v1', MAXN = 8, SKIP = 21;
+    const LSK = 'lk_tickers_v1', LSO = 'lk_open_v2', MAXN = 8, SKIP = 21;
     const RET = { m1:21, m3:63, m6:126, y1:252 };
     let items = [];                 // { key, ticker, name, exch, state, m, err, held }
     let entered = false, wired = false;
@@ -5398,7 +5398,7 @@
       if (wired) return;
       const p = el('lk-panel'); if (!p) return;
       wired = true;
-      let open0 = true; try { open0 = localStorage.getItem(LSO) !== '0'; } catch (e) {}
+      let open0 = false; try { open0 = localStorage.getItem(LSO) === '1'; } catch (e) {}
       setOpen(open0);
       const head = el('lk-head');
       if (head) head.addEventListener('click', () => setOpen(el('lk-panel').classList.contains('lk-collapsed')));
