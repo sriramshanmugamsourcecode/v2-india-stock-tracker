@@ -1125,6 +1125,19 @@
     .rh-tq svg { display:block; }
     .rh-tq-sep td { padding:0; height:0; border-bottom:1.5px solid var(--border2); }
     .rh-tq-sep:hover td { background:none; }
+    /* Trend view: status tags (Good to go / Wait and watch / Don't venture) */
+    .rh-tq-chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 12px; }
+    .rh-chip { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-body); font-size:11px; font-weight:600; background:var(--bg3); border:0.5px solid var(--border2); border-radius:999px; padding:5px 11px 5px 9px; cursor:pointer; color:var(--muted); }
+    .rh-chip i { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    .rh-chip .n { font-family:var(--font-mono); opacity:.7; }
+    .rh-chip.on { background:rgba(167,139,250,.14); border-color:var(--accent); color:var(--accent); }
+    .rh-tq-statusgrp { display:inline-flex; gap:4px; }
+    .rh-tq-sbtn { width:24px; height:24px; border-radius:6px; border:0.5px solid var(--border2); background:var(--bg3); color:var(--muted); cursor:pointer; font-size:11px; display:inline-flex; align-items:center; justify-content:center; }
+    .rh-tq-sbtn.go.on { background:var(--accent); border-color:var(--accent); color:#17131f; }
+    .rh-tq-sbtn.dont.on { background:var(--red); border-color:var(--red); color:#1a0d0d; }
+    .rh-tq-sbtn.wait.on { background:var(--amber); border-color:var(--amber); color:#1a1508; }
+    .rh-tq-glabel td { font-family:var(--font-mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--bg2); padding:6px 13px; border-bottom:0.5px solid var(--border); }
+    .rh-tq-glabel.go td { color:var(--accent); } .rh-tq-glabel.wait td { color:var(--amber); } .rh-tq-glabel.dont td { color:var(--red); }
 
     /* ---- Rank History: "Not in Top 50" box (part of the .rh-* feature, own rh-nx-* prefix) ---- */
     .rh-nx { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; overflow: hidden; }
@@ -1711,7 +1724,7 @@
               </span>
               <span class="rh-ctrls-grp" id="rh-tr-ctrls" style="display:none">
                 <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl rh-ttip">Window<span class="rh-info" tabindex="0" role="button" aria-label="What the Window control does">i<span class="rh-tip" role="tooltip"><h4>Trend window</h4><p>Chooses which lookback the angle, straightness (R&sup2;), drawdown and sparkline are computed over. The underlying 5-year price history is already cached in this browser from the last Scan &mdash; switching windows just re-slices it instantly, no new fetch.</p><ul><li><span>1Y</span><b>252 bars</b></li><li><span>2Y</span><b>504 bars</b></li><li><span>3Y</span><b>756 bars</b></li><li><span>5Y</span><b>1260 bars</b></li></ul><p class="foot">A stock can look clean on 1Y and choppy on 5Y, or the reverse &mdash; checking more than one window is often the point.</p></span></span></span><button type="button" data-tw="1" class="on">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3">3Y</button><button type="button" data-tw="5">5Y</button></div>
-                <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl rh-ttip">Sort<span class="rh-info" tabindex="0" role="button" aria-label="What each sort option does">i<span class="rh-tip" role="tooltip"><h4>Sort order</h4><p>All four options group by <b>character bucket</b> first where noted &mdash; clean climb &rarr; choppy/erratic climb &rarr; sideways &rarr; downtrend &mdash; so a steep downtrend never outranks a gentle uptrend.</p><ul><li><span>Straightest</span><b>R&sup2; desc.</b></li><li><span>Steepest</span><b>angle desc.</b></li><li><span>Least DD</span><b>drawdown</b></li><li><span>Rank</span><b>composite</b></li></ul><p class="foot">Straightest and Steepest bucket first, then break ties by straightness or angle. Least DD ignores direction entirely and just finds the calmest ride. Rank uses the latest Grid capture's composite momentum rank; anything outside the top 50 (or never captured) sorts last.</p></span></span></span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button></div>
+                <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl rh-ttip">Sort<span class="rh-info" tabindex="0" role="button" aria-label="What each sort option does">i<span class="rh-tip" role="tooltip"><h4>Sort order</h4><p>All options except Status group by <b>character bucket</b> first &mdash; clean climb &rarr; choppy/erratic climb &rarr; sideways &rarr; downtrend &mdash; so a steep downtrend never outranks a gentle uptrend.</p><ul><li><span>Straightest</span><b>R&sup2; desc.</b></li><li><span>Steepest</span><b>angle desc.</b></li><li><span>Least DD</span><b>drawdown</b></li><li><span>Rank</span><b>composite</b></li><li><span>Status</span><b>your tags</b></li></ul><p class="foot">Straightest and Steepest bucket first, then break ties by straightness or angle. Least DD ignores direction entirely and just finds the calmest ride. Rank uses the latest Grid capture's composite momentum rank; anything outside the top 50 (or never captured) sorts last. Status groups by your Good to go / Wait and watch / Don't venture tags, unrated stocks sitting between Wait and Don't.</p></span></span></span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button><button type="button" data-ts="status">Status</button></div>
                 <div class="rh-seg" id="rh-tqhold"><span class="rh-lbl rh-ttip">Holdings on top<span class="rh-info" tabindex="0" role="button" aria-label="What Holdings on top does">i<span class="rh-tip right" role="tooltip"><h4>Holdings on top</h4><p><b>On</b> pins every stock you currently hold to the top of the list, ahead of whatever sort is selected &mdash; so you can eyeball your own portfolio's trend quality first without hunting for it.</p><p class="foot"><b>Off</b> applies the sort to everyone equally, holdings included, so you can see exactly where each holding really sits against the rest of the universe &mdash; useful for spotting a position that's quietly drifted into "choppy" or "downtrend" while stronger names took over.</p></span></span></span><button type="button" data-h="1" class="on">On</button><button type="button" data-h="0">Off</button></div>
                 <span class="rh-ttip"><button class="rh-capture" id="rh-scan-btn" onclick="rhScanTrends()">Scan trends</button><span class="rh-info" tabindex="0" role="button" aria-label="What Scan trends does">i<span class="rh-tip right" role="tooltip"><h4>What &ldquo;Scan trends&rdquo; does</h4><p>Pulls <b>5 years of daily adjusted-close prices</b> for every active stock in your universe from Yahoo Finance, via the same proxy the rest of the app uses &mdash; in batches of 6 with a short pause between batches to stay under rate limits. Typically 5&ndash;9 minutes for the full universe.</p><ul><li><span>Fit</span><b>ln(price) vs. day</b></li><li><span>Angle</span><b>45&deg; &asymp; 30%/yr</b></li><li><span>Straightness</span><b>R&sup2; of fit</b></li><li><span>Drawdown</span><b>worst peak&rarr;trough</b></li></ul><p class="foot">Saved to <b>this browser only</b> (not the database) &mdash; results persist across reloads here, but need a fresh Scan after you add or remove universe stocks, or once flagged stale (a nudge appears after 7 days).</p></span></span></span>
               </span>
@@ -1785,7 +1798,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260911.22'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260911.23'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4513,10 +4526,11 @@
     const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const SKIP = 21, TD = { m1:21, m3:63, m6:126, y1:252 };
 
-    let st = { view:'grid', rows:12, range:12, tqWin:1, tqSort:'lin', tqHold:1 };
+    let st = { view:'grid', rows:12, range:12, tqWin:1, tqSort:'lin', tqHold:1, statusFilter:'all' };
     let data = null, loaded = false, loading = false, wired = false;
     let tqData = null, tqLoaded = false;   // Trend view — cached in localStorage ('rh_trend_v1')
     let notIn50 = null, notIn50Loaded = false;   // "Not in Top 50" box — cached in localStorage ('rh_notin50_v1')
+    let rankStatus = {}, rankStatusLoaded = false;   // Trend view status tags (go/wait/dont) — per-user, table 'rank_status'
 
     const el = id => document.getElementById(id);
     const bare = t => !t ? t : (t.indexOf(':') >= 0 ? t.split(':').pop() : t).toUpperCase();
@@ -4566,6 +4580,7 @@
       wireOnce();
       if (!tqLoaded) { tqLoaded = true; try { const raw = localStorage.getItem('rh_trend_v1'); if (raw) tqData = JSON.parse(raw); } catch (e) {} }
       if (!notIn50Loaded) { notIn50Loaded = true; try { const raw = localStorage.getItem('rh_notin50_v1'); if (raw) notIn50 = JSON.parse(raw); } catch (e) {} }
+      if (!rankStatusLoaded) { rankStatusLoaded = true; loadRankStatus().then(() => { if (st.view === 'trend') renderTrend(); }); }
       render();                              // Trend view works without rank_history data
       renderNotIn50();
       if (!loaded && !loading) load();
@@ -4900,6 +4915,43 @@
     }
     window.rhScanTrends = rhScanTrends;
 
+    // ---------- Trend view status tags (Good to go / Wait and watch / Don't venture) ----------
+    async function loadRankStatus(){
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) return;
+        const res = await db.from('rank_status').select('ticker, status').eq('user_id', user.id).range(0, 9999);
+        if (res.error) throw res.error;
+        rankStatus = {};
+        (res.data || []).forEach(r => { rankStatus[bare(r.ticker)] = r.status; });
+      } catch (e) { /* table may not exist yet — tags just stay empty until the migration is run */ }
+    }
+    async function setRankStatus(ticker, newStatus){
+      const tk = bare(ticker);
+      const cleared = (rankStatus[tk] === newStatus);
+      if (cleared) delete rankStatus[tk]; else rankStatus[tk] = newStatus;
+      renderTrend();   // optimistic — reflect immediately, save in the background
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) return;
+        if (cleared) {
+          const r = await db.from('rank_status').delete().eq('user_id', user.id).eq('ticker', tk);
+          if (r.error) throw r.error;
+        } else {
+          const r = await db.from('rank_status').upsert(
+            { user_id: user.id, ticker: tk, status: newStatus, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id,ticker' }
+          );
+          if (r.error) throw r.error;
+        }
+      } catch (e) {
+        status('Could not save status for ' + tk + ': ' + (e.message || e), true);
+      }
+    }
+    window.rhSetStatus = setRankStatus;
+    function setStatusFilter(f){ st.statusFilter = f; renderTrend(); }
+    window.rhSetStatusFilter = setStatusFilter;
+
     function renderTrend(){
       const box = el('rh-trend'); if (!box) return;
       if (!tqData || !tqData.tq) {
@@ -4914,12 +4966,25 @@
       const list = Object.keys(tqData.tq).map(k => {
         const rec = tqData.tq[k];
         const m = rec.w[W] || rec.w[5] || rec.w[3] || rec.w[2] || rec.w[1];
-        return { k, name: rec.n, m, rank: (rk[k] != null ? rk[k] : null), held: !!held[k] };
+        return { k, name: rec.n, m, rank: (rk[k] != null ? rk[k] : null), held: !!held[k], status: rankStatus[k] || null };
       }).filter(x => x.m);
+
+      // status counts (before filtering, so chip counts stay stable while a filter is active)
+      const cnt = { all: list.length, go:0, wait:0, dont:0, unrated:0 };
+      list.forEach(x => { if (x.status) cnt[x.status]++; else cnt.unrated++; });
+      const sf = st.statusFilter;
+      const rows = (sf === 'all') ? list : list.filter(x => sf === 'unrated' ? !x.status : x.status === sf);
 
       // character bucket: clean-up (0) < choppy/erratic-up (1) < sideways (2) < downtrend (3)
       const bucket = m => (m.a < -8) ? 3 : (m.a <= 8) ? 2 : (m.r >= 0.85) ? 0 : 1;
-      list.sort((a, b) => {
+      const statusOrder = { go:0, wait:1, dont:3 };   // unrated (no status) sits between wait and dont
+      rows.sort((a, b) => {
+        if (st.tqSort === 'status') {
+          const sa = a.status ? statusOrder[a.status] : 2, sb = b.status ? statusOrder[b.status] : 2;
+          if (sa !== sb) return sa - sb;
+          if (st.tqHold) { const ha = a.held ? 0 : 1, hb = b.held ? 0 : 1; if (ha !== hb) return ha - hb; }
+          const d = bucket(a.m) - bucket(b.m); return d || (b.m.r - a.m.r);
+        }
         if (st.tqHold) { const ha = a.held ? 0 : 1, hb = b.held ? 0 : 1; if (ha !== hb) return ha - hb; }
         if (st.tqSort === 'lin') { const d = bucket(a.m) - bucket(b.m); return d || (b.m.r - a.m.r); }
         if (st.tqSort === 'ang') { const d = bucket(a.m) - bucket(b.m); return d || (b.m.a - a.m.a); }
@@ -4929,17 +4994,28 @@
 
       const age = Math.floor((Date.now() - tqData.scannedAt) / 86400000);
       const ageTxt = age <= 0 ? 'today' : age + ' day' + (age > 1 ? 's' : '') + ' ago';
-      const sortTxt = { lin:'straightest first (clean climbs → choppy → sideways → downtrends)', ang:'steepest first, clean climbs on top', dd:'shallowest drawdown first', rank:'by composite momentum rank' }[st.tqSort];
+      const sortTxt = { lin:'straightest first (clean climbs → choppy → sideways → downtrends)', ang:'steepest first, clean climbs on top', dd:'shallowest drawdown first', rank:'by composite momentum rank', status:'grouped by your status tags' }[st.tqSort];
       let h = '<div class="rh-cap">Angle &amp; straightness of each stock’s <b>' + W + '-year</b> price line (adjusted close) · ' +
-              list.length + ' stocks · ' + sortTxt + (st.tqHold ? ' · holdings pinned' : '') +
+              rows.length + (rows.length !== list.length ? ' of ' + list.length : '') + ' stocks · ' + sortTxt + (st.tqHold ? ' · holdings pinned' : '') +
               ' · scanned ' + ageTxt + (age >= 7 ? ' · <b>rescan for fresh data</b>' : '') + ' · 45° ≈ 30%/yr</div>';
+
+      const chipDef = [['all','All',null], ['go','Good to go','var(--accent)'], ['wait','Wait and watch','var(--amber)'], ['dont',"Don't venture",'var(--red)'], ['unrated','Unrated','var(--muted)']];
+      h += '<div class="rh-tq-chips">' + chipDef.map(c =>
+        '<span class="rh-chip' + (sf === c[0] ? ' on' : '') + '" onclick="rhSetStatusFilter(\'' + c[0] + '\')">' +
+        (c[2] ? '<i style="background:' + c[2] + '"></i>' : '') + esc(c[1]) + ' <span class="n">(' + cnt[c[0]] + ')</span></span>'
+      ).join('') + '</div>';
+
       h += '<table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
-           '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th></tr></thead><tbody>';
-      let sepDone = false;
-      list.forEach((x, ix) => {
+           '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th><th>Status</th></tr></thead><tbody>';
+      let sepDone = false, prevGroup = null;
+      const glabelTxt = { go:'Good to go', wait:'Wait and watch', dont:"Don't venture", unrated:'Unrated' };
+      rows.forEach((x, ix) => {
         const m = x.m, ch = tqChar(m.a, m.r), col = tqColor(ch.key);
         const yrs = (m.y < W) ? ' <span style="color:var(--muted)">(' + m.y + 'y)</span>' : '';
-        if (st.tqHold && !sepDone && ix > 0 && !x.held && list[ix - 1].held) { h += '<tr class="rh-tq-sep"><td colspan="6"></td></tr>'; sepDone = true; }
+        if (st.tqSort === 'status') {
+          const g = x.status || 'unrated';
+          if (g !== prevGroup) { h += '<tr class="rh-tq-glabel' + (g !== 'unrated' ? ' ' + g : '') + '"><td colspan="7">' + glabelTxt[g] + ' · ' + cnt[g] + '</td></tr>'; prevGroup = g; }
+        } else if (st.tqHold && !sepDone && ix > 0 && !x.held && rows[ix - 1].held) { h += '<tr class="rh-tq-sep"><td colspan="7"></td></tr>'; sepDone = true; }
         h += '<tr' + (x.held ? ' class="hr"' : '') + '>' +
           '<td><div class="rh-stkcell"><div class="rh-nm"><span class="t">' + esc(x.k) + '</span><span class="n">' + esc(x.name || '') + '</span></div>' +
             (x.held ? '<span class="rh-hchip">held</span>' : '') + '</div></td>' +
@@ -4950,8 +5026,14 @@
           '<td><div class="rh-tq-lin"><span>' + m.r.toFixed(2) + '</span><span class="rh-tq-bar"><i style="width:' + Math.round(m.r * 100) + '%;background:' + col + '"></i></span></div></td>' +
           '<td class="rh-tq-dd">' + m.d + '%</td>' +
           '<td>' + tqSparkPath(m.s, col) + '</td>' +
+          '<td><div class="rh-tq-statusgrp">' +
+            '<button class="rh-tq-sbtn go' + (x.status === 'go' ? ' on' : '') + '" title="Good to go" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'go\')">&check;</button>' +
+            '<button class="rh-tq-sbtn dont' + (x.status === 'dont' ? ' on' : '') + '" title="Don’t venture" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'dont\')">&times;</button>' +
+            '<button class="rh-tq-sbtn wait' + (x.status === 'wait' ? ' on' : '') + '" title="Wait and watch" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'wait\')">&#8987;</button>' +
+          '</div></td>' +
         '</tr>';
       });
+      if (!rows.length) h += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">No stocks match this filter.</td></tr>';
       h += '</tbody></table>';
       box.innerHTML = h;
     }
