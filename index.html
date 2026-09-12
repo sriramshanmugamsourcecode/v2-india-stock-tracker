@@ -1175,6 +1175,72 @@
     .rh-nx-none { padding: 18px; text-align: center; color: var(--muted); font-size: 11.5px; }
     .rh-nx-foot { margin-top: 12px; font-size: 10px; color: var(--muted); line-height: 1.6; }
 
+    /* ===== APP MAINTENANCE (isolated feature — all selectors .mnt-*) ===== */
+    .mnt-wrap { display:flex; flex-direction:column; gap:26px; }
+    .mnt-title { font-family:var(--font-display); font-size:20px; font-weight:700; }
+    .mnt-head-sub { font-size:12px; color:var(--muted); margin-top:4px; max-width:74ch; }
+    .mnt-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
+    .mnt-section .mnt-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
+    .mnt-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    .mnt-search { flex:1; min-width:240px; display:flex; align-items:center; gap:8px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:9px; padding:0 12px; }
+    .mnt-search input { flex:1; background:none; border:0; outline:0; color:var(--text); font-family:var(--font-mono); font-size:13px; padding:10px 0; }
+    .mnt-search input::placeholder { color:var(--muted); font-family:var(--font-body); }
+    .mnt-btn { font-family:var(--font-body); font-size:13px; font-weight:600; border-radius:9px; padding:9px 16px; cursor:pointer; border:0; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+    .mnt-btn.pri { background:var(--accent2); color:#fff; }
+    .mnt-btn.gho { background:none; border:0.5px solid var(--border2); color:var(--text); }
+    .mnt-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .mnt-hint { font-size:12px; color:var(--muted); padding:16px; text-align:center; border:1px dashed var(--border2); border-radius:10px; }
+
+    table.mnt-t { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
+    table.mnt-t th { text-align:left; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; padding:9px 12px; background:var(--bg3); border-bottom:0.5px solid var(--border2); white-space:nowrap; }
+    table.mnt-t td { padding:0; border-bottom:0.5px solid var(--border); vertical-align:middle; }
+    table.mnt-t tbody tr:last-child td { border-bottom:0; }
+    table.mnt-t tbody tr.mnt-new td { background:rgba(167,139,250,.06); }
+    table.mnt-t tbody tr.mnt-dirty td { background:rgba(251,191,36,.06); }
+    table.mnt-t tbody tr.mnt-del td { background:rgba(248,113,113,.08); opacity:.55; text-decoration:line-through; }
+    .mnt-cell-in { width:100%; background:none; border:0; outline:0; color:var(--text); font-family:var(--font-mono); font-size:12.5px; padding:9px 12px; }
+    .mnt-cell-in:focus { background:var(--bg3); box-shadow:inset 0 0 0 1px var(--accent); }
+    select.mnt-cell-in { cursor:pointer; }
+    .mnt-tag-new { color:var(--accent); font-family:var(--font-mono); font-size:10px; padding-left:14px; }
+    .mnt-togg { display:inline-flex; align-items:center; padding:9px 12px; cursor:pointer; }
+    .mnt-sw { width:30px; height:17px; border-radius:9px; background:var(--border2); position:relative; flex:none; }
+    .mnt-sw.on { background:var(--accent); }
+    .mnt-sw i { position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%; background:#fff; transition:left .12s; }
+    .mnt-sw.on i { left:15px; }
+    .mnt-rowdel { width:100%; height:100%; padding:9px 10px; background:none; border:0; color:var(--muted); cursor:pointer; }
+    .mnt-rowdel:hover { color:var(--red); }
+    .mnt-dirty-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--amber); margin-left:14px; }
+
+    .mnt-ycheck { padding:9px 12px; min-width:170px; }
+    .mnt-ybadge { display:inline-flex; align-items:center; gap:6px; font-size:11px; flex-wrap:wrap; }
+    .mnt-ybadge .mnt-sp { width:10px; height:10px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:mnt-spin .7s linear infinite; }
+    @keyframes mnt-spin { to { transform:rotate(360deg); } }
+    .mnt-ybadge.pending { color:var(--muted); }
+    .mnt-ybadge.ok { color:var(--accent); }
+    .mnt-ybadge.ok .mnt-nm { color:var(--text); font-family:var(--font-mono); }
+    .mnt-ybadge.fail { color:var(--red); }
+    .mnt-yrecheck { background:none; border:0; color:var(--muted); cursor:pointer; font-size:11px; }
+    .mnt-yrecheck:hover { color:var(--accent); }
+    .mnt-yoverride { display:flex; align-items:center; gap:6px; margin-top:4px; font-size:10.5px; color:var(--amber); flex-basis:100%; }
+    .mnt-yoverride input { accent-color:var(--amber); }
+
+    .mnt-savebar { position:sticky; bottom:14px; margin-top:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--card); border:0.5px solid var(--accent); border-radius:11px; padding:12px 16px; box-shadow:0 12px 32px rgba(0,0,0,.5); }
+    .mnt-savebar.blocked { border-color:var(--amber); }
+    .mnt-savebar .l { font-size:12.5px; }
+    .mnt-savebar .l b { color:var(--accent); font-family:var(--font-mono); }
+    .mnt-savebar.blocked .l b { color:var(--amber); }
+    .mnt-savebar .r { display:flex; gap:8px; }
+
+    .mnt-ovlist { margin-top:6px; }
+    .mnt-ovlist h3 { font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--amber); margin-bottom:8px; }
+    .mnt-ovrow { display:flex; align-items:center; gap:10px; font-size:12px; padding:8px 12px; background:var(--bg2); border:0.5px solid var(--border); border-radius:8px; margin-bottom:6px; }
+    .mnt-ovrow .t { font-family:var(--font-mono); color:var(--accent); }
+    .mnt-ovrow .n { color:var(--muted); flex:1; }
+    .mnt-ovrow button { background:none; border:0.5px solid var(--border2); color:var(--muted); border-radius:6px; padding:3px 9px; font-size:11px; cursor:pointer; }
+    .mnt-ovrow button:hover { color:var(--accent); }
+    .mnt-status { font-size:11px; color:var(--muted); margin-top:8px; min-height:14px; }
+    .mnt-status.err { color:var(--red); }
+
     /* ===== PATTERN LOOKUP (isolated feature — all selectors .lk-*) ===== */
     .lk-panel { margin: 14px 16px 22px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
     .lk-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 14px 18px; border-bottom: 0.5px solid var(--border); }
@@ -1281,6 +1347,7 @@
         <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
         <button class="nav-btn" onclick="switchTab('screener', this)">⬡ Discovery</button>
         <button class="nav-btn" onclick="switchTab('rankhistory', this)">📈 Rank History</button>
+        <button class="nav-btn" onclick="switchTab('maintenance', this)">🛠️ Maintenance</button>
       </div>
 
       <div id="error-area"></div>
@@ -1767,6 +1834,34 @@
         </div>
       </div>
 
+      <!-- App Maintenance Tab — isolated feature; Universe panel first, Trade Logs/Portfolio to follow -->
+      <div id="tab-maintenance" style="display:none">
+        <div class="mnt-wrap">
+          <div>
+            <div class="mnt-title">App Maintenance</div>
+            <div class="mnt-head-sub">Direct data hygiene — add/edit/delete rows without the Supabase SQL editor. Universe today; Trade Logs and Portfolio backup/reset are coming next.</div>
+          </div>
+
+          <div class="mnt-section">
+            <h2>Universe</h2>
+            <div class="mnt-psub">Every field editable in place. Changing the <b>Ticker</b> auto-checks it against Yahoo on blur — Save is blocked until every new/changed row is verified (or explicitly marked "needs an override").</div>
+            <div class="mnt-toolbar">
+              <label class="mnt-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input id="mnt-u-q" placeholder="Search ticker or company… (type to load matching rows)" autocomplete="off" spellcheck="false">
+              </label>
+              <button class="mnt-btn pri" id="mnt-u-add">+ Add stock</button>
+            </div>
+            <div id="mnt-u-tablewrap"></div>
+            <div id="mnt-u-ovlist" class="mnt-ovlist" style="display:none">
+              <h3>⚠ Saved needing a Yahoo override in code</h3>
+              <div id="mnt-u-ovrows"></div>
+            </div>
+            <div class="mnt-status" id="mnt-u-status"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- WoW Stock Detail Modal -->
       <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
         <div class="wow-modal" id="wow-modal">
@@ -1798,7 +1893,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.25'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.26'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -3082,13 +3177,14 @@
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio','trades','wow','screener','rankhistory'].forEach(t =>
+    ['portfolio','trades','wow','screener','rankhistory','maintenance'].forEach(t =>
       document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
     );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (tab === 'rankhistory' && window.rhEnter) window.rhEnter();
     if (tab === 'screener' && window.lkEnter) window.lkEnter();
+    if (tab === 'maintenance' && window.mntEnter) window.mntEnter();
   }
 
   // ============================================================
@@ -5505,6 +5601,311 @@
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
     else wire();
+  })();
+
+  // ===================================================================
+  // APP MAINTENANCE  (isolated feature — all selectors .mnt-*)
+  //   Universe panel only in this pass — Trade Logs / Portfolio to follow.
+  //   reads : db, PROXY, YF_BASE, (SCR_YF_OVERRIDES if present)
+  //   writes: universe table (insert/update/delete) · localStorage 'mnt_override_todo_v1'
+  //   Needs one-time RLS migration on `universe` (insert/update/delete for
+  //   authenticated users) — it only ever had a SELECT policy before this.
+  // ===================================================================
+  (function(){
+    const OV_KEY = 'mnt_override_todo_v1';
+    let uRows = [], uLoaded = false, wired = false;
+
+    const el = id => document.getElementById(id);
+    const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[x]));
+    const rowKey = r => r.id || r._localId;
+    const findRow = key => uRows.find(r => rowKey(r) === key);
+    function status(msg, isErr){ const s = el('mnt-u-status'); if (!s) return; s.textContent = msg || ''; s.className = 'mnt-status' + (isErr ? ' err' : ''); }
+
+    // ---------- load ----------
+    async function loadUniverse(){
+      status('Loading universe…');
+      try {
+        const res = await db.from('universe').select('*').order('ticker').range(0, 99999);
+        if (res.error) throw res.error;
+        uRows = (res.data || []).map(r => ({
+          id: r.id, ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: !!r.active,
+          _y: { status: 'idle' }
+        }));
+        uLoaded = true;
+        status('');
+        renderTable();
+      } catch (e) {
+        status('Could not load universe: ' + (e.message || e), true);
+      }
+    }
+
+    // ---------- Yahoo verification ----------
+    async function tryYahoo(sym){
+      try {
+        const url = PROXY + encodeURIComponent(YF_BASE + sym + '?interval=1d&range=5d');
+        const c = new AbortController(); const t = setTimeout(() => c.abort(), 15000);
+        const r = await fetch(url, { signal: c.signal }).finally(() => clearTimeout(t));
+        if (!r.ok) return null;
+        const j = await r.json();
+        const res = j && j.chart && j.chart.result && j.chart.result[0];
+        if (!res) return null;
+        const m = res.meta || {};
+        return m.longName || m.shortName || sym;
+      } catch (e) { return null; }
+    }
+    async function runYahooCheck(r, tr){
+      const forTicker = r.ticker;
+      r._y = { status: 'checking', checkedFor: forTicker };
+      updateYCell(tr, r);
+      let ov;
+      try { if (typeof SCR_YF_OVERRIDES !== 'undefined' && (forTicker in SCR_YF_OVERRIDES)) ov = SCR_YF_OVERRIDES[forTicker]; } catch (e) {}
+      if (ov === null) {
+        r._y = { status: 'fail', checkedFor: forTicker, note: 'marked unavailable in SCR_YF_OVERRIDES' };
+        updateYCell(tr, r); return;
+      }
+      const candidates = ov ? [ov] : (r.exchange === 'BSE' ? [forTicker + '.BO', forTicker + '.NS'] : [forTicker + '.NS', forTicker + '.BO']);
+      for (const sym of candidates) {
+        const name = await tryYahoo(sym);
+        if (r.ticker !== forTicker) return; // ticker changed again while this was in flight — stale, drop it
+        if (name) { r._y = { status: 'ok', checkedFor: forTicker, name }; updateYCell(tr, r); return; }
+      }
+      r._y = { status: 'fail', checkedFor: forTicker };
+      updateYCell(tr, r);
+    }
+    function ycheckHtml(r){
+      const y = r._y || { status: 'idle' };
+      if (y.status === 'checking') return '<span class="mnt-ybadge pending"><span class="mnt-sp"></span> checking…</span>';
+      if (y.status === 'ok') return '<span class="mnt-ybadge ok">&#10003; <span class="mnt-nm">' + esc(y.name || '') + '</span></span>';
+      if (y.status === 'fail') return '<span class="mnt-ybadge fail">&#10007; ' + esc(y.note || 'no data on NSE or BSE') +
+        ' <button class="mnt-yrecheck" data-act="recheck" title="Re-check">&#8635;</button></span>' +
+        '<label class="mnt-yoverride"><input type="checkbox" data-act="override"' + (y.overrideAck ? ' checked' : '') + '> Save anyway — needs a Yahoo override in code</label>';
+      return '<span class="mnt-ybadge pending">not checked</span>';
+    }
+    function updateYCell(tr, r){
+      const td = tr && tr.querySelector('.mnt-ycheck'); if (td) td.innerHTML = ycheckHtml(r);
+      updateSaveBar();
+    }
+
+    // ---------- override to-do list (localStorage) ----------
+    function loadOverrideTodo(){ try { return JSON.parse(localStorage.getItem(OV_KEY)) || []; } catch (e) { return []; } }
+    function addOverrideTodo(ticker, name){
+      const list = loadOverrideTodo();
+      if (!list.find(x => x.ticker === ticker)) {
+        list.push({ ticker, stock_name: name || '', addedAt: new Date().toISOString().slice(0, 10) });
+        try { localStorage.setItem(OV_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+      renderOverrideList();
+    }
+    function removeOverrideTodo(ticker){
+      const list = loadOverrideTodo().filter(x => x.ticker !== ticker);
+      try { localStorage.setItem(OV_KEY, JSON.stringify(list)); } catch (e) {}
+      renderOverrideList();
+    }
+    function renderOverrideList(){
+      const list = loadOverrideTodo();
+      const box = el('mnt-u-ovlist'), rows = el('mnt-u-ovrows');
+      if (!box || !rows) return;
+      if (!list.length) { box.style.display = 'none'; return; }
+      box.style.display = '';
+      rows.innerHTML = list.map(x =>
+        '<div class="mnt-ovrow"><span class="t">' + esc(x.ticker) + '</span>' +
+        '<span class="n">' + esc(x.stock_name || '') + ' · added ' + esc(x.addedAt) + '</span>' +
+        '<button data-ov="' + esc(x.ticker) + '">Mark done</button></div>'
+      ).join('');
+    }
+
+    // ---------- render ----------
+    function rowHtml(r){
+      const cls = r._del ? 'mnt-del' : r._new ? 'mnt-new' : r._dirty ? 'mnt-dirty' : '';
+      const tag = r._new ? '<span class="mnt-tag-new">NEW</span>' : (r._dirty ? '<span class="mnt-dirty-dot"></span>' : '');
+      const dis = r._del ? ' disabled' : '';
+      return '<tr class="' + cls + '" data-id="' + esc(rowKey(r)) + '">' +
+        '<td>' + tag + '</td>' +
+        '<td><input class="mnt-cell-in" data-f="ticker" value="' + esc(r.ticker) + '" placeholder="TICKER"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" data-f="stock_name" value="' + esc(r.stock_name || '') + '" placeholder="Company name"' + dis + '></td>' +
+        '<td><select class="mnt-cell-in" data-f="exchange"' + dis + '>' +
+          '<option' + (r.exchange === 'NSE' ? ' selected' : '') + '>NSE</option>' +
+          '<option' + (r.exchange === 'BSE' ? ' selected' : '') + '>BSE</option></select></td>' +
+        '<td><div class="mnt-togg" data-f="active"><div class="mnt-sw' + (r.active ? ' on' : '') + '"><i></i></div></div></td>' +
+        '<td class="mnt-ycheck">' + (r._del ? '' : ycheckHtml(r)) + '</td>' +
+        '<td><button class="mnt-rowdel" data-act="del" title="' + (r._new ? 'Discard new row' : (r._del ? 'Undo delete' : 'Delete row')) + '">' +
+          (r._new ? '&times;' : (r._del ? '&#8634;' : '🗑')) + '</button></td>' +
+      '</tr>';
+    }
+    function renderTable(){
+      const wrap = el('mnt-u-tablewrap'); if (!wrap) return;
+      const q = (el('mnt-u-q').value || '').trim().toLowerCase();
+      const visible = uRows.filter(r => {
+        if (r._new) return true;
+        if (!q) return false;
+        return (r.ticker || '').toLowerCase().includes(q) || (r.stock_name || '').toLowerCase().includes(q);
+      });
+      if (!visible.length) {
+        wrap.innerHTML = '<div class="mnt-hint">' + (q ? 'No matches for "' + esc(q) + '".' : 'Type to search, or click "+ Add stock" to add a new row.') + '</div>';
+        updateSaveBar();
+        return;
+      }
+      const shown = visible.slice(0, 200);
+      let h = '<table class="mnt-t"><thead><tr><th style="width:36px"></th><th>Ticker</th><th>Stock name</th><th>Exchange</th><th>Active</th><th>Yahoo check</th><th style="width:40px"></th></tr></thead><tbody>';
+      shown.forEach(r => { h += rowHtml(r); });
+      h += '</tbody></table>';
+      wrap.innerHTML = h;
+      if (visible.length > shown.length) {
+        const note = document.createElement('div');
+        note.className = 'mnt-status';
+        note.textContent = 'Showing ' + shown.length + ' of ' + visible.length + ' matches — narrow your search to see the rest.';
+        wrap.appendChild(note);
+      }
+      updateSaveBar();
+    }
+
+    function rowBlocks(r){
+      if (r._del) return false;
+      if (!r.ticker) return true;
+      const y = r._y;
+      if (!y || y.checkedFor !== r.ticker) return true;
+      if (y.status === 'checking') return true;
+      if (y.status === 'ok') return false;
+      if (y.status === 'fail') return !y.overrideAck;
+      return true;
+    }
+    function ensureSaveBar(){
+      let bar = el('mnt-u-savebar-el');
+      if (!bar) {
+        const wrap = el('mnt-u-tablewrap'); if (!wrap) return null;
+        bar = document.createElement('div');
+        bar.id = 'mnt-u-savebar-el'; bar.className = 'mnt-savebar';
+        bar.innerHTML = '<div class="l"></div><div class="r"><button class="mnt-btn gho" id="mnt-u-discard">Discard all</button><button class="mnt-btn pri" disabled>Save changes</button></div>';
+        wrap.insertAdjacentElement('afterend', bar);
+        bar.querySelector('.mnt-btn.pri').addEventListener('click', saveUniverse);
+        bar.querySelector('#mnt-u-discard').addEventListener('click', () => { uLoaded = false; loadUniverse(); });
+      }
+      return bar;
+    }
+    function updateSaveBar(){
+      const bar = ensureSaveBar(); if (!bar) return;
+      const news = uRows.filter(r => r._new && !r._del);
+      const dirty = uRows.filter(r => r._dirty && !r._new && !r._del);
+      const dels = uRows.filter(r => r._del);
+      const total = news.length + dirty.length + dels.length;
+      const blockers = uRows.filter(r => (r._new || r._dirty) && rowBlocks(r));
+      const checking = uRows.filter(r => r._y && r._y.status === 'checking').length;
+      bar.querySelector('.l').innerHTML = 'Pending: <b>' + news.length + ' new</b> · <b>' + dirty.length + ' edited</b> · <b>' + dels.length + ' deleted</b>' +
+        (blockers.length || checking ? ' — <b>' + (checking ? checking + ' checking, ' : '') + blockers.length + ' unresolved</b>' : '');
+      bar.classList.toggle('blocked', blockers.length > 0 || checking > 0);
+      const btn = bar.querySelector('.mnt-btn.pri');
+      btn.disabled = (total === 0) || blockers.length > 0 || checking > 0;
+      btn.textContent = 'Save changes' + (total ? ' (' + total + ')' : '');
+    }
+
+    // ---------- actions ----------
+    function addRow(){
+      uRows.unshift({ _localId: 'new_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        ticker: '', stock_name: '', exchange: 'NSE', active: true, _new: true, _y: { status: 'idle' } });
+      renderTable();
+      setTimeout(() => { const inp = document.querySelector('#mnt-u-tablewrap tr.mnt-new input[data-f="ticker"]'); if (inp) inp.focus(); }, 0);
+    }
+    async function saveUniverse(){
+      const bar = ensureSaveBar(); const btn = bar && bar.querySelector('.mnt-btn.pri');
+      if (btn) btn.disabled = true;
+      status('Saving…');
+      try {
+        const dels  = uRows.filter(r => r._del && r.id);
+        const dirty = uRows.filter(r => r._dirty && !r._new && !r._del);
+        const news  = uRows.filter(r => r._new && !r._del);
+        for (const r of dels) {
+          const res = await db.from('universe').delete().eq('id', r.id);
+          if (res.error) throw res.error;
+        }
+        for (const r of dirty) {
+          const res = await db.from('universe').update({ ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: r.active }).eq('id', r.id);
+          if (res.error) throw res.error;
+        }
+        for (const r of news) {
+          const res = await db.from('universe').insert({ ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: r.active });
+          if (res.error) throw res.error;
+        }
+        [...dirty, ...news].forEach(r => { if (r._y && r._y.status === 'fail' && r._y.overrideAck) addOverrideTodo(r.ticker, r.stock_name); });
+        status('Saved ' + (dels.length + dirty.length + news.length) + ' change(s).');
+        uLoaded = false;
+        await loadUniverse();
+      } catch (e) {
+        status('Save failed: ' + (e.message || e) + ' — if this mentions a policy/permission error, the universe table needs the insert/update/delete RLS migration.', true);
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // ---------- delegated events ----------
+    function onCellInput(e){
+      const inp = e.target.closest && e.target.closest('input[data-f]'); if (!inp) return;
+      const tr = inp.closest('tr'); const r = findRow(tr.dataset.id); if (!r) return;
+      const f = inp.dataset.f;
+      if (f === 'ticker') r.ticker = inp.value.toUpperCase();
+      else if (f === 'stock_name') r.stock_name = inp.value;
+      if (!r._new) r._dirty = true;
+      updateSaveBar();
+    }
+    function onCellChange(e){
+      const sel = e.target.closest && e.target.closest('select[data-f="exchange"]');
+      if (sel) {
+        const tr = sel.closest('tr'); const r = findRow(tr.dataset.id); if (r) { r.exchange = sel.value; if (!r._new) r._dirty = true; updateSaveBar(); }
+        return;
+      }
+      const cb = e.target.closest && e.target.closest('[data-act="override"]');
+      if (cb) {
+        const tr = cb.closest('tr'); const r = findRow(tr.dataset.id); if (r && r._y) { r._y.overrideAck = cb.checked; updateSaveBar(); }
+      }
+    }
+    function onCellClick(e){
+      const togg = e.target.closest && e.target.closest('.mnt-togg[data-f="active"]');
+      if (togg) {
+        const tr = togg.closest('tr'); const r = findRow(tr.dataset.id); if (!r) return;
+        r.active = !r.active; if (!r._new) r._dirty = true;
+        const sw = togg.querySelector('.mnt-sw'); if (sw) sw.classList.toggle('on', r.active);
+        updateSaveBar();
+        return;
+      }
+      const del = e.target.closest && e.target.closest('[data-act="del"]');
+      if (del) {
+        const tr = del.closest('tr'); const r = findRow(tr.dataset.id); if (!r) return;
+        if (r._new) uRows = uRows.filter(x => x !== r);
+        else r._del = !r._del;
+        renderTable();
+        return;
+      }
+      const rc = e.target.closest && e.target.closest('[data-act="recheck"]');
+      if (rc) {
+        const tr = rc.closest('tr'); const r = findRow(tr.dataset.id); if (r) runYahooCheck(r, tr);
+      }
+    }
+    function onTickerBlur(e){
+      const inp = e.target && e.target.closest && e.target.closest('input[data-f="ticker"]'); if (!inp) return;
+      const tr = inp.closest('tr'); const r = findRow(tr.dataset.id); if (!r) return;
+      const val = (inp.value || '').trim().toUpperCase();
+      r.ticker = val; inp.value = val;
+      if (!val) return;
+      if (r._y && r._y.checkedFor === val && r._y.status !== 'idle') return;
+      runYahooCheck(r, tr);
+    }
+
+    function wireOnce(){
+      if (wired) return; wired = true;
+      el('mnt-u-q').addEventListener('input', renderTable);
+      el('mnt-u-add').addEventListener('click', addRow);
+      const wrap = el('mnt-u-tablewrap');
+      wrap.addEventListener('input', onCellInput);
+      wrap.addEventListener('change', onCellChange);
+      wrap.addEventListener('click', onCellClick);
+      wrap.addEventListener('blur', onTickerBlur, true);
+      const ovrows = el('mnt-u-ovrows');
+      if (ovrows) ovrows.addEventListener('click', e => { const b = e.target.closest('[data-ov]'); if (b) removeOverrideTodo(b.dataset.ov); });
+    }
+
+    window.mntEnter = function(){
+      wireOnce();
+      renderOverrideList();
+      if (!uLoaded) loadUniverse();
+    };
   })();
 </script>
 </body>
