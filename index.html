@@ -2130,7 +2130,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.34'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.35'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2155,6 +2155,8 @@
   const fmtPct  = n => (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
   const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
   const fmtPrice = n => n != null ? '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+  const XIRR_CAP_PCT = 5000; // annualised %; xirr() clamps to this — see its comment for why
+  const fmtXirr = n => n == null ? '—' : (n >= XIRR_CAP_PCT ? `${XIRR_CAP_PCT.toLocaleString('en-IN')}%+ (maxed)` : fmtPct(n));
 
   // ============================================================
   // AUTH
@@ -2273,7 +2275,16 @@
       rate = newRate;
       if (rate <= -1) return null; // diverged
     }
-    return isFinite(rate) && rate > -1 ? rate * 100 : null;
+    if (!isFinite(rate) || rate <= -1) return null;
+    // Clamp: a very recent large cashflow (e.g. a same-week top-up) makes the
+    // solved rate explode once annualised — sometimes into genuine numerical
+    // divergence (near-cancelling cashflows flatten npv's derivative near
+    // zero, sending Newton-Raphson to an absurd root), sometimes just because
+    // annualising a few days' return is inherently extreme. Either way, cap
+    // rather than null it out: a capped-but-still-huge number keeps ranking
+    // correctly as "very strong" wherever XIRR feeds a composite score,
+    // whereas null would wrongly fall back to a neutral default there.
+    return Math.min(rate * 100, XIRR_CAP_PCT);
   }
 
   // Build cashflows for a set of trades + current value
@@ -7028,7 +7039,7 @@
           : '<span style="color:var(--muted)">—</span>';
 
         const xirrHtml = r.stockXirr != null
-          ? `<span class="${r.stockXirr >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(r.stockXirr)}</span>`
+          ? `<span class="${r.stockXirr >= 0 ? 'positive-text' : 'negative-text'}">${fmtXirr(r.stockXirr)}</span>`
           : '<span style="color:var(--muted)">—</span>';
 
         return `<tr>
@@ -7078,7 +7089,7 @@
             <td class="mono ${sumPnl >= 0 ? 'positive-text' : 'negative-text'}">${fmt(sumPnl)}</td>
             <td class="mono">100.0%</td>
             <td class="mono ${blendedReturnPct != null ? (blendedReturnPct >= 0 ? 'positive-text' : 'negative-text') : ''}">${blendedReturnPct != null ? fmtPct(blendedReturnPct) : '—'}</td>
-            <td class="mono ${sleeveXirr != null ? (sleeveXirr >= 0 ? 'positive-text' : 'negative-text') : ''}">${sleeveXirr != null ? fmtPct(sleeveXirr) : '—'}</td>
+            <td class="mono ${sleeveXirr != null ? (sleeveXirr >= 0 ? 'positive-text' : 'negative-text') : ''}">${fmtXirr(sleeveXirr)}</td>
             <td class="mono">${anyCapPct ? sumCapPct.toFixed(1) + '%' : '—'}</td>
             <td colspan="4"></td>
           </tr></tfoot>
@@ -7250,7 +7261,7 @@
         const sweptNote = c.sweptShares ? `<div class="rb-swept">${c.baseShares} base +${c.sweptShares} swept</div>` : '';
         return `<tr>
           <td class="rb-stockname"><span class="tk">${c.ticker}</span><span class="co">${c.name}</span></td>
-          <td class="mono">${rbFactorCell(c.xirr != null ? fmtPct(c.xirr) : '—', c.xirrPts)}</td>
+          <td class="mono">${rbFactorCell(c.xirr != null ? fmtXirr(c.xirr) : '—', c.xirrPts)}</td>
           <td class="mono">${rbFactorCell(c.hi52Gap != null ? fmtPct(c.hi52Gap) : '—', c.hi52Pts)}</td>
           <td class="mono">${rbFactorCell(c.availCount > 0 ? c.posCount + '/' + c.availCount + ' wks' : 'no data', c.trendPts)}</td>
           <td class="mono">${rbFactorCell(c.gainLostVal != null ? fmtPct(c.gainLostVal) : '—', c.glPts)}</td>
