@@ -1244,6 +1244,12 @@
     .mnt-status { font-size:11px; color:var(--muted); margin-top:8px; min-height:14px; }
     .mnt-status.err { color:var(--red); }
 
+    .mnt-ac { position:fixed; z-index:500; background:var(--card); border:0.5px solid var(--border2); border-radius:8px; box-shadow:0 12px 32px rgba(0,0,0,.5); max-height:220px; overflow-y:auto; min-width:220px; }
+    .mnt-ac-item { padding:8px 12px; font-size:12px; cursor:pointer; display:flex; flex-direction:column; gap:1px; }
+    .mnt-ac-item:hover { background:rgba(167,139,250,.12); }
+    .mnt-ac-item .t { font-family:var(--font-mono); color:var(--accent); }
+    .mnt-ac-item .n { color:var(--muted); font-size:10.5px; }
+
     /* ===== PATTERN LOOKUP (isolated feature — all selectors .lk-*) ===== */
     .lk-panel { margin: 14px 16px 22px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
     .lk-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 14px 18px; border-bottom: 0.5px solid var(--border); }
@@ -1850,6 +1856,11 @@
             <button type="button" data-p="tradelogs">Trade Logs</button>
           </div>
 
+          <div id="mnt-ovlist" class="mnt-ovlist" style="display:none">
+            <h3>⚠ Saved needing a Yahoo override in code (Universe or Trade Logs)</h3>
+            <div id="mnt-ovrows"></div>
+          </div>
+
           <div id="mnt-panel-universe">
           <div class="mnt-section">
             <h2>Universe</h2>
@@ -1862,10 +1873,6 @@
               <button class="mnt-btn pri" id="mnt-u-add">+ Add stock</button>
             </div>
             <div id="mnt-u-tablewrap"></div>
-            <div id="mnt-u-ovlist" class="mnt-ovlist" style="display:none">
-              <h3>⚠ Saved needing a Yahoo override in code</h3>
-              <div id="mnt-u-ovrows"></div>
-            </div>
             <div class="mnt-status" id="mnt-u-status"></div>
           </div>
           </div>
@@ -1873,7 +1880,7 @@
           <div id="mnt-panel-tradelogs" style="display:none">
           <div class="mnt-section">
             <h2>Trade Logs</h2>
-            <div class="mnt-psub">Same pattern as Universe — edit any cell, add a row, delete a row, then Save to commit.</div>
+            <div class="mnt-psub">Same pattern as Universe, plus type-ahead: as you type a Ticker or Stock name, matching rows from Universe appear in a dropdown — pick one, or keep typing to log a stock that isn't there yet. Ticker also gets the same Yahoo check as Universe.</div>
             <div class="mnt-toolbar">
               <label class="mnt-search">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1885,6 +1892,8 @@
             <div class="mnt-status" id="mnt-t-status"></div>
           </div>
           </div>
+
+          <div id="mnt-ac" class="mnt-ac" style="display:none"></div>
         </div>
       </div>
 
@@ -1919,7 +1928,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.27'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.28'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -5679,24 +5688,24 @@
         return m.longName || m.shortName || sym;
       } catch (e) { return null; }
     }
-    async function runYahooCheck(r, tr){
+    async function runYahooCheck(r, tr, onDone){
       const forTicker = r.ticker;
       r._y = { status: 'checking', checkedFor: forTicker };
-      updateYCell(tr, r);
+      updateYCell(tr, r, onDone);
       let ov;
       try { if (typeof SCR_YF_OVERRIDES !== 'undefined' && (forTicker in SCR_YF_OVERRIDES)) ov = SCR_YF_OVERRIDES[forTicker]; } catch (e) {}
       if (ov === null) {
         r._y = { status: 'fail', checkedFor: forTicker, note: 'marked unavailable in SCR_YF_OVERRIDES' };
-        updateYCell(tr, r); return;
+        updateYCell(tr, r, onDone); return;
       }
       const candidates = ov ? [ov] : (r.exchange === 'BSE' ? [forTicker + '.BO', forTicker + '.NS'] : [forTicker + '.NS', forTicker + '.BO']);
       for (const sym of candidates) {
         const name = await tryYahoo(sym);
         if (r.ticker !== forTicker) return; // ticker changed again while this was in flight — stale, drop it
-        if (name) { r._y = { status: 'ok', checkedFor: forTicker, name }; updateYCell(tr, r); return; }
+        if (name) { r._y = { status: 'ok', checkedFor: forTicker, name }; updateYCell(tr, r, onDone); return; }
       }
       r._y = { status: 'fail', checkedFor: forTicker };
-      updateYCell(tr, r);
+      updateYCell(tr, r, onDone);
     }
     function ycheckHtml(r){
       const y = r._y || { status: 'idle' };
@@ -5707,9 +5716,9 @@
         '<label class="mnt-yoverride"><input type="checkbox" data-act="override"' + (y.overrideAck ? ' checked' : '') + '> Save anyway — needs a Yahoo override in code</label>';
       return '<span class="mnt-ybadge pending">not checked</span>';
     }
-    function updateYCell(tr, r){
+    function updateYCell(tr, r, onDone){
       const td = tr && tr.querySelector('.mnt-ycheck'); if (td) td.innerHTML = ycheckHtml(r);
-      updateSaveBar();
+      if (onDone) onDone();
     }
 
     // ---------- override to-do list (localStorage) ----------
@@ -5729,7 +5738,7 @@
     }
     function renderOverrideList(){
       const list = loadOverrideTodo();
-      const box = el('mnt-u-ovlist'), rows = el('mnt-u-ovrows');
+      const box = el('mnt-ovlist'), rows = el('mnt-ovrows');
       if (!box || !rows) return;
       if (!list.length) { box.style.display = 'none'; return; }
       box.style.display = '';
@@ -5835,30 +5844,36 @@
       const bar = ensureSaveBar(); const btn = bar && bar.querySelector('.mnt-btn.pri');
       if (btn) btn.disabled = true;
       status('Saving…');
-      try {
-        const dels  = uRows.filter(r => r._del && r.id);
-        const dirty = uRows.filter(r => r._dirty && !r._new && !r._del);
-        const news  = uRows.filter(r => r._new && !r._del);
-        for (const r of dels) {
+      const dels  = uRows.filter(r => r._del && r.id);
+      const dirty = uRows.filter(r => r._dirty && !r._new && !r._del);
+      const news  = uRows.filter(r => r._new && !r._del);
+      let ok = 0; const fails = [];
+      for (const r of dels) {
+        try {
           const res = await db.from('universe').delete().eq('id', r.id);
           if (res.error) throw res.error;
-        }
-        for (const r of dirty) {
+          uRows = uRows.filter(x => x !== r); ok++;
+        } catch (e) { fails.push(r.ticker + ' (delete): ' + (e.message || e)); }
+      }
+      for (const r of dirty) {
+        try {
           const res = await db.from('universe').update({ ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: r.active }).eq('id', r.id);
           if (res.error) throw res.error;
-        }
-        for (const r of news) {
-          const res = await db.from('universe').insert({ ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: r.active });
-          if (res.error) throw res.error;
-        }
-        [...dirty, ...news].forEach(r => { if (r._y && r._y.status === 'fail' && r._y.overrideAck) addOverrideTodo(r.ticker, r.stock_name); });
-        status('Saved ' + (dels.length + dirty.length + news.length) + ' change(s).');
-        uLoaded = false;
-        await loadUniverse();
-      } catch (e) {
-        status('Save failed: ' + (e.message || e) + ' — if this mentions a policy/permission error, the universe table needs the insert/update/delete RLS migration.', true);
-        if (btn) btn.disabled = false;
+          r._dirty = false; ok++;
+        } catch (e) { fails.push(r.ticker + ' (update): ' + (e.message || e)); }
       }
+      for (const r of news) {
+        try {
+          const res = await db.from('universe').insert({ ticker: r.ticker, stock_name: r.stock_name, exchange: r.exchange, active: r.active }).select().single();
+          if (res.error) throw res.error;
+          r.id = res.data.id; delete r._new; delete r._localId; ok++;
+          if (r._y && r._y.status === 'fail' && r._y.overrideAck) addOverrideTodo(r.ticker, r.stock_name);
+        } catch (e) { fails.push(r.ticker + ' (add): ' + (e.message || e)); }
+      }
+      if (!fails.length) status('✓ Saved ' + ok + ' change' + (ok === 1 ? '' : 's') + '.');
+      else status('Saved ' + ok + ' of ' + (ok + fails.length) + ' — ' + fails.length + ' failed: ' + fails.join('; ') +
+        (/polic|permission|RLS/i.test(fails.join(' ')) ? ' (looks like an RLS/permission issue — check the universe migration)' : ''), true);
+      renderTable();
     }
 
     // ---------- delegated events ----------
@@ -5901,7 +5916,7 @@
       }
       const rc = e.target.closest && e.target.closest('[data-act="recheck"]');
       if (rc) {
-        const tr = rc.closest('tr'); const r = findRow(tr.dataset.id); if (r) runYahooCheck(r, tr);
+        const tr = rc.closest('tr'); const r = findRow(tr.dataset.id); if (r) runYahooCheck(r, tr, updateSaveBar);
       }
     }
     function onTickerBlur(e){
@@ -5911,7 +5926,7 @@
       r.ticker = val; inp.value = val;
       if (!val) return;
       if (r._y && r._y.checkedFor === val && r._y.status !== 'idle') return;
-      runYahooCheck(r, tr);
+      runYahooCheck(r, tr, updateSaveBar);
     }
 
     function wireOnce(){
@@ -5923,7 +5938,7 @@
       wrap.addEventListener('change', onCellChange);
       wrap.addEventListener('click', onCellClick);
       wrap.addEventListener('blur', onTickerBlur, true);
-      const ovrows = el('mnt-u-ovrows');
+      const ovrows = el('mnt-ovrows');
       if (ovrows) ovrows.addEventListener('click', e => { const b = e.target.closest('[data-ov]'); if (b) removeOverrideTodo(b.dataset.ov); });
     }
 
@@ -5936,7 +5951,7 @@
           const p = bn.dataset.p;
           el('mnt-panel-universe').style.display = p === 'universe' ? '' : 'none';
           el('mnt-panel-tradelogs').style.display = p === 'tradelogs' ? '' : 'none';
-          if (p === 'tradelogs') { wireTOnce(); if (!tLoaded) loadTrades(); }
+          if (p === 'tradelogs') { wireTOnce(); loadTUniverse(); if (!tLoaded) loadTrades(); }
         });
       });
     }
@@ -5973,8 +5988,8 @@
       return '<tr class="' + cls + '" data-id="' + esc(tRowKey(r)) + '">' +
         '<td>' + tag + '</td>' +
         '<td><input class="mnt-cell-in" style="width:110px" data-f="date" value="' + esc(r.date || '') + '" placeholder="YYYY-MM-DD"' + dis + '></td>' +
-        '<td><input class="mnt-cell-in" style="width:110px" data-f="ticker" value="' + esc(r.ticker || '') + '" placeholder="TICKER"' + dis + '></td>' +
-        '<td><input class="mnt-cell-in" data-f="stock_name" value="' + esc(r.stock_name || '') + '" placeholder="Company name"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" style="width:110px" data-f="ticker" value="' + esc(r.ticker || '') + '" placeholder="TICKER" autocomplete="off"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" data-f="stock_name" value="' + esc(r.stock_name || '') + '" placeholder="Company name" autocomplete="off"' + dis + '></td>' +
         '<td><select class="mnt-cell-in" data-f="action"' + dis + '>' +
           '<option' + (r.action === 'BUY' ? ' selected' : '') + '>BUY</option>' +
           '<option' + (r.action === 'SELL' ? ' selected' : '') + '>SELL</option></select></td>' +
@@ -5984,6 +5999,7 @@
         '<td><select class="mnt-cell-in" data-f="exchange"' + dis + '>' +
           '<option' + (r.exchange === 'NSE' ? ' selected' : '') + '>NSE</option>' +
           '<option' + (r.exchange === 'BSE' ? ' selected' : '') + '>BSE</option></select></td>' +
+        '<td class="mnt-ycheck">' + (r._del ? '' : ycheckHtml(r)) + '</td>' +
         '<td><button class="mnt-rowdel" data-act="del" title="' + (r._new ? 'Discard new row' : (r._del ? 'Undo delete' : 'Delete row')) + '">' +
           (r._new ? '&times;' : (r._del ? '&#8634;' : '🗑')) + '</button></td>' +
       '</tr>';
@@ -6002,7 +6018,7 @@
         return;
       }
       const shown = visible.slice(0, 200);
-      let h = '<table class="mnt-t"><thead><tr><th style="width:36px"></th><th>Date</th><th>Ticker</th><th>Stock name</th><th>Action</th><th>Qty</th><th>Price</th><th>Brokerage</th><th>Exch.</th><th style="width:40px"></th></tr></thead><tbody>';
+      let h = '<table class="mnt-t"><thead><tr><th style="width:36px"></th><th>Date</th><th>Ticker</th><th>Stock name</th><th>Action</th><th>Qty</th><th>Price</th><th>Brokerage</th><th>Exch.</th><th>Yahoo check</th><th style="width:40px"></th></tr></thead><tbody>';
       shown.forEach(r => { h += tRowHtml(r); });
       h += '</tbody></table>';
       wrap.innerHTML = h;
@@ -6041,17 +6057,18 @@
       const dirty = tRows.filter(r => r._dirty && !r._new && !r._del);
       const dels = tRows.filter(r => r._del);
       const total = news.length + dirty.length + dels.length;
-      const blockers = tRows.filter(r => (r._new || r._dirty) && tRowInvalid(r));
+      const blockers = tRows.filter(r => (r._new || r._dirty) && (tRowInvalid(r) || rowBlocks(r)));
+      const checking = tRows.filter(r => r._y && r._y.status === 'checking').length;
       bar.querySelector('.l').innerHTML = 'Pending: <b>' + news.length + ' new</b> · <b>' + dirty.length + ' edited</b> · <b>' + dels.length + ' deleted</b>' +
-        (blockers.length ? ' — <b>' + blockers.length + ' invalid</b>' : '');
-      bar.classList.toggle('blocked', blockers.length > 0);
+        (blockers.length || checking ? ' — <b>' + (checking ? checking + ' checking, ' : '') + blockers.length + ' unresolved</b>' : '');
+      bar.classList.toggle('blocked', blockers.length > 0 || checking > 0);
       const btn = bar.querySelector('.mnt-btn.pri');
-      btn.disabled = (total === 0) || blockers.length > 0;
+      btn.disabled = (total === 0) || blockers.length > 0 || checking > 0;
       btn.textContent = 'Save changes' + (total ? ' (' + total + ')' : '');
     }
     function addTRow(){
       tRows.unshift({ _localId: 'new_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        date: new Date().toISOString().slice(0, 10), ticker: '', stock_name: '', action: 'BUY', qty: '', price: '', brokerage: 0, exchange: 'NSE', _new: true });
+        date: new Date().toISOString().slice(0, 10), ticker: '', stock_name: '', action: 'BUY', qty: '', price: '', brokerage: 0, exchange: 'NSE', _new: true, _y: { status: 'idle' } });
       renderTTable();
       setTimeout(() => { const inp = document.querySelector('#mnt-t-tablewrap tr.mnt-new input[data-f="ticker"]'); if (inp) inp.focus(); }, 0);
     }
@@ -6059,37 +6076,43 @@
       const bar = ensureTSaveBar(); const btn = bar && bar.querySelector('.mnt-btn.pri');
       if (btn) btn.disabled = true;
       tStatus('Saving…');
-      try {
-        const user = (await db.auth.getUser()).data.user;
-        if (!user) throw new Error('Not logged in');
-        const dels  = tRows.filter(r => r._del && r.id);
-        const dirty = tRows.filter(r => r._dirty && !r._new && !r._del);
-        const news  = tRows.filter(r => r._new && !r._del);
-        for (const r of dels) {
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) { tStatus('Save failed: not logged in', true); if (btn) btn.disabled = false; return; }
+      const dels  = tRows.filter(r => r._del && r.id);
+      const dirty = tRows.filter(r => r._dirty && !r._new && !r._del);
+      const news  = tRows.filter(r => r._new && !r._del);
+      let ok = 0; const fails = [];
+      for (const r of dels) {
+        try {
           const res = await db.from('trades').delete().eq('id', r.id).eq('user_id', user.id);
           if (res.error) throw res.error;
-        }
-        for (const r of dirty) {
+          tRows = tRows.filter(x => x !== r); ok++;
+        } catch (e) { fails.push(r.ticker + ' (delete): ' + (e.message || e)); }
+      }
+      for (const r of dirty) {
+        try {
           const res = await db.from('trades').update({
             date: r.date, ticker: r.ticker, stock_name: r.stock_name, action: r.action,
             qty: Number(r.qty), price: Number(r.price), brokerage: Number(r.brokerage) || 0, exchange: r.exchange
           }).eq('id', r.id).eq('user_id', user.id);
           if (res.error) throw res.error;
-        }
-        for (const r of news) {
+          r._dirty = false; ok++;
+        } catch (e) { fails.push(r.ticker + ' (update): ' + (e.message || e)); }
+      }
+      for (const r of news) {
+        try {
           const res = await db.from('trades').insert({
             date: r.date, ticker: r.ticker, stock_name: r.stock_name, action: r.action,
             qty: Number(r.qty), price: Number(r.price), brokerage: Number(r.brokerage) || 0, exchange: r.exchange, user_id: user.id
-          });
+          }).select().single();
           if (res.error) throw res.error;
-        }
-        tStatus('Saved ' + (dels.length + dirty.length + news.length) + ' change(s).');
-        tLoaded = false;
-        await loadTrades();
-      } catch (e) {
-        tStatus('Save failed: ' + (e.message || e), true);
-        if (btn) btn.disabled = false;
+          r.id = res.data.id; delete r._new; delete r._localId; ok++;
+          if (r._y && r._y.status === 'fail' && r._y.overrideAck) addOverrideTodo(r.ticker, r.stock_name);
+        } catch (e) { fails.push(r.ticker + ' (add): ' + (e.message || e)); }
       }
+      if (!fails.length) tStatus('✓ Saved ' + ok + ' change' + (ok === 1 ? '' : 's') + '.');
+      else tStatus('Saved ' + ok + ' of ' + (ok + fails.length) + ' — ' + fails.length + ' failed: ' + fails.join('; '), true);
+      renderTTable();
     }
     function onTCellInput(e){
       const inp = e.target.closest && e.target.closest('input[data-f]'); if (!inp) return;
@@ -6102,6 +6125,7 @@
       else if (f === 'price') r.price = inp.value;
       else if (f === 'brokerage') r.brokerage = inp.value;
       if (!r._new) r._dirty = true;
+      if (f === 'ticker' || f === 'stock_name') showAC(inp, r);
       updateTSaveBar();
     }
     function onTCellChange(e){
@@ -6112,6 +6136,11 @@
         if (f === 'action') r.action = sel.value; else if (f === 'exchange') r.exchange = sel.value;
         if (!r._new) r._dirty = true;
         updateTSaveBar();
+        return;
+      }
+      const cb = e.target.closest && e.target.closest('[data-act="override"]');
+      if (cb) {
+        const tr = cb.closest('tr'); const r = tFindRow(tr.dataset.id); if (r && r._y) { r._y.overrideAck = cb.checked; updateTSaveBar(); }
       }
     }
     function onTCellClick(e){
@@ -6121,7 +6150,22 @@
         if (r._new) tRows = tRows.filter(x => x !== r);
         else r._del = !r._del;
         renderTTable();
+        return;
       }
+      const rc = e.target.closest && e.target.closest('[data-act="recheck"]');
+      if (rc) {
+        const tr = rc.closest('tr'); const r = tFindRow(tr.dataset.id); if (r) runYahooCheck(r, tr, updateTSaveBar);
+      }
+    }
+    function onTTickerBlur(e){
+      const inp = e.target && e.target.closest && e.target.closest('input[data-f="ticker"]'); if (!inp) return;
+      hideAC();
+      const tr = inp.closest('tr'); const r = tFindRow(tr.dataset.id); if (!r) return;
+      const val = (inp.value || '').trim().toUpperCase();
+      r.ticker = val; inp.value = val;
+      if (!val) return;
+      if (r._y && r._y.checkedFor === val && r._y.status !== 'idle') return;
+      runYahooCheck(r, tr, updateTSaveBar);
     }
     function wireTOnce(){
       if (tWired) return; tWired = true;
@@ -6131,11 +6175,64 @@
       wrap.addEventListener('input', onTCellInput);
       wrap.addEventListener('change', onTCellChange);
       wrap.addEventListener('click', onTCellClick);
+      wrap.addEventListener('blur', onTTickerBlur, true);
+    }
+
+    // ---------- type-ahead (Trade Logs only) — suggests from the Universe list, never locks the field ----------
+    let tUniverseList = [], tUniverseLoaded = false;
+    function loadTUniverse(){
+      if (tUniverseLoaded) return;
+      tUniverseLoaded = true;
+      db.from('universe').select('ticker,stock_name,exchange').order('ticker').range(0, 99999).then(res => {
+        if (!res.error) tUniverseList = res.data || [];
+      });
+    }
+    let acRow = null;
+    function showAC(inp, r){
+      const q = (inp.value || '').trim().toLowerCase();
+      if (!q || !tUniverseList.length) { hideAC(); return; }
+      const starts = [], contains = [];
+      tUniverseList.forEach(u => {
+        const t = (u.ticker || '').toLowerCase(), n = (u.stock_name || '').toLowerCase();
+        if (t.startsWith(q) || n.startsWith(q)) starts.push(u);
+        else if (t.includes(q) || n.includes(q)) contains.push(u);
+      });
+      const matches = starts.concat(contains).slice(0, 8);
+      const box = el('mnt-ac'); if (!box) return;
+      if (!matches.length) { hideAC(); return; }
+      acRow = r;
+      box.innerHTML = matches.map(u =>
+        '<div class="mnt-ac-item" data-t="' + esc(u.ticker) + '" data-n="' + esc(u.stock_name || '') + '" data-x="' + esc(u.exchange || 'NSE') + '">' +
+        '<span class="t">' + esc(u.ticker) + '</span><span class="n">' + esc(u.stock_name || '') + '</span></div>'
+      ).join('');
+      const rect = inp.getBoundingClientRect();
+      box.style.left = rect.left + 'px'; box.style.top = (rect.bottom + 4) + 'px'; box.style.width = Math.max(rect.width, 220) + 'px';
+      box.style.display = 'block';
+    }
+    function hideAC(){ const box = el('mnt-ac'); if (box) box.style.display = 'none'; acRow = null; }
+    function wireACOnce(){
+      const box = el('mnt-ac'); if (!box || box._wired) return; box._wired = true;
+      box.addEventListener('mousedown', e => {
+        const item = e.target.closest('.mnt-ac-item'); if (!item || !acRow) return;
+        e.preventDefault(); // fires before the input's blur — keeps focus, avoids losing the click
+        const r = acRow;
+        r.ticker = item.dataset.t; r.stock_name = item.dataset.n; if (item.dataset.x) r.exchange = item.dataset.x;
+        if (!r._new) r._dirty = true;
+        hideAC();
+        renderTTable();
+        setTimeout(() => {
+          const tr = document.querySelector('#mnt-t-tablewrap tr[data-id="' + CSS.escape(tRowKey(r)) + '"]');
+          if (tr) runYahooCheck(r, tr, updateTSaveBar);
+        }, 0);
+      });
+      document.addEventListener('click', e => { if (!box.contains(e.target)) hideAC(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAC(); });
     }
 
     window.mntEnter = function(){
       wireOnce();
       wireSegOnce();
+      wireACOnce();
       renderOverrideList();
       if (!uLoaded) loadUniverse();
     };
