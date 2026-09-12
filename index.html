@@ -1928,7 +1928,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.28'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.29'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -5874,6 +5874,10 @@
       else status('Saved ' + ok + ' of ' + (ok + fails.length) + ' — ' + fails.length + ' failed: ' + fails.join('; ') +
         (/polic|permission|RLS/i.test(fails.join(' ')) ? ' (looks like an RLS/permission issue — check the universe migration)' : ''), true);
       renderTable();
+      if (ok > 0) {
+        try { scrUniverse = []; } catch (e) {}   // Discovery's cached universe — force a fresh fetch next Run
+        tUniverseLoaded = false;                  // Trade Logs' autocomplete cache — force a fresh fetch next open
+      }
     }
 
     // ---------- delegated events ----------
@@ -6113,6 +6117,7 @@
       if (!fails.length) tStatus('✓ Saved ' + ok + ' change' + (ok === 1 ? '' : 's') + '.');
       else tStatus('Saved ' + ok + ' of ' + (ok + fails.length) + ' — ' + fails.length + ' failed: ' + fails.join('; '), true);
       renderTTable();
+      if (ok > 0 && typeof loadAll === 'function') loadAll(); // refresh Portfolio/WoW/Trade Log's shared `trades` state
     }
     function onTCellInput(e){
       const inp = e.target.closest && e.target.closest('input[data-f]'); if (!inp) return;
