@@ -1798,7 +1798,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260911.24'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.25'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2158,13 +2158,10 @@
   // ============================================================
   function renderPortfolio() {
     const { holdings, totalInvested, totalBrokerage, realisedPnl, sellProceeds,
-            totalCurrentValue, totalUnrealisedPnl, portfolioXirr } = calcPortfolio();
+            totalCurrentValue, totalUnrealisedPnl } = calcPortfolio();
 
     const hasLive     = totalCurrentValue > 0;
     const unrlCls     = totalUnrealisedPnl >= 0 ? 'positive' : 'negative';
-    const xirrDisplay = portfolioXirr != null
-      ? `<div class="stat-value ${portfolioXirr >= 0 ? 'positive' : 'negative'}">${fmtPct(portfolioXirr)}</div><div class="stat-sub">annualised</div>`
-      : `<div class="stat-value" style="color:var(--muted);font-size:15px">—</div><div class="stat-sub">needs live prices</div>`;
 
     document.getElementById('summary-grid').innerHTML = `
       <div class="stat-card">
@@ -2190,10 +2187,6 @@
         <div class="stat-label">Realised P&L</div>
         <div class="stat-value ${realisedPnl >= 0 ? 'positive' : 'negative'}">${fmt(realisedPnl)}</div>
         <div class="stat-sub">net of brokerage</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Portfolio XIRR</div>
-        ${xirrDisplay}
       </div>
       <div class="stat-card">
         <div class="stat-label">Active Holdings</div>
