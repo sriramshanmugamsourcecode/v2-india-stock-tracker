@@ -1430,6 +1430,15 @@
     .rb-tagctrl { display:inline-flex; border:0.5px solid var(--border2); border-radius:7px; overflow:hidden; }
     .rb-tagbtn { font-family:var(--font-body); font-size:11px; font-weight:600; padding:5px 10px; border:0; background:var(--bg3); color:var(--muted); cursor:pointer; }
     .rb-tagbtn.on { background:var(--accent); color:#17131f; }
+
+    .rb-swept { font-size:10px; color:var(--muted); margin-top:2px; }
+    .ptsub { font-size:10px; color:var(--muted); margin-top:2px; }
+    .rb-sbsgrid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    @media (max-width:820px) { .rb-sbsgrid { grid-template-columns:1fr; } }
+    .rb-splitsummary { display:flex; gap:20px; flex-wrap:wrap; background:var(--bg3); border:0.5px solid var(--border2); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+    .rb-splitsummary .item { display:flex; flex-direction:column; gap:2px; }
+    .rb-splitsummary .item .l { font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-family:var(--font-mono); }
+    .rb-splitsummary .item .v { font-family:var(--font-mono); font-size:14px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -2068,17 +2077,24 @@
 
           <div class="rb-section">
             <h2>Rebalance for this week</h2>
-            <div class="rb-comingsoon">
-              <div class="txt">
-                <span class="badge">Coming soon</span>
-                <h3>Suggested split, once we design the method</h3>
-                <p>Enter an amount, get a suggested split across the momentum names above. Holding off on the allocation logic (equal-weight? rank-weighted? top-up laggards vs winners?) until the table above has been used for a few weeks.</p>
-              </div>
-              <div class="stub">
-                <input type="text" placeholder="₹ amount to deploy" disabled>
-                <button class="rb-btn" disabled>Calculate split</button>
+            <div class="rb-psub">Top-up only — no sells. Splits new money across your Momentum-tagged holdings by a composite of XIRR, proximity to 52W high, 3-week trend and Gain lost.</div>
+
+            <div class="rb-tagctrl" id="rb-splitmode" style="margin-bottom:14px">
+              <button type="button" class="rb-tagbtn on" data-rbsplitmode="weighted">Weighted</button>
+              <button type="button" class="rb-tagbtn" data-rbsplitmode="equal">Equal split</button>
+              <button type="button" class="rb-tagbtn" data-rbsplitmode="sidebyside">Side by side</button>
+            </div>
+
+            <div class="rb-capedit" style="margin-bottom:14px">
+              <label for="rb-split-amount">Amount to deploy</label>
+              <div class="row">
+                <input type="text" id="rb-split-amount" placeholder="e.g. 50000" inputmode="numeric">
+                <button class="rb-btn" data-rbaction="calcsplit">Calculate split</button>
               </div>
             </div>
+
+            <div id="rb-split-summary"></div>
+            <div id="rb-split-results"></div>
           </div>
         </div>
       </div>
@@ -2114,7 +2130,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.32'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.34'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -6903,6 +6919,8 @@
     }
 
     // -- Momentum holdings table -----------------------------------------
+    let rbSort = { col: 'invested', dir: 'desc' };
+
     function rbRenderHoldings(momentum, capAmount){
       const wrap = document.getElementById('rb-holdings-wrap');
       if (!wrap) return;
@@ -6917,58 +6935,54 @@
         if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
         weekMap[e.week_date][bareSym(e.ticker)] = e.close_price;
       });
-      const weeks     = Object.keys(weekMap).sort((a, b) => a.localeCompare(b));
-      const latestWk  = weeks[weeks.length - 1];
-      const prevWk    = weeks[weeks.length - 2];
+      const weeks    = Object.keys(weekMap).sort((a, b) => a.localeCompare(b));
+      const latestWk = weeks[weeks.length - 1];
+      const prevWk   = weeks[weeks.length - 2];
 
       let sumPnl = 0, sumCapPct = 0, anyCapPct = false, sumInvested = 0, sumCurrent = 0;
 
-      // Pass 1 — per-row numbers + running sleeve totals (contribution % needs sumPnl first)
-      const rowsData = momentum.map(h => {
+      // Pass 1 — raw sortable numbers + running sleeve totals, per row. Flattened onto
+      // the row object (not nested under `h`) so the app's existing generic sortData()
+      // can sort on these column names exactly like the Portfolio/Trades/WoW tables do.
+      const rows = momentum.map(h => {
         const hist = weeks.map(w => ({ date: w, price: weekMap[w][h.ticker] })).filter(d => d.price != null);
-        const pnlCls = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
         if (h.unrealisedPnl != null) sumPnl += h.unrealisedPnl;
         sumInvested += h.invested || 0;
         if (h.currentValue != null) sumCurrent += h.currentValue;
 
-        let wowChgHtml = '<span style="color:var(--muted)">—</span>';
+        let wowChgPct = null;
         if (latestWk && prevWk) {
           const p1 = weekMap[latestWk][h.ticker], p0 = weekMap[prevWk][h.ticker];
-          if (p1 != null && p0 != null) {
-            const chg = ((p1 - p0) / p0) * 100;
-            wowChgHtml = `<span class="${chg >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(chg)}</span>`;
-          }
+          if (p1 != null && p0 != null) wowChgPct = ((p1 - p0) / p0) * 100;
         }
 
-        let gainLostHtml = '<span style="color:var(--muted)">—</span>';
+        let gainLostVal = null;
         if (hist.length && h.avgBuy > 0 && h.livePrice != null) {
           const peakPrice  = Math.max(...hist.map(d => d.price));
           const peakPnlPct = ((peakPrice - h.avgBuy) / h.avgBuy) * 100;
           const curPnlPct  = ((h.livePrice - h.avgBuy) / h.avgBuy) * 100;
-          const gainLost   = curPnlPct - peakPnlPct;
-          gainLostHtml = `<span class="${gainLost < -0.05 ? 'negative-text' : ''}">${gainLost < -0.05 ? fmtPct(gainLost) : '▲ at peak'}</span>`;
+          gainLostVal = curPnlPct - peakPnlPct;
         }
 
-        const trendHtml = wowStreakArrows(hist, 3);
-
-        let capPctHtml = '<span style="color:var(--muted)">—</span>';
+        let capPct = null;
         if (capAmount && h.currentValue != null) {
-          const pct = (h.currentValue / capAmount) * 100;
-          sumCapPct += pct; anyCapPct = true;
-          capPctHtml = `<span class="rb-share"><i style="width:${Math.max(0, Math.min(100, pct * 5)).toFixed(0)}%"></i></span>${pct.toFixed(1)}%`;
+          capPct = (h.currentValue / capAmount) * 100;
+          sumCapPct += capPct; anyCapPct = true;
         }
 
         const y = rb52wCache[h.ticker];
-        let hi52Html = '<span style="color:var(--muted)">…</span>';
+        let hi52Gap = null, hi52State = 'loading'; // loading | na | ok
         if (y) {
-          if (y.hi52 == null) hi52Html = '<span style="color:var(--muted)">n/a</span>';
-          else if (h.livePrice != null) {
-            const gap = ((h.livePrice - y.hi52) / y.hi52) * 100;
-            hi52Html = `<span class="rb-52 ${gap < -15 ? 'warm' : ''}">${fmtPct(gap)}</span>`;
-          }
+          if (y.hi52 == null) hi52State = 'na';
+          else if (h.livePrice != null) { hi52Gap = ((h.livePrice - y.hi52) / y.hi52) * 100; hi52State = 'ok'; }
         }
 
-        return { h, pnlCls, capPctHtml, wowChgHtml, trendHtml, gainLostHtml, hi52Html };
+        return {
+          h, hist, wowChgPct, gainLostVal, capPct, hi52Gap, hi52State,
+          ticker: h.ticker, name: h.name, netQty: h.netQty, avgBuy: h.avgBuy,
+          invested: h.invested, livePrice: h.livePrice, unrealisedPnl: h.unrealisedPnl,
+          unrealisedPct: h.unrealisedPct, stockXirr: h.stockXirr,
+        };
       });
 
       // Sleeve XIRR — combine every momentum holding's own cashflows (not an average of
@@ -6976,18 +6990,45 @@
       const combinedCfs = momentum.flatMap(h => buildCashflows(h.allTrades, h.livePrice)).sort((a, b) => a.date - b.date);
       const sleeveXirr  = combinedCfs.length ? xirr(combinedCfs) : null;
 
-      // Pass 2 — contribution % and blended returns need the sleeve totals from pass 1
-      const rowsHtml = rowsData.map(({ h, pnlCls, capPctHtml, wowChgHtml, trendHtml, gainLostHtml, hi52Html }) => {
-        let contribHtml = '<span style="color:var(--muted)">—</span>';
-        if (h.unrealisedPnl != null && sumPnl !== 0) {
-          const contrib = (h.unrealisedPnl / sumPnl) * 100;
-          contribHtml = `<span class="${contrib >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(contrib)}</span>`;
-        }
-        const returnsHtml = h.unrealisedPct != null
-          ? `<span class="${pnlCls}">${fmtPct(h.unrealisedPct)}</span>`
+      // Contribution % needs sumPnl from the loop above
+      rows.forEach(r => { r.contribPct = (r.unrealisedPnl != null && sumPnl !== 0) ? (r.unrealisedPnl / sumPnl) * 100 : null; });
+
+      const sorted = sortData(rows, rbSort.col, rbSort.dir);
+      const si = col => sortIndicator(col, rbSort.col, rbSort.dir);
+      const th  = (col, label, tip) => `<th class="sortable-th" data-rbsort="${col}"${tip ? ` title="${tip}"` : ''}>${label}${si(col)}</th>`;
+
+      const rowsHtml = sorted.map(r => {
+        const h = r.h;
+        const pnlCls = r.unrealisedPnl != null ? (r.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
+
+        const wowChgHtml = r.wowChgPct != null
+          ? `<span class="${r.wowChgPct >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(r.wowChgPct)}</span>`
           : '<span style="color:var(--muted)">—</span>';
-        const xirrHtml = h.stockXirr != null
-          ? `<span class="${h.stockXirr >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(h.stockXirr)}</span>`
+
+        const gainLostHtml = r.gainLostVal != null
+          ? `<span class="${r.gainLostVal < -0.05 ? 'negative-text' : ''}">${r.gainLostVal < -0.05 ? fmtPct(r.gainLostVal) : '▲ at peak'}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+
+        const trendHtml = wowStreakArrows(r.hist, 3);
+
+        const capPctHtml = r.capPct != null
+          ? `<span class="rb-share"><i style="width:${Math.max(0, Math.min(100, r.capPct * 5)).toFixed(0)}%"></i></span>${r.capPct.toFixed(1)}%`
+          : '<span style="color:var(--muted)">—</span>';
+
+        let hi52Html = '<span style="color:var(--muted)">…</span>';
+        if (r.hi52State === 'na') hi52Html = '<span style="color:var(--muted)">n/a</span>';
+        else if (r.hi52State === 'ok') hi52Html = `<span class="rb-52 ${r.hi52Gap < -15 ? 'warm' : ''}">${fmtPct(r.hi52Gap)}</span>`;
+
+        const contribHtml = r.contribPct != null
+          ? `<span class="${r.contribPct >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(r.contribPct)}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+
+        const returnsHtml = r.unrealisedPct != null
+          ? `<span class="${pnlCls}">${fmtPct(r.unrealisedPct)}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+
+        const xirrHtml = r.stockXirr != null
+          ? `<span class="${r.stockXirr >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(r.stockXirr)}</span>`
           : '<span style="color:var(--muted)">—</span>';
 
         return `<tr>
@@ -7014,11 +7055,20 @@
         <div style="overflow-x:auto">
         <table class="rb-t">
           <thead><tr>
-            <th>Stock</th><th>Qty</th><th>Avg cost</th><th>Total cost</th><th>Current</th><th>P&amp;L</th>
-            <th title="This stock's P&amp;L as a % of the whole momentum sleeve's P&amp;L">Profit contrib %</th>
-            <th title="Simple return: P&amp;L ÷ total cost">Returns %</th>
-            <th title="Annualised, entry-timing aware">XIRR</th>
-            <th>% of cap</th><th>1W chg</th><th>3W trend</th><th>Gain lost</th><th>vs 52W high</th>
+            ${th('ticker', 'Stock')}
+            ${th('netQty', 'Qty')}
+            ${th('avgBuy', 'Avg cost')}
+            ${th('invested', 'Total cost')}
+            ${th('livePrice', 'Current')}
+            ${th('unrealisedPnl', 'P&amp;L')}
+            ${th('contribPct', 'Profit contrib %', "This stock's P&amp;L as a % of the whole momentum sleeve's P&amp;L")}
+            ${th('unrealisedPct', 'Returns %', 'Simple return: P&amp;L &divide; total cost')}
+            ${th('stockXirr', 'XIRR', 'Annualised, entry-timing aware')}
+            ${th('capPct', '% of cap')}
+            ${th('wowChgPct', '1W chg')}
+            <th>3W trend</th>
+            ${th('gainLostVal', 'Gain lost')}
+            ${th('hi52Gap', 'vs 52W high')}
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
           <tfoot><tr>
@@ -7047,17 +7097,304 @@
       rbRenderHoldings(momentum, capAmount);
     }
 
+    // -- Rebalance for this week: split calculator ------------------------
+    // Candidate pool = momentum-tagged holdings only. Two split methods:
+    //  - weighted: size by a 0-100 composite (40% XIRR + 25% vs-52W-high +
+    //    25% 3W-trend positive-week-ratio + 10% Gain lost), each factor
+    //    rank-normalised within the pool. A candidate missing a factor gets
+    //    a flat neutral 50 pts for just that factor (== half that factor's
+    //    weight contributed), rather than being excluded or guessed at.
+    //  - equal: every candidate gets an equal ₹ share regardless of score
+    //    (this is the one mode where a zero-composite stock still gets money).
+    // Both round down to whole shares, then sweep the leftover: weighted
+    // mode concentrates leftover into the richest-composite stock first
+    // (keeps betting on the leader); equal mode round-robins one extra
+    // share per stock per pass, cheapest-first, so leftover doesn't quietly
+    // reintroduce a momentum tilt into the "equal" premise.
+    let rbSplitMode = 'weighted';
+
+    function rbRankPoints(values, higherIsBetter){
+      const valid = values.filter(v => v.val != null);
+      const n = valid.length;
+      const out = {};
+      if (n === 0) { values.forEach(v => out[v.key] = null); return out; }
+      if (n === 1) { values.forEach(v => out[v.key] = v.val != null ? 100 : null); return out; }
+      const sorted = [...valid].sort((a, b) => higherIsBetter ? b.val - a.val : a.val - b.val);
+      const rankOf = {};
+      let i = 0;
+      while (i < n) {
+        let j = i;
+        while (j + 1 < n && sorted[j + 1].val === sorted[i].val) j++;
+        const avgRank = (i + j) / 2 + 1;
+        for (let k = i; k <= j; k++) rankOf[sorted[k].key] = avgRank;
+        i = j + 1;
+      }
+      values.forEach(v => { out[v.key] = v.val == null ? null : ((n - rankOf[v.key]) / (n - 1)) * 100; });
+      return out;
+    }
+
+    function rbSweepWeighted(rows, pool){
+      const eligible = rows.filter(r => r.composite > 0).sort((a, b) => b.composite - a.composite);
+      for (const r of eligible) { while (pool >= r.livePrice) { r.sweptShares++; pool -= r.livePrice; } }
+      return pool;
+    }
+
+    function rbSweepEqual(rows, pool){
+      const eligible = [...rows].sort((a, b) => a.livePrice - b.livePrice);
+      let bought = true;
+      while (bought && pool > 0) {
+        bought = false;
+        for (const r of eligible) { if (pool >= r.livePrice) { r.sweptShares++; pool -= r.livePrice; bought = true; } }
+      }
+      return pool;
+    }
+
+    function rbCalcSplit(momentum, amount, mode){
+      const cand0 = momentum.filter(h => h.livePrice != null && h.livePrice > 0);
+      if (!cand0.length || !amount || amount <= 0) return null;
+
+      const weekMap = {};
+      wowEntries.forEach(e => {
+        if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
+        weekMap[e.week_date][bareSym(e.ticker)] = e.close_price;
+      });
+      const weeks = Object.keys(weekMap).sort((a, b) => a.localeCompare(b));
+
+      const cand = cand0.map(h => {
+        const hist = weeks.map(w => ({ date: w, price: weekMap[w][h.ticker] })).filter(d => d.price != null);
+        const recent = hist.slice(-4);
+        let changes = [];
+        for (let i = 1; i < recent.length; i++) changes.push(recent[i].price > recent[i - 1].price);
+        changes = changes.slice(-3);
+        const posCount   = changes.filter(Boolean).length;
+        const availCount = changes.length;
+
+        let gainLostVal = null;
+        if (hist.length && h.avgBuy > 0) {
+          const peakPrice  = Math.max(...hist.map(d => d.price), h.livePrice);
+          const peakPnlPct = ((peakPrice - h.avgBuy) / h.avgBuy) * 100;
+          const curPnlPct  = ((h.livePrice - h.avgBuy) / h.avgBuy) * 100;
+          gainLostVal = curPnlPct - peakPnlPct;
+        }
+
+        const y = rb52wCache[h.ticker];
+        const hi52Gap = (y && y.hi52 != null) ? ((h.livePrice - y.hi52) / y.hi52) * 100 : null;
+
+        return { h, ticker: h.ticker, name: h.name, livePrice: h.livePrice, avgBuy: h.avgBuy,
+                  xirr: h.stockXirr, hi52Gap, posCount, availCount, gainLostVal,
+                  baseShares: 0, sweptShares: 0 };
+      });
+
+      const n = cand.length;
+      const xirrPts = rbRankPoints(cand.map(c => ({ key: c.ticker, val: c.xirr })), true);
+      const hi52Pts = rbRankPoints(cand.map(c => ({ key: c.ticker, val: c.hi52Gap })), true);
+      const glPts   = rbRankPoints(cand.map(c => ({ key: c.ticker, val: c.gainLostVal })), true);
+
+      const W = { xirr: 0.40, hi52: 0.25, trend: 0.25, gl: 0.10 };
+      cand.forEach(c => {
+        c.trendPts = c.availCount > 0 ? (c.posCount / c.availCount) * 100 : null;
+        c.xirrPts  = xirrPts[c.ticker];
+        c.hi52Pts  = hi52Pts[c.ticker];
+        c.glPts    = glPts[c.ticker];
+        c.composite =
+          (c.xirrPts  != null ? c.xirrPts  : 50) * W.xirr  +
+          (c.hi52Pts  != null ? c.hi52Pts  : 50) * W.hi52  +
+          (c.trendPts != null ? c.trendPts : 50) * W.trend +
+          (c.glPts    != null ? c.glPts    : 50) * W.gl;
+      });
+
+      const sumComposite = cand.reduce((s, c) => s + c.composite, 0);
+
+      cand.forEach(c => {
+        if (mode === 'equal') {
+          c.weightPct = 100 / n;
+          c.target    = amount / n;
+        } else {
+          c.weightPct = sumComposite > 0 ? (c.composite / sumComposite) * 100 : 0;
+          c.target    = sumComposite > 0 ? (amount * c.composite / sumComposite) : 0;
+        }
+        c.baseShares = c.target > 0 ? Math.floor(c.target / c.livePrice) : 0;
+      });
+
+      const spentBase = cand.reduce((s, c) => s + c.baseShares * c.livePrice, 0);
+      let leftover = amount - spentBase;
+      leftover = mode === 'equal' ? rbSweepEqual(cand, leftover) : rbSweepWeighted(cand, leftover);
+
+      cand.forEach(c => { c.totalShares = c.baseShares + c.sweptShares; c.cost = c.totalShares * c.livePrice; });
+
+      const totalCost   = cand.reduce((s, c) => s + c.cost, 0);
+      const totalShares = cand.reduce((s, c) => s + c.totalShares, 0);
+      const excluded    = momentum.length - cand.length;
+
+      return { rows: cand, amount, totalCost, leftover: amount - totalCost, totalShares, n, excluded };
+    }
+
+    function rbSplitSummaryHtml(res){
+      return `<div class="rb-splitsummary">
+        <div class="item"><div class="l">Entered</div><div class="v">${fmt(res.amount)}</div></div>
+        <div class="item"><div class="l">Allocated</div><div class="v">${fmt(res.totalCost)}</div></div>
+        <div class="item"><div class="l">Round-off, unallocated</div><div class="v">${fmt(res.leftover)}</div></div>
+        <div class="item"><div class="l">Total shares</div><div class="v">${res.totalShares}</div></div>
+        <div class="item"><div class="l">Candidates</div><div class="v">${res.n} tagged Momentum${res.excluded ? ' · ' + res.excluded + ' skipped (no live price)' : ''}</div></div>
+      </div>`;
+    }
+
+    function rbFactorCell(rawHtml, pts){
+      if (pts == null) return `<span style="color:var(--muted)">no data</span><div class="ptsub">50.0 pts (default)</div>`;
+      return `${rawHtml}<div class="ptsub">${pts.toFixed(1)} pts</div>`;
+    }
+
+    function rbWeightedTableHtml(res){
+      const sorted = [...res.rows].sort((a, b) => b.composite - a.composite);
+      const rowsHtml = sorted.map(c => {
+        const sweptNote = c.sweptShares ? `<div class="rb-swept">${c.baseShares} base +${c.sweptShares} swept</div>` : '';
+        return `<tr>
+          <td class="rb-stockname"><span class="tk">${c.ticker}</span><span class="co">${c.name}</span></td>
+          <td class="mono">${rbFactorCell(c.xirr != null ? fmtPct(c.xirr) : '—', c.xirrPts)}</td>
+          <td class="mono">${rbFactorCell(c.hi52Gap != null ? fmtPct(c.hi52Gap) : '—', c.hi52Pts)}</td>
+          <td class="mono">${rbFactorCell(c.availCount > 0 ? c.posCount + '/' + c.availCount + ' wks' : 'no data', c.trendPts)}</td>
+          <td class="mono">${rbFactorCell(c.gainLostVal != null ? fmtPct(c.gainLostVal) : '—', c.glPts)}</td>
+          <td class="mono"><b>${c.composite.toFixed(1)}</b></td>
+          <td class="mono">${c.weightPct.toFixed(1)}%</td>
+          <td class="mono">${fmt(c.target)}</td>
+          <td class="mono">${c.totalShares}${sweptNote}</td>
+          <td class="mono">${c.cost > 0 ? fmt(c.cost) : '—'}</td>
+        </tr>`;
+      }).join('');
+
+      return `<div style="overflow-x:auto">
+        <table class="rb-t">
+          <thead><tr>
+            <th>Stock</th>
+            <th>XIRR<br><span style="font-weight:400">40%</span></th>
+            <th>vs 52W high<br><span style="font-weight:400">25%</span></th>
+            <th>3W trend<br><span style="font-weight:400">25%</span></th>
+            <th>Gain lost<br><span style="font-weight:400">10%</span></th>
+            <th title=".40×XIRR + .25×52W + .25×3W + .10×GL">Composite<br><span style="font-weight:400;font-size:9px;white-space:normal">.40XIRR+.25(52W)<br>+.25(3W)+.10GL</span></th>
+            <th>Weight</th>
+            <th>Target</th>
+            <th>Shares</th>
+            <th>Cost</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot><tr>
+            <td>Total</td><td colspan="5"></td>
+            <td>100.0%</td>
+            <td>${fmt(res.amount)}</td>
+            <td>${res.totalShares}</td>
+            <td>${fmt(res.totalCost)}</td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+    }
+
+    function rbEqualTableHtml(res){
+      const rowsHtml = res.rows.map(c => {
+        const sweptNote = c.sweptShares ? `<div class="rb-swept">${c.baseShares} base +${c.sweptShares} swept</div>` : '';
+        return `<tr>
+          <td class="rb-stockname"><span class="tk">${c.ticker}</span><span class="co">${c.name}</span></td>
+          <td class="mono">${c.weightPct.toFixed(1)}%</td>
+          <td class="mono">${fmt(c.target)}</td>
+          <td class="mono">${c.totalShares}${sweptNote}</td>
+          <td class="mono">${c.cost > 0 ? fmt(c.cost) : '—'}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="overflow-x:auto">
+        <table class="rb-t">
+          <thead><tr><th>Stock</th><th>Weight</th><th>Target</th><th>Shares</th><th>Cost</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot><tr><td>Total</td><td>100.0%</td><td>${fmt(res.amount)}</td><td>${res.totalShares}</td><td>${fmt(res.totalCost)}</td></tr></tfoot>
+        </table>
+      </div>`;
+    }
+
+    function rbSideBySideHtml(resW, resE){
+      const mini = res => `<div style="overflow-x:auto"><table class="rb-t">
+        <thead><tr><th>Stock</th><th>Target (weight)</th><th>Shares</th><th>Cost</th></tr></thead>
+        <tbody>${res.rows.map(c => `<tr>
+          <td class="rb-stockname"><span class="tk">${c.ticker}</span></td>
+          <td class="mono">${fmt(c.target)} <span class="ptsub">(${c.weightPct.toFixed(1)}%)</span></td>
+          <td class="mono">${c.totalShares}</td>
+          <td class="mono">${c.cost > 0 ? fmt(c.cost) : '—'}</td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total</td><td>${fmt(res.amount)}</td><td>${res.totalShares}</td><td>${fmt(res.totalCost)}</td></tr></tfoot>
+      </table></div>`;
+      return `<div class="rb-sbsgrid">
+        <div><div style="font-weight:700;margin-bottom:8px">Weighted</div>${mini(resW)}</div>
+        <div><div style="font-weight:700;margin-bottom:8px">Equal split</div>${mini(resE)}</div>
+      </div>`;
+    }
+
+    function rbRunSplit(){
+      const input      = document.getElementById('rb-split-amount');
+      const summaryEl  = document.getElementById('rb-split-summary');
+      const resultsEl  = document.getElementById('rb-split-results');
+      if (!input || !summaryEl || !resultsEl) return;
+      const raw    = input.value.replace(/[^0-9.]/g, '');
+      const amount = parseFloat(raw);
+      if (!raw || isNaN(amount) || amount <= 0) {
+        summaryEl.innerHTML = '';
+        resultsEl.innerHTML = `<div class="rb-note">Enter an amount greater than 0, then Calculate.</div>`;
+        return;
+      }
+      const { holdings } = calcPortfolio();
+      const momentum = holdings.filter(h => holdingTags.has(h.ticker));
+      if (!momentum.length) {
+        summaryEl.innerHTML = '';
+        resultsEl.innerHTML = `<div class="rb-note">No holdings tagged <b>Momentum</b> yet — tag some on the Portfolio tab first.</div>`;
+        return;
+      }
+
+      if (rbSplitMode === 'sidebyside') {
+        const resW = rbCalcSplit(momentum, amount, 'weighted');
+        const resE = rbCalcSplit(momentum, amount, 'equal');
+        summaryEl.innerHTML = '';
+        resultsEl.innerHTML = (resW && resE)
+          ? rbSideBySideHtml(resW, resE)
+          : `<div class="rb-note">Could not compute a split — check live prices have loaded for your momentum holdings.</div>`;
+      } else {
+        const res = rbCalcSplit(momentum, amount, rbSplitMode);
+        if (!res) {
+          summaryEl.innerHTML = '';
+          resultsEl.innerHTML = `<div class="rb-note">Could not compute a split — check live prices have loaded for your momentum holdings.</div>`;
+          return;
+        }
+        summaryEl.innerHTML = rbSplitSummaryHtml(res);
+        resultsEl.innerHTML = rbSplitMode === 'equal' ? rbEqualTableHtml(res) : rbWeightedTableHtml(res);
+      }
+    }
+
     function rbWireOnce(){
       if (rbWired) return; rbWired = true;
       const root = document.getElementById('tab-rebalance');
       if (!root) return;
       root.addEventListener('click', e => {
         const btn = e.target.closest('[data-rbaction]');
-        if (!btn) return;
-        if (btn.dataset.rbaction === 'savecap') rbSaveCap();
+        if (btn) {
+          if (btn.dataset.rbaction === 'savecap')  rbSaveCap();
+          if (btn.dataset.rbaction === 'calcsplit') rbRunSplit();
+          return;
+        }
+        const sortTh = e.target.closest('[data-rbsort]');
+        if (sortTh) {
+          const col = sortTh.dataset.rbsort;
+          if (rbSort.col === col) rbSort.dir = rbSort.dir === 'asc' ? 'desc' : 'asc';
+          else { rbSort.col = col; rbSort.dir = 'asc'; }
+          rbRender();
+          return;
+        }
+        const modeBtn = e.target.closest('[data-rbsplitmode]');
+        if (modeBtn) {
+          rbSplitMode = modeBtn.dataset.rbsplitmode;
+          document.querySelectorAll('#rb-splitmode .rb-tagbtn').forEach(b =>
+            b.classList.toggle('on', b.dataset.rbsplitmode === rbSplitMode));
+          rbRunSplit();
+        }
       });
       root.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && e.target && e.target.id === 'rb-cap-input') rbSaveCap();
+        if (e.key !== 'Enter' || !e.target) return;
+        if (e.target.id === 'rb-cap-input')    rbSaveCap();
+        if (e.target.id === 'rb-split-amount') rbRunSplit();
       });
     }
 
