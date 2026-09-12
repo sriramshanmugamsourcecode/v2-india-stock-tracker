@@ -1179,6 +1179,9 @@
     .mnt-wrap { display:flex; flex-direction:column; gap:26px; }
     .mnt-title { font-family:var(--font-display); font-size:20px; font-weight:700; }
     .mnt-head-sub { font-size:12px; color:var(--muted); margin-top:4px; max-width:74ch; }
+    .mnt-seg { display:inline-flex; gap:3px; padding:3px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:9px; align-self:flex-start; }
+    .mnt-seg button { font-family:var(--font-mono); font-size:12.5px; font-weight:500; color:var(--muted); background:none; border:none; cursor:pointer; padding:7px 16px; border-radius:6px; }
+    .mnt-seg button.on { background:var(--accent); color:#17131f; }
     .mnt-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
     .mnt-section .mnt-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
     .mnt-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
@@ -1839,9 +1842,15 @@
         <div class="mnt-wrap">
           <div>
             <div class="mnt-title">App Maintenance</div>
-            <div class="mnt-head-sub">Direct data hygiene — add/edit/delete rows without the Supabase SQL editor. Universe today; Trade Logs and Portfolio backup/reset are coming next.</div>
+            <div class="mnt-head-sub">Direct data hygiene — add/edit/delete rows without the Supabase SQL editor. Portfolio backup/reset is coming next.</div>
           </div>
 
+          <div class="mnt-seg" id="mnt-seg">
+            <button type="button" data-p="universe" class="on">Universe</button>
+            <button type="button" data-p="tradelogs">Trade Logs</button>
+          </div>
+
+          <div id="mnt-panel-universe">
           <div class="mnt-section">
             <h2>Universe</h2>
             <div class="mnt-psub">Every field editable in place. Changing the <b>Ticker</b> auto-checks it against Yahoo on blur — Save is blocked until every new/changed row is verified (or explicitly marked "needs an override").</div>
@@ -1858,6 +1867,23 @@
               <div id="mnt-u-ovrows"></div>
             </div>
             <div class="mnt-status" id="mnt-u-status"></div>
+          </div>
+          </div>
+
+          <div id="mnt-panel-tradelogs" style="display:none">
+          <div class="mnt-section">
+            <h2>Trade Logs</h2>
+            <div class="mnt-psub">Same pattern as Universe — edit any cell, add a row, delete a row, then Save to commit.</div>
+            <div class="mnt-toolbar">
+              <label class="mnt-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input id="mnt-t-q" placeholder="Search ticker or company… (type to load matching rows)" autocomplete="off" spellcheck="false">
+              </label>
+              <button class="mnt-btn pri" id="mnt-t-add">+ Add trade</button>
+            </div>
+            <div id="mnt-t-tablewrap"></div>
+            <div class="mnt-status" id="mnt-t-status"></div>
+          </div>
           </div>
         </div>
       </div>
@@ -1893,7 +1919,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.26'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.27'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -5901,8 +5927,215 @@
       if (ovrows) ovrows.addEventListener('click', e => { const b = e.target.closest('[data-ov]'); if (b) removeOverrideTodo(b.dataset.ov); });
     }
 
+    // ---------- sub-nav (Universe / Trade Logs) ----------
+    function wireSegOnce(){
+      const seg = el('mnt-seg'); if (!seg || seg._wired) return; seg._wired = true;
+      seg.querySelectorAll('button').forEach(bn => {
+        bn.addEventListener('click', () => {
+          seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === bn));
+          const p = bn.dataset.p;
+          el('mnt-panel-universe').style.display = p === 'universe' ? '' : 'none';
+          el('mnt-panel-tradelogs').style.display = p === 'tradelogs' ? '' : 'none';
+          if (p === 'tradelogs') { wireTOnce(); if (!tLoaded) loadTrades(); }
+        });
+      });
+    }
+
+    // ===================================================================
+    // Trade Logs panel (same isolated feature, .mnt-* selectors)
+    //   writes: trades table (insert/update/delete, scoped to auth user)
+    // ===================================================================
+    let tRows = [], tLoaded = false, tWired = false;
+    const tRowKey = r => r.id || r._localId;
+    const tFindRow = key => tRows.find(r => tRowKey(r) === key);
+    function tStatus(msg, isErr){ const s = el('mnt-t-status'); if (!s) return; s.textContent = msg || ''; s.className = 'mnt-status' + (isErr ? ' err' : ''); }
+
+    async function loadTrades(){
+      tStatus('Loading trades…');
+      try {
+        const res = await db.from('trades').select('*').order('date', { ascending: false }).range(0, 99999);
+        if (res.error) throw res.error;
+        tRows = (res.data || []).map(r => ({
+          id: r.id, date: r.date, ticker: r.ticker, stock_name: r.stock_name, action: r.action,
+          qty: r.qty, price: r.price, brokerage: r.brokerage, exchange: r.exchange
+        }));
+        tLoaded = true; tStatus('');
+        renderTTable();
+      } catch (e) {
+        tStatus('Could not load trades: ' + (e.message || e), true);
+      }
+    }
+
+    function tRowHtml(r){
+      const cls = r._del ? 'mnt-del' : r._new ? 'mnt-new' : r._dirty ? 'mnt-dirty' : '';
+      const tag = r._new ? '<span class="mnt-tag-new">NEW</span>' : (r._dirty ? '<span class="mnt-dirty-dot"></span>' : '');
+      const dis = r._del ? ' disabled' : '';
+      return '<tr class="' + cls + '" data-id="' + esc(tRowKey(r)) + '">' +
+        '<td>' + tag + '</td>' +
+        '<td><input class="mnt-cell-in" style="width:110px" data-f="date" value="' + esc(r.date || '') + '" placeholder="YYYY-MM-DD"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" style="width:110px" data-f="ticker" value="' + esc(r.ticker || '') + '" placeholder="TICKER"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" data-f="stock_name" value="' + esc(r.stock_name || '') + '" placeholder="Company name"' + dis + '></td>' +
+        '<td><select class="mnt-cell-in" data-f="action"' + dis + '>' +
+          '<option' + (r.action === 'BUY' ? ' selected' : '') + '>BUY</option>' +
+          '<option' + (r.action === 'SELL' ? ' selected' : '') + '>SELL</option></select></td>' +
+        '<td><input class="mnt-cell-in" style="width:70px" data-f="qty" value="' + esc(r.qty != null ? r.qty : '') + '"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" style="width:90px" data-f="price" value="' + esc(r.price != null ? r.price : '') + '"' + dis + '></td>' +
+        '<td><input class="mnt-cell-in" style="width:80px" data-f="brokerage" value="' + esc(r.brokerage != null ? r.brokerage : 0) + '"' + dis + '></td>' +
+        '<td><select class="mnt-cell-in" data-f="exchange"' + dis + '>' +
+          '<option' + (r.exchange === 'NSE' ? ' selected' : '') + '>NSE</option>' +
+          '<option' + (r.exchange === 'BSE' ? ' selected' : '') + '>BSE</option></select></td>' +
+        '<td><button class="mnt-rowdel" data-act="del" title="' + (r._new ? 'Discard new row' : (r._del ? 'Undo delete' : 'Delete row')) + '">' +
+          (r._new ? '&times;' : (r._del ? '&#8634;' : '🗑')) + '</button></td>' +
+      '</tr>';
+    }
+    function renderTTable(){
+      const wrap = el('mnt-t-tablewrap'); if (!wrap) return;
+      const q = (el('mnt-t-q').value || '').trim().toLowerCase();
+      const visible = tRows.filter(r => {
+        if (r._new) return true;
+        if (!q) return false;
+        return (r.ticker || '').toLowerCase().includes(q) || (r.stock_name || '').toLowerCase().includes(q);
+      });
+      if (!visible.length) {
+        wrap.innerHTML = '<div class="mnt-hint">' + (q ? 'No matches for "' + esc(q) + '".' : 'Type to search, or click "+ Add trade" to add a new row.') + '</div>';
+        updateTSaveBar();
+        return;
+      }
+      const shown = visible.slice(0, 200);
+      let h = '<table class="mnt-t"><thead><tr><th style="width:36px"></th><th>Date</th><th>Ticker</th><th>Stock name</th><th>Action</th><th>Qty</th><th>Price</th><th>Brokerage</th><th>Exch.</th><th style="width:40px"></th></tr></thead><tbody>';
+      shown.forEach(r => { h += tRowHtml(r); });
+      h += '</tbody></table>';
+      wrap.innerHTML = h;
+      if (visible.length > shown.length) {
+        const note = document.createElement('div'); note.className = 'mnt-status';
+        note.textContent = 'Showing ' + shown.length + ' of ' + visible.length + ' matches — narrow your search to see the rest.';
+        wrap.appendChild(note);
+      }
+      updateTSaveBar();
+    }
+    function tRowInvalid(r){
+      if (!r.ticker) return true;
+      const q = Number(r.qty), p = Number(r.price);
+      if (!isFinite(q) || q <= 0) return true;
+      if (!isFinite(p) || p < 0) return true;
+      if (!r.date) return true;
+      if (r.action !== 'BUY' && r.action !== 'SELL') return true;
+      return false;
+    }
+    function ensureTSaveBar(){
+      let bar = el('mnt-t-savebar-el');
+      if (!bar) {
+        const wrap = el('mnt-t-tablewrap'); if (!wrap) return null;
+        bar = document.createElement('div');
+        bar.id = 'mnt-t-savebar-el'; bar.className = 'mnt-savebar';
+        bar.innerHTML = '<div class="l"></div><div class="r"><button class="mnt-btn gho" id="mnt-t-discard">Discard all</button><button class="mnt-btn pri" disabled>Save changes</button></div>';
+        wrap.insertAdjacentElement('afterend', bar);
+        bar.querySelector('.mnt-btn.pri').addEventListener('click', saveTrades);
+        bar.querySelector('#mnt-t-discard').addEventListener('click', () => { tLoaded = false; loadTrades(); });
+      }
+      return bar;
+    }
+    function updateTSaveBar(){
+      const bar = ensureTSaveBar(); if (!bar) return;
+      const news = tRows.filter(r => r._new && !r._del);
+      const dirty = tRows.filter(r => r._dirty && !r._new && !r._del);
+      const dels = tRows.filter(r => r._del);
+      const total = news.length + dirty.length + dels.length;
+      const blockers = tRows.filter(r => (r._new || r._dirty) && tRowInvalid(r));
+      bar.querySelector('.l').innerHTML = 'Pending: <b>' + news.length + ' new</b> · <b>' + dirty.length + ' edited</b> · <b>' + dels.length + ' deleted</b>' +
+        (blockers.length ? ' — <b>' + blockers.length + ' invalid</b>' : '');
+      bar.classList.toggle('blocked', blockers.length > 0);
+      const btn = bar.querySelector('.mnt-btn.pri');
+      btn.disabled = (total === 0) || blockers.length > 0;
+      btn.textContent = 'Save changes' + (total ? ' (' + total + ')' : '');
+    }
+    function addTRow(){
+      tRows.unshift({ _localId: 'new_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        date: new Date().toISOString().slice(0, 10), ticker: '', stock_name: '', action: 'BUY', qty: '', price: '', brokerage: 0, exchange: 'NSE', _new: true });
+      renderTTable();
+      setTimeout(() => { const inp = document.querySelector('#mnt-t-tablewrap tr.mnt-new input[data-f="ticker"]'); if (inp) inp.focus(); }, 0);
+    }
+    async function saveTrades(){
+      const bar = ensureTSaveBar(); const btn = bar && bar.querySelector('.mnt-btn.pri');
+      if (btn) btn.disabled = true;
+      tStatus('Saving…');
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) throw new Error('Not logged in');
+        const dels  = tRows.filter(r => r._del && r.id);
+        const dirty = tRows.filter(r => r._dirty && !r._new && !r._del);
+        const news  = tRows.filter(r => r._new && !r._del);
+        for (const r of dels) {
+          const res = await db.from('trades').delete().eq('id', r.id).eq('user_id', user.id);
+          if (res.error) throw res.error;
+        }
+        for (const r of dirty) {
+          const res = await db.from('trades').update({
+            date: r.date, ticker: r.ticker, stock_name: r.stock_name, action: r.action,
+            qty: Number(r.qty), price: Number(r.price), brokerage: Number(r.brokerage) || 0, exchange: r.exchange
+          }).eq('id', r.id).eq('user_id', user.id);
+          if (res.error) throw res.error;
+        }
+        for (const r of news) {
+          const res = await db.from('trades').insert({
+            date: r.date, ticker: r.ticker, stock_name: r.stock_name, action: r.action,
+            qty: Number(r.qty), price: Number(r.price), brokerage: Number(r.brokerage) || 0, exchange: r.exchange, user_id: user.id
+          });
+          if (res.error) throw res.error;
+        }
+        tStatus('Saved ' + (dels.length + dirty.length + news.length) + ' change(s).');
+        tLoaded = false;
+        await loadTrades();
+      } catch (e) {
+        tStatus('Save failed: ' + (e.message || e), true);
+        if (btn) btn.disabled = false;
+      }
+    }
+    function onTCellInput(e){
+      const inp = e.target.closest && e.target.closest('input[data-f]'); if (!inp) return;
+      const tr = inp.closest('tr'); const r = tFindRow(tr.dataset.id); if (!r) return;
+      const f = inp.dataset.f;
+      if (f === 'ticker') r.ticker = inp.value.toUpperCase();
+      else if (f === 'stock_name') r.stock_name = inp.value;
+      else if (f === 'date') r.date = inp.value;
+      else if (f === 'qty') r.qty = inp.value;
+      else if (f === 'price') r.price = inp.value;
+      else if (f === 'brokerage') r.brokerage = inp.value;
+      if (!r._new) r._dirty = true;
+      updateTSaveBar();
+    }
+    function onTCellChange(e){
+      const sel = e.target.closest && e.target.closest('select[data-f]');
+      if (sel) {
+        const tr = sel.closest('tr'); const r = tFindRow(tr.dataset.id); if (!r) return;
+        const f = sel.dataset.f;
+        if (f === 'action') r.action = sel.value; else if (f === 'exchange') r.exchange = sel.value;
+        if (!r._new) r._dirty = true;
+        updateTSaveBar();
+      }
+    }
+    function onTCellClick(e){
+      const del = e.target.closest && e.target.closest('[data-act="del"]');
+      if (del) {
+        const tr = del.closest('tr'); const r = tFindRow(tr.dataset.id); if (!r) return;
+        if (r._new) tRows = tRows.filter(x => x !== r);
+        else r._del = !r._del;
+        renderTTable();
+      }
+    }
+    function wireTOnce(){
+      if (tWired) return; tWired = true;
+      el('mnt-t-q').addEventListener('input', renderTTable);
+      el('mnt-t-add').addEventListener('click', addTRow);
+      const wrap = el('mnt-t-tablewrap');
+      wrap.addEventListener('input', onTCellInput);
+      wrap.addEventListener('change', onTCellChange);
+      wrap.addEventListener('click', onTCellClick);
+    }
+
     window.mntEnter = function(){
       wireOnce();
+      wireSegOnce();
       renderOverrideList();
       if (!uLoaded) loadUniverse();
     };
