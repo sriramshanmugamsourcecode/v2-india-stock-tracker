@@ -1369,6 +1369,67 @@
     .lk-foot { margin-top: 16px; font-size: 10.5px; color: var(--muted); line-height: 1.6; }
     .lk-foot b { color: var(--text); font-weight: 600; }
     @media (max-width: 640px) { .lk-sb { grid-template-columns: 1fr; } .lk-mt { border-right: 0; border-bottom: 0.5px solid var(--border); } }
+
+    /* ===== REBALANCE (isolated feature — all selectors .rb-*) ===== */
+    .rb-wrap { display:flex; flex-direction:column; gap:26px; }
+    .rb-title { font-family:var(--font-display); font-size:20px; font-weight:700; }
+    .rb-head-sub { font-size:12px; color:var(--muted); margin-top:4px; max-width:74ch; }
+    .rb-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
+    .rb-section .rb-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
+
+    .rb-capcard { display:grid; grid-template-columns:1.1fr 1.4fr auto; gap:24px; align-items:center; background:var(--card); border:0.5px solid var(--border2); border-radius:12px; padding:18px 20px; }
+    @media (max-width: 820px) { .rb-capcard { grid-template-columns:1fr; } }
+    .rb-capfig .l { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:4px; font-family:var(--font-mono); }
+    .rb-capfig .v { font-family:var(--font-mono); font-size:1.5rem; font-weight:600; }
+    .rb-capfig .s { font-size:11.5px; color:var(--muted); margin-top:3px; }
+    .rb-capfig .s .up { color:var(--accent); }
+    .rb-capfig .s .down { color:var(--red); }
+
+    .rb-utilhead { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px; font-family:var(--font-mono); }
+    .rb-utilbar { position:relative; height:9px; border-radius:100px; background:var(--bg3); border:0.5px solid var(--border2); overflow:hidden; }
+    .rb-utilbar .f { position:absolute; inset:0 auto 0 0; background:linear-gradient(90deg, var(--accent2), var(--accent)); border-radius:100px; }
+    .rb-utilfoot { display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted); margin-top:6px; font-family:var(--font-mono); }
+
+    .rb-capedit { display:flex; flex-direction:column; gap:8px; min-width:180px; }
+    .rb-capedit label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-family:var(--font-mono); }
+    .rb-capedit .row { display:flex; gap:8px; }
+    .rb-capedit input { font-family:var(--font-mono); font-size:13px; padding:9px 10px; border-radius:8px; border:0.5px solid var(--border2); background:var(--bg3); color:var(--text); width:140px; }
+    .rb-capedit input:focus { outline:0; box-shadow:inset 0 0 0 1px var(--accent); }
+    .rb-btn { font-family:var(--font-body); font-size:12.5px; font-weight:600; padding:9px 14px; border-radius:8px; border:0; background:var(--accent2); color:#fff; cursor:pointer; }
+    .rb-btn:hover { filter:brightness(1.08); }
+    .rb-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .rb-status { font-size:11px; color:var(--muted); min-height:14px; margin-top:2px; }
+    .rb-status.ok { color:var(--accent); }
+    .rb-status.err { color:var(--red); }
+
+    .rb-note { display:flex; gap:10px; background:var(--bg2); border:0.5px solid var(--border); border-radius:10px; padding:10px 13px; font-size:11.5px; color:var(--muted); }
+    .rb-note b { color:var(--text); }
+
+    table.rb-t { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
+    table.rb-t th { text-align:right; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; padding:9px 12px; background:var(--bg3); border-bottom:0.5px solid var(--border2); white-space:nowrap; }
+    table.rb-t th:first-child { text-align:left; }
+    table.rb-t td { padding:10px 12px; border-bottom:0.5px solid var(--border); text-align:right; font-family:var(--font-mono); font-size:12.5px; white-space:nowrap; }
+    table.rb-t td:first-child { text-align:left; font-family:var(--font-body); }
+    table.rb-t tbody tr:last-child td { border-bottom:0; }
+    table.rb-t tbody tr:hover td { background:var(--bg2); }
+    table.rb-t tfoot td { font-weight:700; background:var(--bg3); border-top:1px solid var(--border2); border-bottom:0; }
+    .rb-stockname .tk { font-family:var(--font-mono); font-weight:600; color:var(--text); }
+    .rb-stockname .co { display:block; font-size:10px; color:var(--muted); font-family:var(--font-body); }
+    .rb-share { display:inline-block; width:46px; height:5px; border-radius:100px; background:var(--bg3); margin-right:6px; vertical-align:middle; overflow:hidden; }
+    .rb-share i { display:block; height:100%; background:var(--accent); }
+    .rb-52.warm { color:var(--amber); }
+
+    .rb-comingsoon { display:flex; gap:22px; align-items:center; flex-wrap:wrap; border:1.5px dashed var(--border2); border-radius:12px; padding:24px; background:var(--card); }
+    .rb-comingsoon .badge { font-family:var(--font-mono); font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--accent); background:rgba(167,139,250,.12); padding:3px 9px; border-radius:100px; }
+    .rb-comingsoon .txt { flex:1 1 300px; }
+    .rb-comingsoon .txt h3 { font-family:var(--font-display); font-size:15px; margin:8px 0 6px; }
+    .rb-comingsoon .txt p { font-size:12px; color:var(--muted); max-width:56ch; }
+    .rb-comingsoon .stub { display:flex; gap:10px; flex-wrap:wrap; }
+    .rb-comingsoon input { font-family:var(--font-mono); padding:9px 11px; border-radius:8px; border:0.5px solid var(--border2); background:var(--bg3); color:var(--muted); width:160px; }
+
+    .rb-tagctrl { display:inline-flex; border:0.5px solid var(--border2); border-radius:7px; overflow:hidden; }
+    .rb-tagbtn { font-family:var(--font-body); font-size:11px; font-weight:600; padding:5px 10px; border:0; background:var(--bg3); color:var(--muted); cursor:pointer; }
+    .rb-tagbtn.on { background:var(--accent); color:#17131f; }
   </style>
 </head>
 <body>
@@ -1413,6 +1474,7 @@
         <button class="nav-btn" onclick="switchTab('wow', this)">WoW Tracker</button>
         <button class="nav-btn" onclick="switchTab('screener', this)">⬡ Discovery</button>
         <button class="nav-btn" onclick="switchTab('rankhistory', this)">📈 Rank History</button>
+        <button class="nav-btn" onclick="switchTab('rebalance', this)">⚖️ Rebalance</button>
         <button class="nav-btn" onclick="switchTab('maintenance', this)">🛠️ Maintenance</button>
       </div>
 
@@ -1984,6 +2046,43 @@
         </div>
       </div>
 
+      <!-- Rebalance Tab — isolated feature; momentum sleeve tracked against a capital cap -->
+      <div id="tab-rebalance" style="display:none">
+        <div class="rb-wrap">
+          <div>
+            <div class="rb-title">Rebalance</div>
+            <div class="rb-head-sub">Your momentum sleeve, tracked against a capital cap you set — separate from the rest of the portfolio. Tag holdings as Momentum on the Portfolio tab.</div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Momentum capital</h2>
+            <div class="rb-psub">The ceiling you've set for this sleeve — updating it doesn't move any cash by itself, it's just how much you're willing to have deployed in total.</div>
+            <div class="rb-capcard" id="rb-capcard">Loading…</div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Momentum holdings</h2>
+            <div class="rb-psub">1W change, 3W trend and Gain lost come from the WoW tracker's saved weeks. vs 52W high is fetched from Yahoo, cached for a day.</div>
+            <div id="rb-holdings-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Rebalance for this week</h2>
+            <div class="rb-comingsoon">
+              <div class="txt">
+                <span class="badge">Coming soon</span>
+                <h3>Suggested split, once we design the method</h3>
+                <p>Enter an amount, get a suggested split across the momentum names above. Holding off on the allocation logic (equal-weight? rank-weighted? top-up laggards vs winners?) until the table above has been used for a few weeks.</p>
+              </div>
+              <div class="stub">
+                <input type="text" placeholder="₹ amount to deploy" disabled>
+                <button class="rb-btn" disabled>Calculate split</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- WoW Stock Detail Modal -->
       <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
         <div class="wow-modal" id="wow-modal">
@@ -2015,7 +2114,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.30'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.31'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2189,6 +2288,7 @@
     try {
       const [tradesRes] = await Promise.all([
         db.from('trades').select('*').order('date', { ascending: true }),
+        loadHoldingTags(),
       ]);
       if (tradesRes.error) throw tradesRes.error;
       trades = tradesRes.data;
@@ -2218,6 +2318,45 @@
       document.getElementById('error-area').innerHTML =
         `<div class="error-box">Error: ${e.message}</div>`;
       console.error(e);
+    }
+  }
+
+  // ============================================================
+  // HOLDING TAGS (Long term / Momentum) — feeds the Portfolio tag toggle
+  // and the Rebalance tab. Only Momentum-tagged tickers get a row in
+  // `holding_tags`; anything absent is Long term by default.
+  // ============================================================
+  let holdingTags = new Set(); // bare tickers currently tagged 'momentum'
+
+  async function loadHoldingTags() {
+    try {
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) return;
+      const { data, error } = await db.from('holding_tags').select('ticker').eq('user_id', user.id);
+      if (error) throw error;
+      holdingTags = new Set((data || []).map(r => r.ticker));
+    } catch (e) { console.warn('loadHoldingTags failed:', e.message); }
+  }
+
+  async function toggleHoldingTag(ticker, makeMomentum) {
+    try {
+      const user = (await db.auth.getUser()).data.user;
+      if (!user) return;
+      if (makeMomentum) {
+        const { error } = await db.from('holding_tags')
+          .upsert({ user_id: user.id, ticker, tag: 'momentum', updated_at: new Date().toISOString() }, { onConflict: 'user_id,ticker' });
+        if (error) throw error;
+        holdingTags.add(ticker);
+      } else {
+        const { error } = await db.from('holding_tags').delete().eq('user_id', user.id).eq('ticker', ticker);
+        if (error) throw error;
+        holdingTags.delete(ticker);
+      }
+      renderPortfolio();
+      const rbTab = document.getElementById('tab-rebalance');
+      if (window.rbEnter && rbTab && rbTab.style.display !== 'none') window.rbEnter();
+    } catch (e) {
+      alert('Could not update tag: ' + (e.message || e));
     }
   }
 
@@ -2455,10 +2594,12 @@
           ${th('livePrice',     'Live Price')}
           ${th('unrealisedPnl', 'Unrealised P&L')}
           ${th('unrealisedPct', 'P&L %')}
+          <th>Tag</th>
           <th style="color:var(--muted);font-size:10px">Del</th>
         </tr></thead>
         <tbody>${sorted.map(h => {
           const pnlCls  = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
+          const isMom   = holdingTags.has(h.ticker);
           return `<tr>
             <td style="font-weight:500">${h.name}</td>
             <td><span class="ticker-pill">${h.ticker}</span></td>
@@ -2474,6 +2615,12 @@
             <td class="mono">${fmtPrice(h.livePrice)}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
             <td class="mono ${pnlCls}">${h.unrealisedPct != null ? fmtPct(h.unrealisedPct) : '—'}</td>
+            <td>
+              <div class="rb-tagctrl" title="Tag this holding — drives the Rebalance tab">
+                <button type="button" class="rb-tagbtn ${!isMom ? 'on' : ''}" onclick="toggleHoldingTag('${h.ticker}', false)">Long term</button>
+                <button type="button" class="rb-tagbtn ${isMom ? 'on' : ''}" onclick="toggleHoldingTag('${h.ticker}', true)">Momentum</button>
+              </div>
+            </td>
             <td><button class="trade-delete-btn" onclick="deleteHolding('${h.ticker}')" title="Delete entire holding — every buy and sell for this stock">🗑</button></td>
           </tr>`;
         }).join('')}
@@ -3299,13 +3446,14 @@
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio','trades','wow','screener','rankhistory','maintenance'].forEach(t =>
+    ['portfolio','trades','wow','screener','rankhistory','rebalance','maintenance'].forEach(t =>
       document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
     );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (tab === 'rankhistory' && window.rhEnter) window.rhEnter();
     if (tab === 'screener' && window.lkEnter) window.lkEnter();
+    if (tab === 'rebalance' && window.rbEnter) window.rbEnter();
     if (tab === 'maintenance' && window.mntEnter) window.mntEnter();
   }
 
@@ -6627,6 +6775,261 @@
       wireACOnce();
       renderOverrideList();
       if (!uLoaded) loadUniverse();
+    };
+  })();
+
+  // ============================================================
+  // REBALANCE (isolated feature — all selectors .rb-*)
+  //   reads : db, calcPortfolio, holdingTags, wowEntries, bareSym,
+  //           wowStreakArrows, scrFetch1Y, scrHigh52, fmt, fmtPct, fmtPrice
+  //   Momentum capital = a cap the user sets manually (max sleeve size,
+  //   not a weekly top-up). Append-only log in `momentum_capital` —
+  //   latest row = current, one before = previous week.
+  // ============================================================
+  (function(){
+    let rbCapRows   = [];    // latest 2 rows from momentum_capital, newest first
+    let rbCapLoaded = false;
+    let rbWired     = false;
+
+    // -- 52-week-high cache (localStorage, 24h TTL) --------------------
+    let rb52wCache = {};
+    try { rb52wCache = JSON.parse(localStorage.getItem('rb_52w_v1') || '{}'); } catch (e) { rb52wCache = {}; }
+    const RB_52W_TTL = 24 * 3600 * 1000;
+    const rb52wInflight = new Set();
+
+    function rb52wEnsure(ticker, exchange){
+      const c = rb52wCache[ticker];
+      const fresh = c && (Date.now() - c.ts) < RB_52W_TTL;
+      if (fresh || rb52wInflight.has(ticker)) return;
+      rb52wInflight.add(ticker);
+      scrFetch1Y(ticker, exchange).then(res => {
+        const hi52 = (res && res.days && res.days.length) ? scrHigh52(res.days) : null;
+        rb52wCache[ticker] = { hi52, ts: Date.now() };
+        try { localStorage.setItem('rb_52w_v1', JSON.stringify(rb52wCache)); } catch (e) {}
+        rb52wInflight.delete(ticker);
+        rbRender(); // refresh once this ticker's number lands
+      }).catch(() => { rb52wInflight.delete(ticker); });
+    }
+
+    // -- Momentum capital: load / save ----------------------------------
+    async function rbLoadCap(){
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) { rbCapRows = []; return; }
+        const { data, error } = await db.from('momentum_capital')
+          .select('amount, updated_at')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(2);
+        if (error) throw error;
+        rbCapRows = data || [];
+      } catch (e) {
+        console.warn('rbLoadCap failed:', e.message);
+        rbCapRows = [];
+      }
+    }
+
+    async function rbSaveCap(){
+      const input    = document.getElementById('rb-cap-input');
+      const statusEl = document.getElementById('rb-cap-status');
+      if (!input || !statusEl) return;
+      const raw    = input.value.replace(/[^0-9.]/g, '');
+      const amount = parseFloat(raw);
+      if (!raw || isNaN(amount) || amount <= 0) {
+        statusEl.textContent = 'Enter a valid amount greater than 0.';
+        statusEl.className   = 'rb-status err';
+        return;
+      }
+      statusEl.textContent = 'Saving…';
+      statusEl.className   = 'rb-status';
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) throw new Error('Not signed in');
+        const { error } = await db.from('momentum_capital').insert({ user_id: user.id, amount });
+        if (error) throw error;
+        await rbLoadCap();
+        rbRender();
+        const s2 = document.getElementById('rb-cap-status'); // re-render replaced the old node
+        if (s2) { s2.textContent = '✓ Cap updated.'; s2.className = 'rb-status ok'; }
+      } catch (e) {
+        statusEl.textContent = 'Save failed: ' + (e.message || e);
+        statusEl.className   = 'rb-status err';
+      }
+    }
+
+    function rbRenderCapCard(deployed){
+      const box = document.getElementById('rb-capcard');
+      if (!box) return;
+      const cur  = rbCapRows[0] ? Number(rbCapRows[0].amount) : null;
+      const prev = rbCapRows[1] ? Number(rbCapRows[1].amount) : null;
+
+      let subHtml = 'Nothing set yet';
+      if (cur != null && prev != null) {
+        const up = cur >= prev;
+        subHtml = `Previous week <span class="${up ? 'up' : 'down'}">${up ? '↑' : '↓'} ${fmt(prev)}</span>`;
+      } else if (cur != null) {
+        subHtml = 'No previous figure yet';
+      }
+
+      let utilHtml;
+      if (cur != null && cur > 0) {
+        const pct      = (deployed / cur) * 100;
+        const headroom = cur - deployed;
+        utilHtml = `
+          <div>
+            <div class="rb-utilhead"><span>Deployed into momentum</span><span>${fmt(deployed)} of ${fmt(cur)}</span></div>
+            <div class="rb-utilbar"><div class="f" style="width:${Math.max(0, Math.min(100, pct)).toFixed(1)}%"></div></div>
+            <div class="rb-utilfoot"><span>${pct.toFixed(1)}% deployed</span><span>${headroom >= 0 ? fmt(headroom) + ' headroom' : fmt(-headroom) + ' over cap'}</span></div>
+          </div>`;
+      } else {
+        utilHtml = `<div style="font-size:12px;color:var(--muted)">Set a cap to see how much of it is deployed.</div>`;
+      }
+
+      box.innerHTML = `
+        <div class="rb-capfig">
+          <div class="l">Cap (this week)</div>
+          <div class="v">${cur != null ? fmt(cur) : '—'}</div>
+          <div class="s">${subHtml}</div>
+        </div>
+        ${utilHtml}
+        <div class="rb-capedit">
+          <label for="rb-cap-input">Update cap</label>
+          <div class="row">
+            <input type="text" id="rb-cap-input" placeholder="e.g. 600000" inputmode="numeric" value="${cur != null ? Math.round(cur) : ''}">
+            <button class="rb-btn" data-rbaction="savecap">Save</button>
+          </div>
+          <div class="rb-status" id="rb-cap-status"></div>
+        </div>`;
+    }
+
+    // -- Momentum holdings table -----------------------------------------
+    function rbRenderHoldings(momentum, capAmount){
+      const wrap = document.getElementById('rb-holdings-wrap');
+      if (!wrap) return;
+      if (!momentum.length) {
+        wrap.innerHTML = `<div class="rb-note">No holdings tagged <b>Momentum</b> yet — tag some on the Portfolio tab, then come back here.</div>`;
+        return;
+      }
+
+      // Per-ticker weekly close history, same construction as the WoW tab
+      const weekMap = {};
+      wowEntries.forEach(e => {
+        if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
+        weekMap[e.week_date][bareSym(e.ticker)] = e.close_price;
+      });
+      const weeks     = Object.keys(weekMap).sort((a, b) => a.localeCompare(b));
+      const latestWk  = weeks[weeks.length - 1];
+      const prevWk    = weeks[weeks.length - 2];
+
+      let sumPnl = 0, sumCapPct = 0, anyCapPct = false;
+
+      const rowsHtml = momentum.map(h => {
+        const hist = weeks.map(w => ({ date: w, price: weekMap[w][h.ticker] })).filter(d => d.price != null);
+        const pnlCls = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
+        if (h.unrealisedPnl != null) sumPnl += h.unrealisedPnl;
+
+        let wowChgHtml = '<span style="color:var(--muted)">—</span>';
+        if (latestWk && prevWk) {
+          const p1 = weekMap[latestWk][h.ticker], p0 = weekMap[prevWk][h.ticker];
+          if (p1 != null && p0 != null) {
+            const chg = ((p1 - p0) / p0) * 100;
+            wowChgHtml = `<span class="${chg >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(chg)}</span>`;
+          }
+        }
+
+        let gainLostHtml = '<span style="color:var(--muted)">—</span>';
+        if (hist.length && h.avgBuy > 0 && h.livePrice != null) {
+          const peakPrice  = Math.max(...hist.map(d => d.price));
+          const peakPnlPct = ((peakPrice - h.avgBuy) / h.avgBuy) * 100;
+          const curPnlPct  = ((h.livePrice - h.avgBuy) / h.avgBuy) * 100;
+          const gainLost   = curPnlPct - peakPnlPct;
+          gainLostHtml = `<span class="${gainLost < -0.05 ? 'negative-text' : ''}">${gainLost < -0.05 ? fmtPct(gainLost) : '▲ at peak'}</span>`;
+        }
+
+        const trendHtml = wowStreakArrows(hist, 3);
+
+        let capPctHtml = '<span style="color:var(--muted)">—</span>';
+        if (capAmount && h.currentValue != null) {
+          const pct = (h.currentValue / capAmount) * 100;
+          sumCapPct += pct; anyCapPct = true;
+          capPctHtml = `<span class="rb-share"><i style="width:${Math.max(0, Math.min(100, pct * 5)).toFixed(0)}%"></i></span>${pct.toFixed(1)}%`;
+        }
+
+        const y = rb52wCache[h.ticker];
+        let hi52Html = '<span style="color:var(--muted)">…</span>';
+        if (y) {
+          if (y.hi52 == null) hi52Html = '<span style="color:var(--muted)">n/a</span>';
+          else if (h.livePrice != null) {
+            const gap = ((h.livePrice - y.hi52) / y.hi52) * 100;
+            hi52Html = `<span class="rb-52 ${gap < -15 ? 'warm' : ''}">${fmtPct(gap)}</span>`;
+          }
+        }
+
+        return `<tr>
+          <td class="rb-stockname"><span class="tk">${h.ticker}</span><span class="co">${h.name}</span></td>
+          <td class="mono">${h.netQty}</td>
+          <td class="mono">${fmtPrice(h.avgBuy)}</td>
+          <td class="mono">${fmtPrice(h.livePrice)}</td>
+          <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
+          <td class="mono">${capPctHtml}</td>
+          <td class="mono">${wowChgHtml}</td>
+          <td>${trendHtml}</td>
+          <td class="mono">${gainLostHtml}</td>
+          <td class="mono">${hi52Html}</td>
+        </tr>`;
+      }).join('');
+
+      wrap.innerHTML = `
+        <div style="overflow-x:auto">
+        <table class="rb-t">
+          <thead><tr>
+            <th>Stock</th><th>Qty</th><th>Avg cost</th><th>Current</th><th>P&amp;L</th>
+            <th>% of cap</th><th>1W chg</th><th>3W trend</th><th>Gain lost</th><th>vs 52W high</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot><tr>
+            <td>Momentum total</td><td colspan="3"></td>
+            <td class="mono ${sumPnl >= 0 ? 'positive-text' : 'negative-text'}">${fmt(sumPnl)}</td>
+            <td class="mono">${anyCapPct ? sumCapPct.toFixed(1) + '%' : '—'}</td>
+            <td colspan="4"></td>
+          </tr></tfoot>
+        </table>
+        </div>`;
+
+      momentum.forEach(h => rb52wEnsure(h.ticker, h.exchange));
+    }
+
+    function rbRender(){
+      const { holdings } = calcPortfolio();
+      const momentum = holdings.filter(h => holdingTags.has(h.ticker));
+      const deployed = momentum.reduce((s, h) => s + (h.currentValue || 0), 0);
+      const capAmount = rbCapRows[0] ? Number(rbCapRows[0].amount) : null;
+      rbRenderCapCard(deployed);
+      rbRenderHoldings(momentum, capAmount);
+    }
+
+    function rbWireOnce(){
+      if (rbWired) return; rbWired = true;
+      const root = document.getElementById('tab-rebalance');
+      if (!root) return;
+      root.addEventListener('click', e => {
+        const btn = e.target.closest('[data-rbaction]');
+        if (!btn) return;
+        if (btn.dataset.rbaction === 'savecap') rbSaveCap();
+      });
+      root.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target && e.target.id === 'rb-cap-input') rbSaveCap();
+      });
+    }
+
+    window.rbEnter = function(){
+      rbWireOnce();
+      if (!rbCapLoaded) {
+        rbCapLoaded = true;
+        rbLoadCap().then(rbRender);
+      } else {
+        rbRender();
+      }
     };
   })();
 </script>
