@@ -1250,6 +1250,63 @@
     .mnt-ac-item .t { font-family:var(--font-mono); color:var(--accent); }
     .mnt-ac-item .n { color:var(--muted); font-size:10.5px; }
 
+    /* ---- Portfolio panel: Backups + Reset Portfolio ---- */
+    table.mnt-vt { width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+    table.mnt-vt th { text-align:left; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; padding:7px 10px; border-bottom:0.5px solid var(--border2); }
+    table.mnt-vt td { padding:7px 10px; border-bottom:0.5px solid var(--border); font-family:var(--font-mono); }
+    table.mnt-vt tbody tr:last-child td { border-bottom:0; }
+    table.mnt-vt td.note { font-family:var(--font-body); }
+    .mnt-ic { background:none; border:0; color:var(--muted); cursor:pointer; font-size:12px; margin-right:8px; }
+    .mnt-ic:hover { color:var(--accent); }
+    .mnt-ic.del:hover { color:var(--red); }
+    .mnt-vt-empty { font-size:12px; color:var(--muted); padding:10px 2px; }
+
+    .mnt-rp-idle { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; background:var(--bg3); border:0.5px solid var(--border2); border-radius:11px; padding:14px 16px; }
+    .mnt-rp-idle .t { font-size:12.5px; color:var(--muted); }
+    .mnt-rp-idle .t b { color:var(--text); }
+
+    .mnt-rp-step { border-left:2px solid var(--border2); padding-left:16px; margin-left:2px; position:relative; margin-bottom:4px; }
+    .mnt-rp-step::before { content:""; position:absolute; left:-6px; top:2px; width:10px; height:10px; border-radius:50%; background:var(--bg2); border:2px solid var(--border2); }
+    .mnt-rp-step.done::before { background:var(--accent); border-color:var(--accent); }
+    .mnt-rp-step.active { border-left-color:var(--accent); padding-bottom:20px; }
+    .mnt-rp-step.active::before { border-color:var(--accent); }
+    .mnt-rp-step.done { padding-bottom:14px; }
+    .mnt-rp-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .mnt-rp-head .lbl { font-size:13px; font-weight:600; }
+    .mnt-rp-head .sum { font-size:11.5px; color:var(--muted); font-family:var(--font-mono); }
+    .mnt-chg { margin-left:auto; background:none; border:0; color:var(--accent); font-size:11.5px; cursor:pointer; font-weight:600; }
+    .mnt-rp-body { margin-top:12px; }
+    .mnt-rp-cancel { margin-top:16px; }
+
+    .mnt-howto { background:var(--bg3); border:0.5px solid var(--border2); border-radius:10px; padding:13px 15px; font-size:12px; color:var(--text); margin-bottom:14px; line-height:1.7; }
+    .mnt-howto code { background:var(--card); padding:1px 5px; border-radius:4px; font-family:var(--font-mono); font-size:11px; }
+
+    .mnt-dropzone { border:1.5px dashed var(--border2); border-radius:11px; padding:22px; text-align:center; color:var(--muted); font-size:12.5px; margin-bottom:14px; cursor:pointer; }
+    .mnt-dropzone:hover { border-color:var(--accent); }
+
+    .mnt-swap { display:flex; align-items:center; justify-content:center; gap:16px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; flex-wrap:wrap; }
+    .mnt-swap .side { text-align:center; flex:1; min-width:150px; }
+    .mnt-swap .side .l { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+    .mnt-swap .side .n { font-family:var(--font-mono); font-size:19px; font-weight:500; }
+    .mnt-swap .side .n2 { font-family:var(--font-mono); font-size:11.5px; color:var(--muted); margin-top:2px; }
+    .mnt-swap .side.after .n { color:var(--accent); }
+    .mnt-swap .arrow { color:var(--muted); font-size:18px; }
+
+    table.mnt-pv { width:100%; border-collapse:collapse; font-size:12px; background:var(--card); border:0.5px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:14px; }
+    table.mnt-pv th { text-align:right; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; padding:7px 11px; background:var(--bg3); border-bottom:0.5px solid var(--border2); }
+    table.mnt-pv th:first-child { text-align:left; }
+    table.mnt-pv td { padding:6px 11px; text-align:right; font-family:var(--font-mono); border-bottom:0.5px solid var(--border); }
+    table.mnt-pv td:first-child { text-align:left; }
+    table.mnt-pv tbody tr:last-child td { border-bottom:0; }
+    table.mnt-pv tr.flag td { background:rgba(251,191,36,.07); }
+    .mnt-pv-scroll { max-height:220px; overflow-y:auto; border-radius:10px; }
+    .mnt-pv-edit { width:100%; background:none; border:0; outline:0; color:var(--text); font-family:var(--font-mono); font-size:12px; text-align:left; }
+    .mnt-pv-edit:focus { background:var(--bg3); box-shadow:inset 0 0 0 1px var(--accent); }
+
+    .mnt-warnbox { background:rgba(251,191,36,.08); border:0.5px solid rgba(251,191,36,.3); border-radius:10px; padding:12px 14px; font-size:12px; color:var(--text); margin-bottom:14px; display:flex; gap:10px; }
+    .mnt-warnbox.danger { background:rgba(248,113,113,.08); border-color:rgba(248,113,113,.3); }
+    .mnt-confirm-in { background:var(--bg3); border:0.5px solid var(--border2); border-radius:8px; padding:9px 12px; color:var(--text); font-family:var(--font-mono); font-size:13px; width:240px; }
+
     /* ===== PATTERN LOOKUP (isolated feature — all selectors .lk-*) ===== */
     .lk-panel { margin: 14px 16px 22px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
     .lk-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; padding: 14px 18px; border-bottom: 0.5px solid var(--border); }
@@ -1854,6 +1911,7 @@
           <div class="mnt-seg" id="mnt-seg">
             <button type="button" data-p="universe" class="on">Universe</button>
             <button type="button" data-p="tradelogs">Trade Logs</button>
+            <button type="button" data-p="portfolio">Portfolio</button>
           </div>
 
           <div id="mnt-ovlist" class="mnt-ovlist" style="display:none">
@@ -1893,6 +1951,35 @@
           </div>
           </div>
 
+          <div id="mnt-panel-portfolio" style="display:none">
+          <div class="mnt-section">
+            <h2>💾 Backups</h2>
+            <div class="mnt-psub">Exports <code>trades</code>, <code>wow_entries</code>, <code>watchlist</code>, <code>user_preferences</code> and <code>universe</code> as one versioned JSON file. Last 10 kept here (IndexedDB, this browser only), older auto-pruned. A Reset Portfolio below always takes one of these automatically as its first step.</div>
+            <div class="mnt-toolbar">
+              <label class="mnt-search" style="flex:1">
+                <input id="mnt-bk-note" type="text" placeholder="Note (optional — defaults to today's date if blank)" style="font-family:var(--font-body)">
+              </label>
+              <button class="mnt-btn pri" id="mnt-bk-btn">Backup now</button>
+            </div>
+            <div class="mnt-status" id="mnt-bk-status"></div>
+            <table class="mnt-vt">
+              <thead><tr><th>Date</th><th>Note</th><th>Trades</th><th>Size</th><th></th></tr></thead>
+              <tbody id="mnt-bk-rows"></tbody>
+            </table>
+          </div>
+
+          <div class="mnt-section">
+            <h2>🔄 Reset Portfolio</h2>
+            <div class="mnt-psub">Wipes all trades and reseeds from a current holdings statement — for walking away from tangled history and starting clean. Nothing destructive happens until the final step, after you've seen exactly what's replacing your data.</div>
+
+            <div class="mnt-rp-idle" id="mnt-rp-idle">
+              <div class="t" id="mnt-rp-idle-text">Loading current trades…</div>
+              <button class="mnt-btn pri" id="mnt-rp-start">Start Reset Portfolio →</button>
+            </div>
+            <div id="mnt-rp-flow" style="display:none"></div>
+          </div>
+          </div>
+
           <div id="mnt-ac" class="mnt-ac" style="display:none"></div>
         </div>
       </div>
@@ -1928,7 +2015,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.29'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.30'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -5955,7 +6042,9 @@
           const p = bn.dataset.p;
           el('mnt-panel-universe').style.display = p === 'universe' ? '' : 'none';
           el('mnt-panel-tradelogs').style.display = p === 'tradelogs' ? '' : 'none';
+          el('mnt-panel-portfolio').style.display = p === 'portfolio' ? '' : 'none';
           if (p === 'tradelogs') { wireTOnce(); loadTUniverse(); if (!tLoaded) loadTrades(); }
+          if (p === 'portfolio') { wirePOnce(); renderBackupList(); rpUpdateIdleText(); }
         });
       });
     }
@@ -6186,9 +6275,9 @@
     // ---------- type-ahead (Trade Logs only) — suggests from the Universe list, never locks the field ----------
     let tUniverseList = [], tUniverseLoaded = false;
     function loadTUniverse(){
-      if (tUniverseLoaded) return;
+      if (tUniverseLoaded) return Promise.resolve();
       tUniverseLoaded = true;
-      db.from('universe').select('ticker,stock_name,exchange').order('ticker').range(0, 99999).then(res => {
+      return db.from('universe').select('ticker,stock_name,exchange').order('ticker').range(0, 99999).then(res => {
         if (!res.error) tUniverseList = res.data || [];
       });
     }
@@ -6232,6 +6321,304 @@
       });
       document.addEventListener('click', e => { if (!box.contains(e.target)) hideAC(); });
       document.addEventListener('keydown', e => { if (e.key === 'Escape') hideAC(); });
+    }
+
+    // ===================================================================
+    // Portfolio panel — Backups + Reset Portfolio (same isolated feature, .mnt-* selectors)
+    //   Backups: IndexedDB ('mnt_backups_db'), last 10 kept, older auto-pruned.
+    //   Reset Portfolio: wipes `trades` for this user, reseeds from an
+    //   uploaded holdings CSV. Reuses the outer script's calcPortfolio(),
+    //   loadAll(), fmt(), and the global `trades` array — read-only except
+    //   for the delete+insert at final commit.
+    // ===================================================================
+    let pWired = false;
+    const BK_DB = 'mnt_backups_db', BK_STORE = 'backups', BK_MAX = 10;
+
+    function fmtINR(n){ try { return fmt(n); } catch (e) { return '₹' + Math.round(n || 0).toLocaleString('en-IN'); } }
+
+    function bkOpen(){
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(BK_DB, 1);
+        req.onupgradeneeded = () => { const d = req.result; if (!d.objectStoreNames.contains(BK_STORE)) d.createObjectStore(BK_STORE, { keyPath: 'id' }); };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function bkList(){
+      const d = await bkOpen();
+      return new Promise((resolve, reject) => {
+        const tx = d.transaction(BK_STORE, 'readonly');
+        const req = tx.objectStore(BK_STORE).getAll();
+        req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.id - a.id));
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function bkDelete(id){
+      const d = await bkOpen();
+      return new Promise((resolve, reject) => {
+        const tx = d.transaction(BK_STORE, 'readwrite');
+        tx.objectStore(BK_STORE).delete(id);
+        tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+      });
+    }
+    async function bkSave(record){
+      const d = await bkOpen();
+      await new Promise((resolve, reject) => {
+        const tx = d.transaction(BK_STORE, 'readwrite');
+        tx.objectStore(BK_STORE).put(record);
+        tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+      });
+      const list = await bkList();
+      if (list.length > BK_MAX) for (const r of list.slice(BK_MAX)) await bkDelete(r.id);
+    }
+    async function fetchAllForBackup(){
+      const [tr, we, wl, up, un] = await Promise.all([
+        db.from('trades').select('*'), db.from('wow_entries').select('*'),
+        db.from('watchlist').select('*'), db.from('user_preferences').select('*'), db.from('universe').select('*')
+      ]);
+      return {
+        trades: tr.data || [], wow_entries: we.data || [], watchlist: wl.data || [],
+        user_preferences: up.data || [], universe: un.data || []
+      };
+    }
+    function downloadJSON(obj, filename){
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    async function doBackup(note){
+      const tables = await fetchAllForBackup();
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const finalNote = note || dateStr;
+      const filename = 'trades_backup_' + dateStr + '_' + Date.now() + '.json';
+      const payload = { app: 'india-stock-tracker-v2', taken_at: new Date().toISOString(), note: finalNote, tables };
+      const json = JSON.stringify(payload);
+      const record = {
+        id: Date.now(), date: new Date().toISOString(), note: finalNote,
+        counts: { trades: tables.trades.length, wow_entries: tables.wow_entries.length, watchlist: tables.watchlist.length, user_preferences: tables.user_preferences.length, universe: tables.universe.length },
+        sizeBytes: json.length, filename, json
+      };
+      await bkSave(record);
+      downloadJSON(payload, filename);
+      renderBackupList();
+      return record;
+    }
+    function bkStatus(msg, isErr){ const s = el('mnt-bk-status'); if (!s) return; s.textContent = msg || ''; s.className = 'mnt-status' + (isErr ? ' err' : ''); }
+    async function renderBackupList(){
+      const tbody = el('mnt-bk-rows'); if (!tbody) return;
+      let list = [];
+      try { list = await bkList(); } catch (e) { tbody.innerHTML = '<tr><td colspan="5" class="mnt-vt-empty">Could not read backup history.</td></tr>'; return; }
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="mnt-vt-empty">No backups yet.</td></tr>'; return; }
+      tbody.innerHTML = list.map(r =>
+        '<tr><td>' + esc(new Date(r.date).toLocaleString('en-IN')) + '</td>' +
+        '<td class="note">' + esc(r.note) + '</td>' +
+        '<td>' + r.counts.trades + '</td>' +
+        '<td>' + Math.max(1, Math.round(r.sizeBytes / 1024)) + ' KB</td>' +
+        '<td><button class="mnt-ic" data-bkdl="' + r.id + '" title="Re-download">⬇</button>' +
+        '<button class="mnt-ic del" data-bkdel="' + r.id + '" title="Delete from history">🗑</button></td></tr>'
+      ).join('');
+    }
+
+    // ---------- Reset Portfolio state machine ----------
+    let rp = { step: 0 };
+    function rpUpdateIdleText(){
+      const t = el('mnt-rp-idle-text'); if (!t) return;
+      try {
+        const { holdings } = calcPortfolio();
+        t.innerHTML = 'Currently <b>' + trades.length + ' trades</b> across <b>' + holdings.length + ' holdings</b>. Starting a reset backs these up automatically, then walks you through replacing them.';
+      } catch (e) { t.textContent = 'Currently ' + trades.length + ' trades.'; }
+    }
+    function rpBeforeStats(){
+      let invested = null;
+      try { invested = calcPortfolio().totalInvested; } catch (e) {}
+      return { count: trades.length, invested };
+    }
+    function rpAfterStats(){
+      const rows = rp.holdingsRows || [];
+      return { count: rows.length, invested: rows.reduce((s, r) => s + (Number(r.qty) || 0) * (Number(r.avgCost) || 0), 0) };
+    }
+    function parseCSVText(text){
+      const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length);
+      return lines.map(line => {
+        const cells = []; let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (inQ) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += c; }
+          else { if (c === '"') inQ = true; else if (c === ',') { cells.push(cur); cur = ''; } else cur += c; }
+        }
+        cells.push(cur);
+        return cells;
+      });
+    }
+    function parseHoldingsCSV(text){
+      const rows = parseCSVText(text);
+      if (!rows.length) throw new Error('Empty file');
+      const header = rows[0].map(h => h.trim());
+      const ci = { instrument: header.indexOf('Instrument'), qty: header.indexOf('Qty.'), avgCost: header.indexOf('Avg. cost') };
+      if (ci.instrument < 0 || ci.qty < 0 || ci.avgCost < 0) throw new Error('Could not find Instrument / Qty. / Avg. cost columns — is this a Kite holdings export (not a tradebook)?');
+      const out = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i]; if (!r[ci.instrument]) continue;
+        const ticker = r[ci.instrument].trim().toUpperCase();
+        const qty = parseFloat(r[ci.qty]), avgCost = parseFloat(r[ci.avgCost]);
+        if (!ticker || !isFinite(qty) || qty <= 0) continue;
+        out.push({ ticker, qty, avgCost: isFinite(avgCost) ? avgCost : 0 });
+      }
+      if (!out.length) throw new Error('No usable holding rows found in file');
+      return out;
+    }
+    async function rpStart(){
+      const idle = el('mnt-rp-idle'), flow = el('mnt-rp-flow');
+      idle.style.display = 'none'; flow.style.display = ''; flow.innerHTML = '<div class="mnt-status">Backing up…</div>';
+      try {
+        const rec = await doBackup('Reset Portfolio (auto)');
+        loadTUniverse();
+        rp = { step: 2, backupRecord: rec };
+        renderRP();
+      } catch (e) {
+        flow.innerHTML = '<div class="mnt-status err">Could not back up — reset aborted. ' + esc(e.message || e) + '</div>' +
+          '<button class="mnt-btn gho" onclick="document.getElementById(\'mnt-rp-idle\').style.display=\'\';document.getElementById(\'mnt-rp-flow\').style.display=\'none\'">Back</button>';
+      }
+    }
+    function rpReset(){ rp = { step: 0 }; el('mnt-rp-flow').style.display = 'none'; el('mnt-rp-idle').style.display = ''; rpUpdateIdleText(); }
+    function rpStep3Html(){
+      const before = rpBeforeStats(), after = rpAfterStats();
+      const flagged = (rp.holdingsRows || []).filter(r => /-/.test(r.ticker)).length;
+      let h = '<div class="mnt-rp-step active"><div class="mnt-rp-head"><span class="lbl">3. Review &amp; fix</span></div><div class="mnt-rp-body">';
+      h += '<div class="mnt-swap"><div class="side before"><div class="l">Currently have</div><div class="n">' + before.count + ' trades</div>' +
+           (before.invested != null ? '<div class="n2">' + fmtINR(before.invested) + ' invested</div>' : '') + '</div>' +
+           '<div class="arrow">→</div><div class="side after"><div class="l">Will become</div><div class="n">' + after.count + ' trades</div>' +
+           '<div class="n2">' + fmtINR(after.invested) + ' invested</div></div></div>';
+      if (flagged > 0) {
+        h += '<div class="mnt-warnbox"><span>⚠</span><div>' + flagged + ' ticker' + (flagged === 1 ? '' : 's') + ' with a hyphen — worth double-checking. This pattern caused the PGINVIT-IV / INDIGRID-IV / INDUSINVIT-IV mix-ups earlier — edit directly below if needed.</div></div>';
+      }
+      h += '<div class="mnt-psub">One <b>BUY</b> trade will be created per row, dated today, price = Avg. cost. Ticker is editable.</div>';
+      h += '<div class="mnt-pv-scroll"><table class="mnt-pv"><thead><tr><th>Ticker</th><th>Qty</th><th>Avg. cost</th><th>Invested</th></tr></thead><tbody>';
+      (rp.holdingsRows || []).forEach((r, i) => {
+        h += '<tr' + (/-/.test(r.ticker) ? ' class="flag"' : '') + '><td><input class="mnt-pv-edit" data-i="' + i + '" value="' + esc(r.ticker) + '"></td>' +
+             '<td>' + r.qty + '</td><td>' + r.avgCost.toFixed(2) + '</td><td>' + fmtINR(r.qty * r.avgCost) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+      h += '<button class="mnt-btn pri" id="mnt-rp-continue3">Continue →</button>';
+      h += '</div></div>';
+      return h;
+    }
+    function rpStep4Html(){
+      const before = rpBeforeStats();
+      const target = 'DELETE ' + before.count + ' TRADES';
+      let h = '<div class="mnt-rp-step active"><div class="mnt-rp-head"><span class="lbl">4. Confirm &amp; replace</span></div><div class="mnt-rp-body">';
+      h += '<div class="mnt-warnbox danger"><span>⚠</span><div>This permanently deletes your current <b>' + before.count + ' trades</b> and replaces them with the <b>' + rp.holdingsRows.length + '</b> reviewed above. Only recoverable from <b>' + esc(rp.backupRecord.filename) + '</b> (Step 1).</div></div>';
+      h += '<div class="mnt-fieldrow"><input class="mnt-confirm-in" id="mnt-rp-confirm" placeholder="Type ' + esc(target) + '"><button class="mnt-btn dgr" id="mnt-rp-commit" disabled>Replace my trades</button></div>';
+      h += '<div class="mnt-status" id="mnt-rp-commitstatus"></div>';
+      h += '</div></div>';
+      return h;
+    }
+    function renderRP(){
+      const flow = el('mnt-rp-flow'); if (!flow) return;
+      if (rp.step === 0) { flow.style.display = 'none'; el('mnt-rp-idle').style.display = ''; return; }
+      flow.style.display = ''; el('mnt-rp-idle').style.display = 'none';
+      let h = '<div class="mnt-rp-step done"><div class="mnt-rp-head"><span class="lbl">1. Backup taken</span>' +
+        '<span class="sum">' + esc(rp.backupRecord.filename) + ' · ' + rp.backupRecord.counts.trades + ' trades</span></div></div>';
+      if (rp.step === 2) {
+        h += '<div class="mnt-rp-step active"><div class="mnt-rp-head"><span class="lbl">2. Upload your holdings</span></div><div class="mnt-rp-body">' +
+          '<div class="mnt-howto">Export your <b>current holdings</b> from your broker — not your tradebook. In Zerodha: Console → Portfolio → Holdings → Download. You want a file with columns like <code>Instrument, Qty., Avg. cost</code>.</div>' +
+          '<div class="mnt-dropzone" id="mnt-rp-drop">📂 Click to choose a holdings CSV, or drag one here.<input type="file" id="mnt-rp-file" accept=".csv" style="display:none"></div>' +
+          '<div class="mnt-status" id="mnt-rp-upstatus"></div></div></div>';
+      } else {
+        h += '<div class="mnt-rp-step done"><div class="mnt-rp-head"><span class="lbl">2. Holdings uploaded</span>' +
+          '<span class="sum">' + esc(rp.fileName || '') + ' · ' + (rp.holdingsRows ? rp.holdingsRows.length : 0) + ' rows</span>' +
+          '<button class="mnt-chg" data-rpback="2">Change</button></div></div>';
+      }
+      if (rp.step === 3) h += rpStep3Html();
+      else if (rp.step > 3) {
+        h += '<div class="mnt-rp-step done"><div class="mnt-rp-head"><span class="lbl">3. Reviewed</span>' +
+          '<span class="sum">' + rp.holdingsRows.length + ' rows ready</span>' +
+          '<button class="mnt-chg" data-rpback="3">Change</button></div></div>';
+      }
+      if (rp.step === 4) h += rpStep4Html();
+      h += '<div class="mnt-rp-cancel"><button class="mnt-btn gho" id="mnt-rp-cancel-btn">Cancel reset</button></div>';
+      flow.innerHTML = h;
+      wireRPStepDom();
+    }
+    function rpHandleFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const rows = parseHoldingsCSV(String(reader.result));
+          rows.forEach(r => { const u = tUniverseList.find(x => x.ticker === r.ticker); r.stockName = u ? u.stock_name : r.ticker; });
+          rp.holdingsRows = rows; rp.fileName = file.name; rp.step = 3;
+          renderRP();
+        } catch (e) {
+          const st = el('mnt-rp-upstatus'); if (st) { st.textContent = 'Could not read file: ' + (e.message || e); st.className = 'mnt-status err'; }
+        }
+      };
+      reader.readAsText(file);
+    }
+    async function rpCommit(){
+      const btn = el('mnt-rp-commit'); if (btn) btn.disabled = true;
+      const st = el('mnt-rp-commitstatus'); if (st) { st.textContent = 'Replacing…'; st.className = 'mnt-status'; }
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (!user) throw new Error('Not logged in');
+        const delRes = await db.from('trades').delete().eq('user_id', user.id);
+        if (delRes.error) throw delRes.error;
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const batch = 'baseline_reset_' + dateStr;
+        const payload = rp.holdingsRows.map(r => ({
+          date: dateStr, ticker: r.ticker, stock_name: r.stockName || r.ticker, action: 'BUY',
+          qty: r.qty, price: r.avgCost, brokerage: 0, exchange: 'NSE', user_id: user.id, import_batch: batch
+        }));
+        const insRes = await db.from('trades').insert(payload);
+        if (insRes.error) throw insRes.error;
+        if (st) { st.textContent = '✓ Replaced trades with ' + payload.length + ' new baseline trade' + (payload.length === 1 ? '' : 's') + '.'; }
+        if (typeof loadAll === 'function') loadAll();
+        setTimeout(rpReset, 2500);
+      } catch (e) {
+        if (st) { st.textContent = 'Failed: ' + (e.message || e) + ' — check your backup (' + esc(rp.backupRecord.filename) + ') if trades look wrong.'; st.className = 'mnt-status err'; }
+        if (btn) btn.disabled = false;
+      }
+    }
+    function wireRPStepDom(){
+      const drop = el('mnt-rp-drop');
+      if (drop) {
+        const finp = el('mnt-rp-file');
+        drop.addEventListener('click', () => finp.click());
+        finp.addEventListener('change', () => { if (finp.files[0]) rpHandleFile(finp.files[0]); });
+        drop.addEventListener('dragover', e => e.preventDefault());
+        drop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) rpHandleFile(e.dataTransfer.files[0]); });
+      }
+      const cancelBtn = el('mnt-rp-cancel-btn'); if (cancelBtn) cancelBtn.addEventListener('click', rpReset);
+      document.querySelectorAll('#mnt-rp-flow [data-rpback]').forEach(b => b.addEventListener('click', () => { rp.step = Number(b.dataset.rpback); renderRP(); }));
+      const cont3 = el('mnt-rp-continue3');
+      if (cont3) cont3.addEventListener('click', () => {
+        document.querySelectorAll('.mnt-pv-edit[data-i]').forEach(inp => { const i = Number(inp.dataset.i); rp.holdingsRows[i].ticker = inp.value.trim().toUpperCase(); });
+        rp.step = 4; renderRP();
+      });
+      const confIn = el('mnt-rp-confirm'), confBtn = el('mnt-rp-commit');
+      if (confIn && confBtn) {
+        const target = 'DELETE ' + rpBeforeStats().count + ' TRADES';
+        confIn.addEventListener('input', () => { confBtn.disabled = confIn.value.trim() !== target; });
+        confBtn.addEventListener('click', rpCommit);
+      }
+    }
+
+    function wirePOnce(){
+      if (pWired) return; pWired = true;
+      el('mnt-bk-btn').addEventListener('click', async () => {
+        const note = el('mnt-bk-note').value.trim();
+        bkStatus('Backing up…');
+        try { await doBackup(note); bkStatus('✓ Backup saved and downloaded.'); el('mnt-bk-note').value = ''; }
+        catch (e) { bkStatus('Backup failed: ' + (e.message || e), true); }
+      });
+      el('mnt-bk-rows').addEventListener('click', async e => {
+        const dl = e.target.closest('[data-bkdl]');
+        if (dl) { const list = await bkList(); const r = list.find(x => x.id === Number(dl.dataset.bkdl)); if (r) downloadJSON(JSON.parse(r.json), r.filename); return; }
+        const del = e.target.closest('[data-bkdel]');
+        if (del) { await bkDelete(Number(del.dataset.bkdel)); renderBackupList(); }
+      });
+      el('mnt-rp-start').addEventListener('click', rpStart);
     }
 
     window.mntEnter = function(){
