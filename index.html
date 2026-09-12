@@ -2114,7 +2114,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.31'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260912.32'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -6921,12 +6921,15 @@
       const latestWk  = weeks[weeks.length - 1];
       const prevWk    = weeks[weeks.length - 2];
 
-      let sumPnl = 0, sumCapPct = 0, anyCapPct = false;
+      let sumPnl = 0, sumCapPct = 0, anyCapPct = false, sumInvested = 0, sumCurrent = 0;
 
-      const rowsHtml = momentum.map(h => {
+      // Pass 1 — per-row numbers + running sleeve totals (contribution % needs sumPnl first)
+      const rowsData = momentum.map(h => {
         const hist = weeks.map(w => ({ date: w, price: weekMap[w][h.ticker] })).filter(d => d.price != null);
         const pnlCls = h.unrealisedPnl != null ? (h.unrealisedPnl >= 0 ? 'positive-text' : 'negative-text') : '';
         if (h.unrealisedPnl != null) sumPnl += h.unrealisedPnl;
+        sumInvested += h.invested || 0;
+        if (h.currentValue != null) sumCurrent += h.currentValue;
 
         let wowChgHtml = '<span style="color:var(--muted)">—</span>';
         if (latestWk && prevWk) {
@@ -6965,12 +6968,38 @@
           }
         }
 
+        return { h, pnlCls, capPctHtml, wowChgHtml, trendHtml, gainLostHtml, hi52Html };
+      });
+
+      // Sleeve XIRR — combine every momentum holding's own cashflows (not an average of
+      // per-stock XIRRs, which isn't valid math) and run the same xirr() the Portfolio tab uses.
+      const combinedCfs = momentum.flatMap(h => buildCashflows(h.allTrades, h.livePrice)).sort((a, b) => a.date - b.date);
+      const sleeveXirr  = combinedCfs.length ? xirr(combinedCfs) : null;
+
+      // Pass 2 — contribution % and blended returns need the sleeve totals from pass 1
+      const rowsHtml = rowsData.map(({ h, pnlCls, capPctHtml, wowChgHtml, trendHtml, gainLostHtml, hi52Html }) => {
+        let contribHtml = '<span style="color:var(--muted)">—</span>';
+        if (h.unrealisedPnl != null && sumPnl !== 0) {
+          const contrib = (h.unrealisedPnl / sumPnl) * 100;
+          contribHtml = `<span class="${contrib >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(contrib)}</span>`;
+        }
+        const returnsHtml = h.unrealisedPct != null
+          ? `<span class="${pnlCls}">${fmtPct(h.unrealisedPct)}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+        const xirrHtml = h.stockXirr != null
+          ? `<span class="${h.stockXirr >= 0 ? 'positive-text' : 'negative-text'}">${fmtPct(h.stockXirr)}</span>`
+          : '<span style="color:var(--muted)">—</span>';
+
         return `<tr>
           <td class="rb-stockname"><span class="tk">${h.ticker}</span><span class="co">${h.name}</span></td>
           <td class="mono">${h.netQty}</td>
           <td class="mono">${fmtPrice(h.avgBuy)}</td>
+          <td class="mono">${fmt(h.invested)}</td>
           <td class="mono">${fmtPrice(h.livePrice)}</td>
           <td class="mono ${pnlCls}">${h.unrealisedPnl != null ? fmt(h.unrealisedPnl) : '—'}</td>
+          <td class="mono">${contribHtml}</td>
+          <td class="mono">${returnsHtml}</td>
+          <td class="mono" title="Annualised return, entry-timing aware — same XIRR calc as the old Portfolio-wide stat">${xirrHtml}</td>
           <td class="mono">${capPctHtml}</td>
           <td class="mono">${wowChgHtml}</td>
           <td>${trendHtml}</td>
@@ -6979,17 +7008,27 @@
         </tr>`;
       }).join('');
 
+      const blendedReturnPct = sumInvested > 0 ? (sumPnl / sumInvested) * 100 : null;
+
       wrap.innerHTML = `
         <div style="overflow-x:auto">
         <table class="rb-t">
           <thead><tr>
-            <th>Stock</th><th>Qty</th><th>Avg cost</th><th>Current</th><th>P&amp;L</th>
+            <th>Stock</th><th>Qty</th><th>Avg cost</th><th>Total cost</th><th>Current</th><th>P&amp;L</th>
+            <th title="This stock's P&amp;L as a % of the whole momentum sleeve's P&amp;L">Profit contrib %</th>
+            <th title="Simple return: P&amp;L ÷ total cost">Returns %</th>
+            <th title="Annualised, entry-timing aware">XIRR</th>
             <th>% of cap</th><th>1W chg</th><th>3W trend</th><th>Gain lost</th><th>vs 52W high</th>
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
           <tfoot><tr>
-            <td>Momentum total</td><td colspan="3"></td>
+            <td>Momentum total</td><td></td><td></td>
+            <td class="mono">${fmt(sumInvested)}</td>
+            <td class="mono">${fmt(sumCurrent)}</td>
             <td class="mono ${sumPnl >= 0 ? 'positive-text' : 'negative-text'}">${fmt(sumPnl)}</td>
+            <td class="mono">100.0%</td>
+            <td class="mono ${blendedReturnPct != null ? (blendedReturnPct >= 0 ? 'positive-text' : 'negative-text') : ''}">${blendedReturnPct != null ? fmtPct(blendedReturnPct) : '—'}</td>
+            <td class="mono ${sleeveXirr != null ? (sleeveXirr >= 0 ? 'positive-text' : 'negative-text') : ''}">${sleeveXirr != null ? fmtPct(sleeveXirr) : '—'}</td>
             <td class="mono">${anyCapPct ? sumCapPct.toFixed(1) + '%' : '—'}</td>
             <td colspan="4"></td>
           </tr></tfoot>
