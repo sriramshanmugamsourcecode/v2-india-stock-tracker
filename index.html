@@ -2138,7 +2138,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260913.38'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260913.39'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4476,6 +4476,10 @@
     document.getElementById('import-step-done').style.display = 'none';
     document.getElementById('import-error').style.display = 'none';
     document.getElementById('import-file-input').value = '';
+    // Defensive: guarantee the confirm button is never left stuck disabled/"Importing…"
+    // from a previous import, no matter what path it was left in.
+    const confirmBtn = document.getElementById('import-confirm-btn');
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '✓ Import All Trades'; }
   }
 
   async function handleImportFile(input) {
@@ -4795,6 +4799,12 @@
 
       // Reload trades + portfolio
       await loadAll();
+
+      // Reset the confirm button so a second import in the same session isn't left
+      // stuck on "Importing…" — this step only mattered once someone actually tried
+      // a second import without reloading the page first.
+      btn.disabled = false;
+      btn.textContent = '✓ Import All Trades';
 
     } catch (err) {
       errEl.textContent = '⚠ ' + err.message;
