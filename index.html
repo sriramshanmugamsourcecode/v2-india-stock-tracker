@@ -1520,6 +1520,13 @@
             <button class="import-trades-btn" onclick="openImportModal()">📥 Import Kite Trades</button>
           </div>
         </div>
+        <div id="import-ignored-panel" style="display:none;margin-bottom:14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleIgnoredPanel()">
+            <span style="font-size:12px;color:var(--amber);font-family:var(--font-mono)">⊘ <span id="import-ignored-panel-count">0</span> trade(s) ignored during import — not in your trade log</span>
+            <span id="import-ignored-panel-toggle" style="font-size:11px;color:var(--muted)">▾ show</span>
+          </div>
+          <div id="import-ignored-panel-body" style="display:none;margin-top:10px"></div>
+        </div>
         <div class="table-wrap" id="trades-table">
           <div class="loading"><div class="spinner"></div>Fetching trades...</div>
         </div>
@@ -1560,6 +1567,7 @@
                     <th style="padding:8px 10px;text-align:right;color:var(--muted);font-family:var(--font-mono);font-size:10px">Price</th>
                     <th style="padding:8px 10px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Exchange</th>
                     <th style="padding:8px 10px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Status</th>
+                    <th style="padding:8px 10px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:10px" title="Skip this row — don't import it">Ignore</th>
                   </tr>
                 </thead>
                 <tbody id="import-preview-body"></tbody>
@@ -1892,7 +1900,7 @@
 
             <div class="scr-universe">
               <span style="font-size:11px;color:var(--muted)">Universe</span>
-              <span id="scr-universe-count" style="font-family:var(--font-mono);font-size:13px;font-weight:500">555 stocks</span>
+              <span id="scr-universe-count" style="font-family:var(--font-mono);font-size:13px;font-weight:500">Loading…</span>
               <button class="scr-cache-clear-btn" onclick="scrClearCache()" data-tip="Clear today's price cache and force a fresh fetch on next run">↺ refresh prices</button>
             </div>
 
@@ -2130,7 +2138,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260912.35'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260913.38'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2658,7 +2666,80 @@
   // ============================================================
   // RENDER: TRADE LOG
   // ============================================================
-  function renderTrades() { renderTradesTable(); }
+  function renderTrades() { renderTradesTable(); renderIgnoredPanel(); }
+
+  // -- Ignored-during-import list: persistent (localStorage), visible on the Trade Log tab
+  // until manually cleared, so a skipped row isn't forgotten once the import modal closes.
+  const IMPORT_IGNORED_KEY = 'import_ignored_v1';
+  function loadIgnoredList() {
+    try { return JSON.parse(localStorage.getItem(IMPORT_IGNORED_KEY) || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveIgnoredList(list) {
+    try { localStorage.setItem(IMPORT_IGNORED_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function renderIgnoredPanel() {
+    const list  = loadIgnoredList();
+    const panel = document.getElementById('import-ignored-panel');
+    const count = document.getElementById('import-ignored-panel-count');
+    if (!panel) return;
+    if (!list.length) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    if (count) count.textContent = list.length;
+  }
+  function renderIgnoredBody() {
+    const body = document.getElementById('import-ignored-panel-body');
+    if (!body) return;
+    const list = loadIgnoredList();
+    body.innerHTML = `
+      <table style="width:100%;font-size:11px">
+        <thead><tr>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Date</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Stock</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Action</th>
+          <th style="padding:5px 8px;text-align:right;color:var(--muted);font-family:var(--font-mono);font-size:10px">Qty</th>
+          <th style="padding:5px 8px;text-align:right;color:var(--muted);font-family:var(--font-mono);font-size:10px">Price</th>
+          <th style="padding:5px 8px;text-align:left;color:var(--muted);font-family:var(--font-mono);font-size:10px">Ignored</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${list.map((r, idx) => `
+          <tr style="border-top:0.5px solid var(--border)">
+            <td style="padding:5px 8px;font-family:var(--font-mono);color:var(--muted)">${r.date}</td>
+            <td style="padding:5px 8px">${r.stock_name} <span style="font-size:9px;color:var(--muted);font-family:var(--font-mono)">${r.ticker}</span></td>
+            <td style="padding:5px 8px;font-family:var(--font-mono);color:${r.action==='BUY'?'#68d391':'#fc8181'}">${r.action}</td>
+            <td style="padding:5px 8px;text-align:right;font-family:var(--font-mono)">${r.qty}</td>
+            <td style="padding:5px 8px;text-align:right;font-family:var(--font-mono)">₹${Number(r.price).toLocaleString('en-IN')}</td>
+            <td style="padding:5px 8px;font-family:var(--font-mono);color:var(--muted);font-size:10px">${fmtDate(r.ignoredAt)}</td>
+            <td style="padding:5px 8px;text-align:center"><button class="trade-delete-btn" title="Remove from this list" onclick="removeIgnoredItem(${idx})">🗑</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top:8px"><button class="import-back-btn" onclick="clearIgnoredList()">Clear list</button></div>`;
+  }
+  function toggleIgnoredPanel() {
+    const body   = document.getElementById('import-ignored-panel-body');
+    const toggle = document.getElementById('import-ignored-panel-toggle');
+    if (!body) return;
+    const opening = body.style.display === 'none';
+    if (!opening) { body.style.display = 'none'; if (toggle) toggle.textContent = '▾ show'; return; }
+    renderIgnoredBody();
+    body.style.display = '';
+    if (toggle) toggle.textContent = '▴ hide';
+  }
+  function removeIgnoredItem(idx) {
+    const list = loadIgnoredList();
+    list.splice(idx, 1);
+    saveIgnoredList(list);
+    renderIgnoredPanel();
+    renderIgnoredBody(); // body is only reachable while open, so just refresh its content in place
+  }
+  function clearIgnoredList() {
+    if (!confirm('Clear the ignored-trades reminder list? This is just a to-do list — it does not affect your trade data.')) return;
+    saveIgnoredList([]);
+    renderIgnoredPanel();
+    const body = document.getElementById('import-ignored-panel-body');
+    if (body) body.style.display = 'none';
+  }
 
   function renderTradesTable() {
     if (!trades.length) {
@@ -3480,6 +3561,7 @@
     btn.classList.add('active');
     if (tab === 'rankhistory' && window.rhEnter) window.rhEnter();
     if (tab === 'screener' && window.lkEnter) window.lkEnter();
+    if (tab === 'screener') scrEnsureUniverseCount();
     if (tab === 'rebalance' && window.rbEnter) window.rbEnter();
     if (tab === 'maintenance' && window.mntEnter) window.mntEnter();
   }
@@ -3944,6 +4026,21 @@
   let scrLastExcluded = [];
   let scrSortKey = 'position', scrSortAsc = true;
   let scrUniverse = []; // loaded from Supabase universe table
+
+  // Populates the "N stocks" label as soon as the Discovery tab is opened, rather than
+  // leaving a stale hardcoded count sitting there until Run/Import first lazy-loads
+  // scrUniverse. Purely additive — doesn't touch runScreener/import's own lazy-load paths.
+  async function scrEnsureUniverseCount(){
+    if (scrUniverse.length) return;
+    try {
+      const { data } = await db.from('universe').select('ticker, stock_name, exchange').eq('active', true);
+      if (data && data.length) {
+        scrUniverse = data;
+        const el = document.getElementById('scr-universe-count');
+        if (el) el.textContent = `${scrUniverse.length} stocks`;
+      }
+    } catch (e) { /* silent — Run/Import will retry and surface any real error */ }
+  }
 
   async function runScreener() {
     scrBuildHoldings();
@@ -4473,6 +4570,7 @@
           brokerage:  0,
           exchange:   g.exchange,
           notInUniverse: !universeMap[ticker],
+          ignored: false,
         };
       }).sort((a, b) => a.date.localeCompare(b.date) || a.ticker.localeCompare(b.ticker));
 
@@ -4492,6 +4590,7 @@
     const notInUniverse = importParsedTrades.filter(t => t.notInUniverse).length;
     const buys  = importParsedTrades.filter(t => t.action === 'BUY').length;
     const sells = importParsedTrades.filter(t => t.action === 'SELL').length;
+    const ignoredCount = importParsedTrades.filter(t => t.ignored).length;
 
     document.getElementById('import-preview-summary').innerHTML = `
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
@@ -4512,11 +4611,16 @@
           font-family:var(--font-mono);color:var(--amber)">
           ⚠ ${notInUniverse} not in universe
         </span>` : ''}
+        <span id="import-ignored-pill" style="font-size:12px;background:var(--bg3);border:0.5px solid var(--border);
+          border-radius:8px;padding:4px 10px;font-family:var(--font-mono);color:var(--muted);
+          ${ignoredCount > 0 ? '' : 'display:none'}">
+          ⊘ <span id="import-ignored-count">${ignoredCount}</span> ignored
+        </span>
       </div>`;
 
     const tbody = document.getElementById('import-preview-body');
     tbody.innerHTML = importParsedTrades.map((t, idx) => `
-      <tr id="import-row-${idx}" style="border-top:0.5px solid var(--border)">
+      <tr id="import-row-${idx}" style="border-top:0.5px solid var(--border);${t.ignored ? 'opacity:.45;text-decoration:line-through' : ''}">
         <td style="padding:7px 10px;font-family:var(--font-mono);color:var(--muted)">${t.date}</td>
         <td style="padding:7px 10px;font-weight:500" id="import-name-${idx}">${t.stock_name}
           <span style="font-size:10px;color:var(--muted);font-family:var(--font-mono)"> ${t.ticker}</span>
@@ -4545,7 +4649,25 @@
             : `<span style="color:#68d391">✓ matched</span>`
           }
         </td>
+        <td style="padding:7px 10px;text-align:center">
+          <input type="checkbox" title="Ignore — skip this row, don't import it" ${t.ignored ? 'checked' : ''}
+            onchange="toggleImportIgnore(${idx}, this.checked)">
+        </td>
       </tr>`).join('');
+  }
+
+  function toggleImportIgnore(idx, checked) {
+    importParsedTrades[idx].ignored = checked;
+    const row = document.getElementById(`import-row-${idx}`);
+    if (row) {
+      row.style.opacity = checked ? '.45' : '';
+      row.style.textDecoration = checked ? 'line-through' : '';
+    }
+    const ignoredCount = importParsedTrades.filter(t => t.ignored).length;
+    const pill  = document.getElementById('import-ignored-pill');
+    const count = document.getElementById('import-ignored-count');
+    if (count) count.textContent = ignoredCount;
+    if (pill)  pill.style.display = ignoredCount > 0 ? '' : 'none';
   }
 
   function toggleImportPicker(idx) {
@@ -4623,7 +4745,19 @@
       // Generate unique batch ID for this import
       const batchId = new Date().toISOString();
 
-      const rows = importParsedTrades.map(t => ({
+      const ignoredRows = importParsedTrades.filter(t => t.ignored);
+      const skipped = ignoredRows.length;
+      if (skipped) {
+        const existing = loadIgnoredList();
+        const nowIso = new Date().toISOString();
+        const additions = ignoredRows.map(t => ({
+          date: t.date, stock_name: t.stock_name, ticker: t.ticker,
+          action: t.action.toUpperCase(), qty: t.qty, price: t.price,
+          exchange: t.exchange, ignoredAt: nowIso,
+        }));
+        saveIgnoredList(existing.concat(additions));
+      }
+      const rows = importParsedTrades.filter(t => !t.ignored).map(t => ({
         date:         t.date,
         stock_name:   t.stock_name,
         ticker:       t.ticker,
@@ -4635,6 +4769,8 @@
         user_id:      user.id,
         import_batch: batchId,
       }));
+
+      if (!rows.length) throw new Error('Every row is marked Ignore — nothing to import. Uncheck at least one row.');
 
       const { error } = await db.from('trades').insert(rows);
       if (error) throw new Error(error.message);
@@ -4653,8 +4789,9 @@
       // Success
       document.getElementById('import-step-preview').style.display = 'none';
       document.getElementById('import-step-done').style.display = '';
-      document.getElementById('import-done-msg').textContent =
-        `${rows.length} trade${rows.length !== 1 ? 's' : ''} imported successfully`;
+      document.getElementById('import-done-msg').textContent = skipped
+        ? `${rows.length} trade${rows.length !== 1 ? 's' : ''} imported successfully (${skipped} ignored, not imported)`
+        : `${rows.length} trade${rows.length !== 1 ? 's' : ''} imported successfully`;
 
       // Reload trades + portfolio
       await loadAll();

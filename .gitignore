@@ -1,0 +1,13 @@
+# Personal exports and backups must never end up in this public repo.
+# This is a defense-in-depth measure — these shouldn't be inside repo/ at all
+# (they belong in the sibling Backup/ folder, outside any git repo), but if
+# one ever gets copied back in by mistake, this stops it from being staged
+# without an explicit `git add -f`.
+
+Backup/
+*[Bb]ackup*
+*.xlsx
+*.xls
+*[Ll]ogin*
+*[Ss]ecret*
+PROJECT_SECRETS_LOCAL_ONLY.md
