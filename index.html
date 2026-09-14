@@ -1728,6 +1728,11 @@
           <div class="lk-head" id="lk-head">
             <svg class="lk-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
             <h3>Pattern Lookup</h3>
+            <span class="rh-ttip" onclick="event.stopPropagation()"><span class="rh-info" tabindex="0" role="button" aria-label="What Pattern Lookup does">i<span class="rh-tip" role="tooltip">
+              <h4>What Pattern Lookup does</h4>
+              <p>Add up to 8 NSE tickers by hand and it pulls 5 years of daily adjusted closes for each, computing the same kind of trend/momentum metrics the screener uses &mdash; returns, skip-month returns, moving averages, volatility, drawdown, straightness &mdash; plus a few instant rule-based signal chips (e.g. &ldquo;near highs&rdquo;, &ldquo;accelerating&rdquo;, &ldquo;roller-coaster&rdquo;). All computed offline, right here.</p>
+              <p class="foot">For a written verdict, click <b>Copy prompt</b> and paste it into claude.ai yourself &mdash; the app makes no AI call and sends your data nowhere. Your ticker list is remembered on this device only.</p>
+            </span></span></span>
             <span class="lk-cnt" id="lk-count">0 stocks</span>
             <span class="lk-sp"></span>
           </div>
@@ -2145,7 +2150,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260914.42'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260914.43'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
