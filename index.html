@@ -2150,7 +2150,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260914.43'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260914.44'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -6010,7 +6010,12 @@
     }
 
     // ---------- actions ----------
-    function tokens(str){ return (str || '').split(/[\s,;\n]+/).map(s => s.trim()).filter(Boolean); }
+    function tokens(str){
+      // quote-aware: "Apar Industries Ltd" stays one token instead of splitting on its internal spaces
+      const out = [], re = /"([^"]+)"|'([^']+)'|([^\s,;\n]+)/g;
+      let m; while ((m = re.exec(str || ''))) { const t = (m[1] || m[2] || m[3] || '').trim(); if (t) out.push(t); }
+      return out;
+    }
     async function add(str){
       const cur = new Set(items.map(x => bare(x.ticker)));
       let added = 0;
