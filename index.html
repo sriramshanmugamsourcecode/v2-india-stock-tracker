@@ -605,6 +605,7 @@
       overflow: hidden;
       margin-bottom: 20px;
     }
+    .wow-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
     .wow-week-header {
       display: flex;
@@ -814,6 +815,10 @@
     /* ── Phase 4: Screener ── */
     .scr-wrap { display:grid; grid-template-columns:255px 1fr; height:calc(100vh - 130px); min-width:0; overflow:hidden; transition:grid-template-columns 0.25s ease; }
     .scr-wrap.collapsed { grid-template-columns:36px 1fr; }
+    @media (max-width: 700px) {
+      .scr-wrap { grid-template-columns: 180px 1fr; }
+      .scr-wrap.collapsed { grid-template-columns: 36px 1fr; }
+    }
     .scr-sidebar { border-right:0.5px solid var(--border); overflow-y:auto; overflow-x:hidden; padding:8px 10px; scrollbar-width:thin; position:relative; transition:padding 0.25s; }
     .scr-wrap.collapsed .scr-sidebar { padding:8px 4px; overflow-y:hidden; }
     .scr-sidebar-inner { transition:opacity 0.2s; }
@@ -1125,7 +1130,7 @@
     .rh-tq svg { display:block; }
     .rh-tq-sep td { padding:0; height:0; border-bottom:1.5px solid var(--border2); }
     .rh-tq-sep:hover td { background:none; }
-    /* Trend view: status tags (Good to go / Wait and watch / Don't venture) */
+    /* Trend view: status tags (Invest / Watch / Don't invest) */
     .rh-tq-chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 12px; }
     .rh-chip { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-body); font-size:11px; font-weight:600; background:var(--bg3); border:0.5px solid var(--border2); border-radius:999px; padding:5px 11px 5px 9px; cursor:pointer; color:var(--muted); }
     .rh-chip i { width:7px; height:7px; border-radius:50%; display:inline-block; }
@@ -1194,6 +1199,7 @@
     .mnt-btn:disabled { opacity:.4; cursor:not-allowed; }
     .mnt-hint { font-size:12px; color:var(--muted); padding:16px; text-align:center; border:1px dashed var(--border2); border-radius:10px; }
 
+    #mnt-u-tablewrap, #mnt-t-tablewrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
     table.mnt-t { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
     table.mnt-t th { text-align:left; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; padding:9px 12px; background:var(--bg3); border-bottom:0.5px solid var(--border2); white-space:nowrap; }
     table.mnt-t td { padding:0; border-bottom:0.5px solid var(--border); vertical-align:middle; }
@@ -1936,7 +1942,7 @@
               </span>
               <span class="rh-ctrls-grp" id="rh-tr-ctrls" style="display:none">
                 <div class="rh-seg" id="rh-tqwin"><span class="rh-lbl rh-ttip">Window<span class="rh-info" tabindex="0" role="button" aria-label="What the Window control does">i<span class="rh-tip" role="tooltip"><h4>Trend window</h4><p>Chooses which lookback the angle, straightness (R&sup2;), drawdown and sparkline are computed over. The underlying 5-year price history is already cached in this browser from the last Scan &mdash; switching windows just re-slices it instantly, no new fetch.</p><ul><li><span>1Y</span><b>252 bars</b></li><li><span>2Y</span><b>504 bars</b></li><li><span>3Y</span><b>756 bars</b></li><li><span>5Y</span><b>1260 bars</b></li></ul><p class="foot">A stock can look clean on 1Y and choppy on 5Y, or the reverse &mdash; checking more than one window is often the point.</p></span></span></span><button type="button" data-tw="1" class="on">1Y</button><button type="button" data-tw="2">2Y</button><button type="button" data-tw="3">3Y</button><button type="button" data-tw="5">5Y</button></div>
-                <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl rh-ttip">Sort<span class="rh-info" tabindex="0" role="button" aria-label="What each sort option does">i<span class="rh-tip" role="tooltip"><h4>Sort order</h4><p>All options except Status group by <b>character bucket</b> first &mdash; clean climb &rarr; choppy/erratic climb &rarr; sideways &rarr; downtrend &mdash; so a steep downtrend never outranks a gentle uptrend.</p><ul><li><span>Straightest</span><b>R&sup2; desc.</b></li><li><span>Steepest</span><b>angle desc.</b></li><li><span>Least DD</span><b>drawdown</b></li><li><span>Rank</span><b>composite</b></li><li><span>Status</span><b>your tags</b></li></ul><p class="foot">Straightest and Steepest bucket first, then break ties by straightness or angle. Least DD ignores direction entirely and just finds the calmest ride. Rank uses the latest Grid capture's composite momentum rank; anything outside the top 50 (or never captured) sorts last. Status groups by your Good to go / Wait and watch / Don't venture tags, unrated stocks sitting between Wait and Don't.</p></span></span></span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button><button type="button" data-ts="status">Status</button></div>
+                <div class="rh-seg" id="rh-tqsort"><span class="rh-lbl rh-ttip">Sort<span class="rh-info" tabindex="0" role="button" aria-label="What each sort option does">i<span class="rh-tip" role="tooltip"><h4>Sort order</h4><p>All options except Status group by <b>character bucket</b> first &mdash; clean climb &rarr; choppy/erratic climb &rarr; sideways &rarr; downtrend &mdash; so a steep downtrend never outranks a gentle uptrend.</p><ul><li><span>Straightest</span><b>R&sup2; desc.</b></li><li><span>Steepest</span><b>angle desc.</b></li><li><span>Least DD</span><b>drawdown</b></li><li><span>Rank</span><b>composite</b></li><li><span>Status</span><b>your tags</b></li></ul><p class="foot">Straightest and Steepest bucket first, then break ties by straightness or angle. Least DD ignores direction entirely and just finds the calmest ride. Rank uses the latest Grid capture's composite momentum rank; anything outside the top 50 (or never captured) sorts last. Status groups by your Invest / Watch / Don't invest tags, unrated stocks sitting between Watch and Don't invest.</p></span></span></span><button type="button" data-ts="lin" class="on">Straightest</button><button type="button" data-ts="ang">Steepest</button><button type="button" data-ts="dd">Least DD</button><button type="button" data-ts="rank">Rank</button><button type="button" data-ts="status">Status</button></div>
                 <div class="rh-seg" id="rh-tqhold"><span class="rh-lbl rh-ttip">Holdings on top<span class="rh-info" tabindex="0" role="button" aria-label="What Holdings on top does">i<span class="rh-tip right" role="tooltip"><h4>Holdings on top</h4><p><b>On</b> pins every stock you currently hold to the top of the list, ahead of whatever sort is selected &mdash; so you can eyeball your own portfolio's trend quality first without hunting for it.</p><p class="foot"><b>Off</b> applies the sort to everyone equally, holdings included, so you can see exactly where each holding really sits against the rest of the universe &mdash; useful for spotting a position that's quietly drifted into "choppy" or "downtrend" while stronger names took over.</p></span></span></span><button type="button" data-h="1" class="on">On</button><button type="button" data-h="0">Off</button></div>
                 <span class="rh-ttip"><button class="rh-capture" id="rh-scan-btn" onclick="rhScanTrends()">Scan trends</button><span class="rh-info" tabindex="0" role="button" aria-label="What Scan trends does">i<span class="rh-tip right" role="tooltip"><h4>What &ldquo;Scan trends&rdquo; does</h4><p>Pulls <b>5 years of daily adjusted-close prices</b> for every active stock in your universe from Yahoo Finance, via the same proxy the rest of the app uses &mdash; in batches of 6 with a short pause between batches to stay under rate limits. Typically 5&ndash;9 minutes for the full universe.</p><ul><li><span>Fit</span><b>ln(price) vs. day</b></li><li><span>Angle</span><b>45&deg; &asymp; 30%/yr</b></li><li><span>Straightness</span><b>R&sup2; of fit</b></li><li><span>Drawdown</span><b>worst peak&rarr;trough</b></li></ul><p class="foot">Saved to <b>this browser only</b> (not the database) &mdash; results persist across reloads here, but need a fresh Scan after you add or remove universe stocks, or once flagged stale (a nudge appears after 7 days).</p></span></span></span>
               </span>
@@ -2138,7 +2144,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260913.39'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260914.40'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -3328,6 +3334,7 @@
             <button class="wow-delete-btn" onclick="event.stopPropagation();deleteWowWeek('${dateStr}')">✕ Delete Week</button>
           </div>
           <div id="wow-body-${dateStr}" ${!isLatest ? 'style="display:none"' : ''}>
+            <div class="wow-scroll">
             <table>
               <thead id="wow-thead-${dateStr}"><tr>
                 ${th('name','Stock')}${th('ticker','Ticker')}${th('avgBuy','Avg Buy')}${th('price','Week Price')}
@@ -3337,6 +3344,7 @@
               </tr></thead>
               <tbody id="wow-tbody-${dateStr}">${renderWowTableBody(dateStr, rowData, sort.col, sort.dir)}</tbody>
             </table>
+            </div>
             <script type="application/json" id="wow-rowdata-${dateStr}">${JSON.stringify(rowData)}<\/script>
           </div>
         </div>`;
@@ -4281,7 +4289,11 @@
             ${Object.entries(r.fund).map(([k,v])=>`<div class="scr-fdot ${fd(v)}" data-tip="${tip(k,v)}"></div>`).join('')}
           </div>
         </td>
-        <td><button class="scr-act" onclick="scrAddWatch(this,'${r.ticker}','${r.name}')">+ Watch</button></td>
+        <td><div class="rh-tq-statusgrp" data-tk="${r.ticker}">
+          <button class="rh-tq-sbtn go${rhGetStatus(r.ticker)==='go'?' on':''}" title="Invest" onclick="scrSetTag(this,'${r.ticker}','go')">&check;</button>
+          <button class="rh-tq-sbtn dont${rhGetStatus(r.ticker)==='dont'?' on':''}" title="Don&rsquo;t invest" onclick="scrSetTag(this,'${r.ticker}','dont')">&times;</button>
+          <button class="rh-tq-sbtn wait${rhGetStatus(r.ticker)==='wait'?' on':''}" title="Watch" onclick="scrSetTag(this,'${r.ticker}','wait')">&#8987;</button>
+        </div></td>
       </tr>`;
     }).join('');
 
@@ -4317,7 +4329,7 @@
             ${thS('adtv',       'ADTV ₹Cr', 11)}
             ${thS('streak',     'Streak',   12)}
             <th>Fundamental Indicators</th>
-            <th></th>
+            <th>Tag</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -4351,6 +4363,27 @@
         </div>
       </div>` : ''}
     `;
+    // Tags (shared with Rank History's rank_status) may still be loading the first time
+    // Discovery renders — patch the buttons in place once ready rather than re-rendering.
+    if (window.rhEnsureStatusLoaded) window.rhEnsureStatusLoaded(scrPatchTags);
+  }
+
+  function scrPatchTags() {
+    document.querySelectorAll('#scr-results .rh-tq-statusgrp[data-tk]').forEach(grp => {
+      const cur = window.rhGetStatus ? window.rhGetStatus(grp.getAttribute('data-tk')) : null;
+      grp.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+      if (cur) { const b = grp.querySelector('.' + cur); if (b) b.classList.add('on'); }
+    });
+  }
+
+  function scrSetTag(btn, ticker, status) {
+    if (!window.rhSetStatus) return;
+    window.rhSetStatus(ticker, status);   // shared save — mutates the cache synchronously before its first await
+    const grp = btn.closest('.rh-tq-statusgrp');
+    if (!grp) return;
+    const cur = window.rhGetStatus ? window.rhGetStatus(ticker) : null;
+    grp.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+    if (cur) { const b = grp.querySelector('.' + cur); if (b) b.classList.add('on'); }
   }
 
   // Sort
@@ -4443,16 +4476,8 @@
   }
 
   // Add to watchlist (Supabase)
-  async function scrAddWatch(btn, ticker, name) {
-    btn.disabled = true;
-    btn.textContent = '…';
-    const { error } = await db.from('watchlist').upsert({
-      ticker, stock_name: name,
-      user_id: (await db.auth.getUser()).data.user?.id,
-    }, { onConflict: 'ticker,user_id' });
-    if (error) { btn.textContent = '✗ Error'; btn.style.color = 'var(--red)'; }
-    else { btn.textContent = '✓ Added'; btn.classList.add('done'); }
-  }
+  // scrAddWatch (watchlist upsert) retired 2026-09-14 — replaced by the shared Invest/Watch/Don't invest
+  // tag (scrSetTag, rank_status table) so Discovery and Rank History use one tagging system, not two.
 
   // ============================================================
   // IMPORT KITE TRADES
@@ -5449,7 +5474,9 @@
     }
     window.rhScanTrends = rhScanTrends;
 
-    // ---------- Trend view status tags (Good to go / Wait and watch / Don't venture) ----------
+    // ---------- Trend view status tags (Invest / Watch / Don't invest) ----------
+    // Shared beyond this IIFE: window.rhSetStatus / rhGetStatus / rhEnsureStatusLoaded are also
+    // called from the Discovery tab (Phase 4 screener) so the same tag shows in both places.
     async function loadRankStatus(){
       try {
         const user = (await db.auth.getUser()).data.user;
@@ -5483,6 +5510,12 @@
       }
     }
     window.rhSetStatus = setRankStatus;
+    window.rhGetStatus = function(ticker){ return rankStatus[bare(ticker)] || null; };
+    window.rhEnsureStatusLoaded = function(cb){
+      if (rankStatusLoaded) { if (cb) cb(); return; }
+      rankStatusLoaded = true;
+      loadRankStatus().then(() => { if (st.view === 'trend') renderTrend(); if (cb) cb(); });
+    };
     function setStatusFilter(f){ st.statusFilter = f; renderTrend(); }
     window.rhSetStatusFilter = setStatusFilter;
 
@@ -5533,7 +5566,7 @@
               rows.length + (rows.length !== list.length ? ' of ' + list.length : '') + ' stocks · ' + sortTxt + (st.tqHold ? ' · holdings pinned' : '') +
               ' · scanned ' + ageTxt + (age >= 7 ? ' · <b>rescan for fresh data</b>' : '') + ' · 45° ≈ 30%/yr</div>';
 
-      const chipDef = [['all','All',null], ['go','Good to go','var(--accent)'], ['wait','Wait and watch','var(--amber)'], ['dont',"Don't venture",'var(--red)'], ['unrated','Unrated','var(--muted)']];
+      const chipDef = [['all','All',null], ['go','Invest','var(--accent)'], ['wait','Watch','var(--amber)'], ['dont',"Don't invest",'var(--red)'], ['unrated','Unrated','var(--muted)']];
       h += '<div class="rh-tq-chips">' + chipDef.map(c =>
         '<span class="rh-chip' + (sf === c[0] ? ' on' : '') + '" onclick="rhSetStatusFilter(\'' + c[0] + '\')">' +
         (c[2] ? '<i style="background:' + c[2] + '"></i>' : '') + esc(c[1]) + ' <span class="n">(' + cnt[c[0]] + ')</span></span>'
@@ -5542,7 +5575,7 @@
       h += '<table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
            '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th><th>Status</th></tr></thead><tbody>';
       let sepDone = false, prevGroup = null;
-      const glabelTxt = { go:'Good to go', wait:'Wait and watch', dont:"Don't venture", unrated:'Unrated' };
+      const glabelTxt = { go:'Invest', wait:'Watch', dont:"Don't invest", unrated:'Unrated' };
       rows.forEach((x, ix) => {
         const m = x.m, ch = tqChar(m.a, m.r), col = tqColor(ch.key);
         const yrs = (m.y < W) ? ' <span style="color:var(--muted)">(' + m.y + 'y)</span>' : '';
@@ -5561,9 +5594,9 @@
           '<td class="rh-tq-dd">' + m.d + '%</td>' +
           '<td>' + tqSparkPath(m.s, col) + '</td>' +
           '<td><div class="rh-tq-statusgrp">' +
-            '<button class="rh-tq-sbtn go' + (x.status === 'go' ? ' on' : '') + '" title="Good to go" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'go\')">&check;</button>' +
-            '<button class="rh-tq-sbtn dont' + (x.status === 'dont' ? ' on' : '') + '" title="Don’t venture" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'dont\')">&times;</button>' +
-            '<button class="rh-tq-sbtn wait' + (x.status === 'wait' ? ' on' : '') + '" title="Wait and watch" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'wait\')">&#8987;</button>' +
+            '<button class="rh-tq-sbtn go' + (x.status === 'go' ? ' on' : '') + '" title="Invest" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'go\')">&check;</button>' +
+            '<button class="rh-tq-sbtn dont' + (x.status === 'dont' ? ' on' : '') + '" title="Don’t invest" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'dont\')">&times;</button>' +
+            '<button class="rh-tq-sbtn wait' + (x.status === 'wait' ? ' on' : '') + '" title="Watch" onclick="rhSetStatus(\'' + esc(x.k) + '\',\'wait\')">&#8987;</button>' +
           '</div></td>' +
         '</tr>';
       });
