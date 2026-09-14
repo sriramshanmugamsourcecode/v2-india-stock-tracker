@@ -313,7 +313,7 @@
       margin-bottom: 24px;
     }
 
-    table { width: max-content; min-width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; }
     thead tr { background: var(--bg3); border-bottom: 0.5px solid var(--border); }
 
     th {
@@ -946,7 +946,7 @@
     .scr-cdot { width:6px; height:6px; border-radius:50%; background:#4caf50; }
     .scr-tbl-wrap { border:0.5px solid var(--border); border-radius:10px; overflow:visible; }
     .scr-tbl-inner { overflow-x:auto; width:100%; -webkit-overflow-scrolling:touch; }
-    .scr-tbl-wrap table { width:max-content; min-width:100%; border-collapse:collapse; font-size:12px; }
+    .scr-tbl-wrap table { width:100%; border-collapse:collapse; font-size:12px; }
     .scr-tbl-wrap thead tr { background:var(--card); border-bottom:0.5px solid var(--border); }
     .scr-tbl-wrap th {
       font-family:var(--font-mono); font-size:9px; font-weight:500; color:var(--muted);
@@ -965,8 +965,9 @@
     .scr-tbl-wrap td.scol { background:rgba(99,179,237,0.03); }
     .scr-scell { display:flex; align-items:center; gap:7px; }
     .scr-sdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .scr-sname { font-size:13px; font-weight:600; color:var(--text); }
-    .scr-smeta { font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-top:1px; }
+    .scr-sinfo { min-width:0; max-width:150px; }
+    .scr-sname { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; }
+    .scr-smeta { font-size:10px; color:var(--muted); font-family:var(--font-mono); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .scr-hchip {
       display:inline-flex; align-items:center; font-size:9px; font-family:var(--font-mono);
       font-weight:500; color:#a78bfa; background:rgba(167,139,250,0.1);
@@ -1069,7 +1070,7 @@
     .rh-panel { background:var(--card); border:0.5px solid var(--border); border-radius:12px; overflow:hidden; }
     .rh-cap { padding:10px 15px; font-size:11px; color:var(--muted); background:var(--bg3); border-bottom:0.5px solid var(--border); }
     .rh-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
-    .rh-scroll table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+    .rh-scroll table { border-collapse:separate; border-spacing:0; width:100%; }
     .rh-scroll th, .rh-scroll td { text-align:left; white-space:nowrap; }
     .rh-scroll thead th { background:var(--bg3); position:sticky; top:0; z-index:2; border-bottom:0.5px solid var(--border); padding:10px 13px; vertical-align:top; }
     .rh-scroll tr.rh-yrow th { position:static; padding:6px 13px; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.16em; color:var(--muted); }
@@ -1110,7 +1111,7 @@
     .rh-bar i { display:block; height:100%; background:var(--accent); }
     /* --- Trend view (3rd view in the Rank History tab) --- */
     .rh-ctrls-grp { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; }
-    .rh-tq { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; }
+    .rh-tq { border-collapse:separate; border-spacing:0; width:100%; }
     .rh-tq th { background:var(--bg3); position:sticky; top:0; z-index:2; border-bottom:0.5px solid var(--border); padding:10px 13px; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:left; white-space:nowrap; }
     .rh-tq td { padding:9px 13px; border-bottom:0.5px solid var(--border); vertical-align:middle; white-space:nowrap; }
     .rh-tq tbody tr:last-child td { border-bottom:none; }
@@ -2144,7 +2145,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260914.40'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260914.41'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -4265,8 +4266,8 @@
         <td>
           <div class="scr-scell">
             <div class="scr-sdot" style="background:${isH?'#a78bfa':'var(--border)'}"></div>
-            <div>
-              <div class="scr-sname">${r.name}${isH?'<span class="scr-hchip">▲ holding</span>':''}</div>
+            <div class="scr-sinfo">
+              <div class="scr-sname" title="${r.name}">${r.name}${isH?'<span class="scr-hchip">▲ holding</span>':''}</div>
               <div class="scr-smeta">${r.ticker} · ₹${r.price!=null?r.price.toLocaleString('en-IN'):'—'}</div>
             </div>
           </div>
@@ -5572,7 +5573,7 @@
         (c[2] ? '<i style="background:' + c[2] + '"></i>' : '') + esc(c[1]) + ' <span class="n">(' + cnt[c[0]] + ')</span></span>'
       ).join('') + '</div>';
 
-      h += '<table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
+      h += '<div class="rh-scroll"><table class="rh-tq"><thead><tr><th>Stock</th><th>Rank</th><th>Trend angle</th><th>Straightness</th>' +
            '<th style="text-align:right">Max DD</th><th>' + W + 'y line</th><th>Status</th></tr></thead><tbody>';
       let sepDone = false, prevGroup = null;
       const glabelTxt = { go:'Invest', wait:'Watch', dont:"Don't invest", unrated:'Unrated' };
@@ -5601,7 +5602,7 @@
         '</tr>';
       });
       if (!rows.length) h += '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">No stocks match this filter.</td></tr>';
-      h += '</tbody></table>';
+      h += '</tbody></table></div>';
       box.innerHTML = h;
     }
 
