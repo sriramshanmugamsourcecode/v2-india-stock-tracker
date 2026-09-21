@@ -1385,8 +1385,9 @@
     .rb-section .rb-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
 
     /* -- Pyramiding sub-section (lives inside the Rebalance tab/IIFE) -- */
-    .rb-pyr-controls { display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:14px; margin-bottom:16px; }
-    @media (max-width:820px) { .rb-pyr-controls { grid-template-columns:1fr 1fr; } }
+    .rb-pyr-controls { display:grid; grid-template-columns:1.4fr 0.8fr 0.9fr 0.9fr 0.9fr; gap:14px; margin-bottom:16px; }
+    @media (max-width:960px) { .rb-pyr-controls { grid-template-columns:1fr 1fr 1fr; } }
+    @media (max-width:600px) { .rb-pyr-controls { grid-template-columns:1fr 1fr; } }
     .rb-pyr-field label { display:block; font-size:10px; font-family:var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
     .rb-pyr-field .hint { font-size:10px; color:var(--muted); margin-top:5px; }
     .rb-pyr-search { position:relative; }
@@ -2165,6 +2166,11 @@
                 <input id="rb-pyr-tranche1" type="text" inputmode="numeric" value="1,20,000" onchange="rbPyrRender()" oninput="rbPyrRender()">
                 <div class="hint">rest auto-staged</div>
               </div>
+              <div class="rb-pyr-field">
+                <label for="rb-pyr-maxtranche">Max tranche</label>
+                <input id="rb-pyr-maxtranche" type="text" inputmode="numeric" placeholder="optional" onchange="rbPyrRender()" oninput="rbPyrRender()">
+                <div class="hint">blank = no cap</div>
+              </div>
             </div>
 
             <div class="rb-pyr-status" id="rb-pyr-status">Search a stock above to start.</div>
@@ -2300,7 +2306,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260921.49'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260921.52'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -7837,6 +7843,7 @@
       const floorMult   = 1 + floorPct / 100;
       const deployTotal = pyrParseAmt(document.getElementById('rb-pyr-amount').value);
       const t1Amount    = pyrParseAmt(document.getElementById('rb-pyr-tranche1').value);
+      const maxTranche  = pyrParseAmt(document.getElementById('rb-pyr-maxtranche').value); // 0 (blank) = no cap
 
       const rows = [];
       let qty = 0, cost = 0, avgBuy = 0;
@@ -7852,7 +7859,7 @@
       // you-already-hold — so an existing position's real cost counts against it from the start.
       let deployed = cost;
       if (t1Amount > 0 && deployed < deployTotal) {
-        const amt = Math.min(t1Amount, deployTotal - deployed);
+        const amt = Math.min(t1Amount, deployTotal - deployed, maxTranche > 0 ? maxTranche : Infinity);
         const sh  = Math.floor(amt / stock.price);
         if (sh > 0) {
           const addCost = sh * stock.price;
@@ -7862,15 +7869,16 @@
       }
 
       let step = 1, guard = 0;
-      while (deployed < deployTotal - 1000 && guard < 8) {
+      while (deployed < deployTotal - 1000 && guard < 60) {
         guard++;
         const price = Math.round(stock.price * (1 + 0.05 * (step + 1)) / 5) * 5;
         if (avgBuy <= 0 || price <= avgBuy * floorMult) { step++; continue; }
         const maxQty = qty * (price - floorMult * avgBuy) / (price * (floorMult - 1));
         if (maxQty <= 0) { step++; continue; }
-        const remaining  = deployTotal - deployed;
-        const affordable = Math.floor(remaining / price);
-        const sh = Math.max(0, Math.min(Math.floor(maxQty), affordable));
+        const remaining       = deployTotal - deployed;
+        const affordable      = Math.floor(remaining / price);
+        const affordableByCap = maxTranche > 0 ? Math.floor(maxTranche / price) : Infinity;
+        const sh = Math.max(0, Math.min(Math.floor(maxQty), affordable, affordableByCap));
         if (sh > 0) {
           const addCost = sh * price;
           qty += sh; cost += addCost; avgBuy = cost / qty; deployed += addCost;
