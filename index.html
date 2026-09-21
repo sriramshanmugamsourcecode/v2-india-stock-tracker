@@ -2300,7 +2300,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260921.48'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260921.49'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -7848,7 +7848,9 @@
         rows.push({ owned:true, label:'Already owned', price: stock.price, shares: owned.netQty, cost, cumQty: qty, avgBuy, cushion: ((stock.price - avgBuy) / avgBuy) * 100 });
       }
 
-      let deployed = 0;
+      // "Amount to deploy" is a TOTAL target for this stock, not new-money-on-top-of-whatever-
+      // you-already-hold — so an existing position's real cost counts against it from the start.
+      let deployed = cost;
       if (t1Amount > 0 && deployed < deployTotal) {
         const amt = Math.min(t1Amount, deployTotal - deployed);
         const sh  = Math.floor(amt / stock.price);
