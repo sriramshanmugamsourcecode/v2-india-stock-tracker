@@ -1384,6 +1384,47 @@
     .rb-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
     .rb-section .rb-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
 
+    /* -- Pyramiding sub-section (lives inside the Rebalance tab/IIFE) -- */
+    .rb-pyr-controls { display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:14px; margin-bottom:16px; }
+    @media (max-width:820px) { .rb-pyr-controls { grid-template-columns:1fr 1fr; } }
+    .rb-pyr-field label { display:block; font-size:10px; font-family:var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+    .rb-pyr-field .hint { font-size:10px; color:var(--muted); margin-top:5px; }
+    .rb-pyr-search { position:relative; }
+    .rb-pyr-search input, .rb-pyr-field input, .rb-pyr-field select {
+      width:100%; background:var(--bg3); border:0.5px solid var(--border2); border-radius:8px;
+      color:var(--text); font-family:var(--font-mono); font-size:13px; padding:9px 11px; outline:none;
+    }
+    .rb-pyr-search input:focus, .rb-pyr-field input:focus, .rb-pyr-field select:focus { border-color:var(--accent); }
+    .rb-pyr-suggest { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--bg3); border:0.5px solid var(--border2); border-radius:8px; overflow:hidden; z-index:20; display:none; box-shadow:0 12px 30px rgba(0,0,0,.5); max-height:260px; overflow-y:auto; }
+    .rb-pyr-suggest.open { display:block; }
+    .rb-pyr-suggest div { padding:8px 11px; cursor:pointer; font-size:12.5px; display:flex; justify-content:space-between; gap:10px; }
+    .rb-pyr-suggest div:hover { background:rgba(167,139,250,.12); color:var(--accent); }
+    .rb-pyr-suggest span { color:var(--muted); font-family:var(--font-mono); font-size:11px; }
+    .rb-pyr-field select { appearance:none; cursor:pointer;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7f94'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 11px center; padding-right:28px;
+    }
+    .rb-pyr-summary { display:flex; gap:22px; flex-wrap:wrap; background:var(--bg3); border:0.5px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-family:var(--font-mono); font-size:12px; }
+    .rb-pyr-summary .s { display:flex; flex-direction:column; gap:2px; }
+    .rb-pyr-summary .s .l { color:var(--muted); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; }
+    .rb-pyr-summary .s .v { color:var(--text); font-size:14px; font-weight:500; }
+    .rb-pyr-summary .s .v.accent { color:var(--accent); }
+    .rb-pyr-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+    table.rb-pyr-t { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; }
+    table.rb-pyr-t th { text-align:left; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; padding:10px 14px; background:var(--bg3); border-bottom:0.5px solid var(--border2); white-space:nowrap; }
+    table.rb-pyr-t td { padding:10px 14px; border-bottom:0.5px solid var(--border); font-family:var(--font-mono); white-space:nowrap; }
+    table.rb-pyr-t tbody tr:last-child td { border-bottom:none; }
+    table.rb-pyr-t tr.owned td { background:rgba(167,139,250,.08); }
+    table.rb-pyr-t tr.owned td:first-child { box-shadow:inset 3px 0 0 var(--accent); }
+    .rb-pyr-ownedchip { display:inline-flex; align-items:center; gap:5px; font-size:9.5px; font-family:var(--font-mono); font-weight:500; color:var(--accent); background:rgba(167,139,250,.14); border:0.5px solid rgba(167,139,250,.3); border-radius:20px; padding:2px 9px 2px 7px; }
+    .rb-pyr-ownedchip i { width:5px; height:5px; border-radius:50%; background:var(--accent); }
+    .rb-pyr-planchip { display:inline-flex; align-items:center; font-size:9.5px; font-family:var(--font-mono); color:var(--muted); background:var(--bg3); border:0.5px solid var(--border2); border-radius:20px; padding:2px 9px; }
+    .rb-pyr-legend { display:flex; gap:16px; margin-top:12px; font-size:11px; color:var(--muted); align-items:center; flex-wrap:wrap; }
+    .rb-pyr-legend .k { display:inline-flex; align-items:center; gap:6px; }
+    .rb-pyr-legend .dot { width:8px; height:8px; border-radius:2px; }
+    .rb-pyr-status { font-size:11px; color:var(--muted); margin-bottom:10px; }
+    .rb-pyr-status.err { color:var(--red); }
+
     /* ===== EXIT SIGNALS (isolated feature — all selectors .ex-*) ===== */
     .ex-wrap { display:flex; flex-direction:column; gap:22px; }
     .ex-title { font-family:var(--font-display); font-size:20px; font-weight:700; }
@@ -2092,6 +2133,55 @@
             <div id="rb-split-summary"></div>
             <div id="rb-split-results"></div>
           </div>
+
+          <div class="rb-section">
+            <h2>Pyramiding</h2>
+            <div class="rb-psub">Plan a staged entry into one stock — add only as price proves the move, so your blended cost stays below a cushion you choose. Deployment amount is <b>per stock</b>, not portfolio-wide. If you already hold some shares, the plan continues from your real position.</div>
+
+            <div class="rb-pyr-controls">
+              <div class="rb-pyr-field rb-pyr-search">
+                <label for="rb-pyr-symbol">Stock</label>
+                <input id="rb-pyr-symbol" type="text" placeholder="Type a ticker or name…" autocomplete="off" oninput="rbPyrSearch(this.value)">
+                <div class="rb-pyr-suggest" id="rb-pyr-suggest"></div>
+              </div>
+              <div class="rb-pyr-field">
+                <label for="rb-pyr-cushion">Cushion target</label>
+                <select id="rb-pyr-cushion" onchange="rbPyrRender()">
+                  <option value="4">4%</option>
+                  <option value="6" selected>6%</option>
+                  <option value="10">10%</option>
+                  <option value="15">15%</option>
+                  <option value="20">20%</option>
+                  <option value="25">25%</option>
+                </select>
+              </div>
+              <div class="rb-pyr-field">
+                <label for="rb-pyr-amount">Amount to deploy</label>
+                <input id="rb-pyr-amount" type="text" inputmode="numeric" value="3,00,000" onchange="rbPyrRender()" oninput="rbPyrRender()">
+                <div class="hint">per stock</div>
+              </div>
+              <div class="rb-pyr-field">
+                <label for="rb-pyr-tranche1">First tranche amount</label>
+                <input id="rb-pyr-tranche1" type="text" inputmode="numeric" value="1,20,000" onchange="rbPyrRender()" oninput="rbPyrRender()">
+                <div class="hint">rest auto-staged</div>
+              </div>
+            </div>
+
+            <div class="rb-pyr-status" id="rb-pyr-status">Search a stock above to start.</div>
+            <div class="rb-pyr-summary" id="rb-pyr-summary" style="display:none"></div>
+            <div class="rb-pyr-scroll" id="rb-pyr-tablewrap" style="display:none">
+              <table class="rb-pyr-t">
+                <thead><tr>
+                  <th>Tranche</th><th>Trigger price</th><th>Shares</th><th>Cost</th><th>Cumulative shares</th><th>Avg cost</th><th>Cushion at trigger</th>
+                </tr></thead>
+                <tbody id="rb-pyr-rows"></tbody>
+              </table>
+            </div>
+            <div class="rb-pyr-legend" id="rb-pyr-legend" style="display:none">
+              <span class="k"><span class="dot" style="background:rgba(167,139,250,.5)"></span> Already purchased (real trade)</span>
+              <span class="k"><span class="dot" style="background:var(--bg3);border:0.5px solid var(--border2)"></span> Planned tranche (not yet bought)</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2210,7 +2300,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260921.47'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260921.48'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -7663,8 +7753,162 @@
       });
     }
 
+    // -- Pyramiding: staged per-stock entry planner ----------------------
+    //   Own data fetches (universe, live price via scrFetch1Y) — reads
+    //   calcPortfolio() for a real "already owned" position, nothing else
+    //   shared with the rest of Rebalance is touched or required.
+    let pyrUniverse = null, pyrUniverseLoading = false;
+    let pyrStock = null;      // { ticker, name, exchange, price }
+    let pyrClickWired = false;
+
+    async function pyrEnsureUniverse(){
+      if (pyrUniverse || pyrUniverseLoading) return;
+      pyrUniverseLoading = true;
+      try {
+        const { data, error } = await db.from('universe').select('ticker, stock_name, exchange').eq('active', true).range(0, 99999);
+        if (error) throw error;
+        pyrUniverse = data || [];
+      } catch (e) { pyrUniverse = []; }
+      pyrUniverseLoading = false;
+    }
+
+    function pyrWireOutsideClick(){
+      if (pyrClickWired) return; pyrClickWired = true;
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.rb-pyr-search')) {
+          const box = document.getElementById('rb-pyr-suggest');
+          if (box) box.classList.remove('open');
+        }
+      });
+    }
+
+    function rbPyrSearch(q){
+      const box = document.getElementById('rb-pyr-suggest');
+      if (!box) return;
+      pyrEnsureUniverse().then(() => {
+        if (!pyrUniverse) return;
+        const ql = q.trim().toLowerCase();
+        if (!ql) { box.classList.remove('open'); return; }
+        const matches = pyrUniverse.filter(s =>
+          (s.ticker || '').toLowerCase().includes(ql) || (s.stock_name || '').toLowerCase().includes(ql)
+        ).slice(0, 30);
+        box.innerHTML = matches.map(s =>
+          `<div onclick="rbPyrPick('${s.ticker.replace(/'/g, "\\'")}')">${s.stock_name || ''} <span>${s.ticker}</span></div>`
+        ).join('');
+        box.classList.toggle('open', matches.length > 0);
+      });
+    }
+    window.rbPyrSearch = rbPyrSearch;
+
+    async function rbPyrPick(ticker){
+      await pyrEnsureUniverse();
+      const u = pyrUniverse.find(s => s.ticker === ticker);
+      if (!u) return;
+      document.getElementById('rb-pyr-symbol').value = u.ticker + ' — ' + (u.stock_name || '');
+      document.getElementById('rb-pyr-suggest').classList.remove('open');
+      const statusEl = document.getElementById('rb-pyr-status');
+      statusEl.textContent = 'Fetching live price…'; statusEl.className = 'rb-pyr-status';
+      const res = await scrFetch1Y(u.ticker, u.exchange);
+      if (!res || res.price == null) {
+        statusEl.textContent = 'Could not fetch a live price for ' + u.ticker + ' — try again.';
+        statusEl.className = 'rb-pyr-status err';
+        pyrStock = null;
+        document.getElementById('rb-pyr-summary').style.display = 'none';
+        document.getElementById('rb-pyr-tablewrap').style.display = 'none';
+        document.getElementById('rb-pyr-legend').style.display = 'none';
+        return;
+      }
+      pyrStock = { ticker: u.ticker, name: u.stock_name, exchange: u.exchange, price: res.price };
+      statusEl.textContent = '';
+      rbPyrRender();
+    }
+    window.rbPyrPick = rbPyrPick;
+
+    function pyrParseAmt(s){ return parseFloat((s || '').replace(/[^0-9.]/g, '')) || 0; }
+    function pyrFmtR(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+    function pyrFmtPct(n){ return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
+
+    // Trigger prices for tranches 2+: round +5% price bands from today's price — actual
+    // tradeable GTT/limit levels — adding the max the cushion formula allows at each,
+    // capped by remaining capital. Same formula as WoW's calcBuyQty(), generalised.
+    function pyrBuildPlan(){
+      const stock = pyrStock;
+      const floorPct    = parseFloat(document.getElementById('rb-pyr-cushion').value);
+      const floorMult   = 1 + floorPct / 100;
+      const deployTotal = pyrParseAmt(document.getElementById('rb-pyr-amount').value);
+      const t1Amount    = pyrParseAmt(document.getElementById('rb-pyr-tranche1').value);
+
+      const rows = [];
+      let qty = 0, cost = 0, avgBuy = 0;
+
+      const { holdings } = calcPortfolio();
+      const owned = holdings.find(h => h.ticker === stock.ticker);
+      if (owned && owned.netQty > 0) {
+        qty = owned.netQty; cost = owned.netQty * owned.avgBuy; avgBuy = owned.avgBuy;
+        rows.push({ owned:true, label:'Already owned', price: stock.price, shares: owned.netQty, cost, cumQty: qty, avgBuy, cushion: ((stock.price - avgBuy) / avgBuy) * 100 });
+      }
+
+      let deployed = 0;
+      if (t1Amount > 0 && deployed < deployTotal) {
+        const amt = Math.min(t1Amount, deployTotal - deployed);
+        const sh  = Math.floor(amt / stock.price);
+        if (sh > 0) {
+          const addCost = sh * stock.price;
+          qty += sh; cost += addCost; avgBuy = cost / qty; deployed += addCost;
+          rows.push({ owned:false, label:'Tranche 1 (today)', price: stock.price, shares: sh, cost: addCost, cumQty: qty, avgBuy, cushion: ((stock.price - avgBuy) / avgBuy) * 100 });
+        }
+      }
+
+      let step = 1, guard = 0;
+      while (deployed < deployTotal - 1000 && guard < 8) {
+        guard++;
+        const price = Math.round(stock.price * (1 + 0.05 * (step + 1)) / 5) * 5;
+        if (avgBuy <= 0 || price <= avgBuy * floorMult) { step++; continue; }
+        const maxQty = qty * (price - floorMult * avgBuy) / (price * (floorMult - 1));
+        if (maxQty <= 0) { step++; continue; }
+        const remaining  = deployTotal - deployed;
+        const affordable = Math.floor(remaining / price);
+        const sh = Math.max(0, Math.min(Math.floor(maxQty), affordable));
+        if (sh > 0) {
+          const addCost = sh * price;
+          qty += sh; cost += addCost; avgBuy = cost / qty; deployed += addCost;
+          rows.push({ owned:false, label:'Tranche ' + (rows.filter(r => !r.owned).length + 1), price, shares: sh, cost: addCost, cumQty: qty, avgBuy, cushion: ((price - avgBuy) / avgBuy) * 100 });
+        }
+        step++;
+      }
+
+      return { rows, deployed, deployTotal, finalQty: qty, finalAvg: avgBuy, finalCushion: rows.length ? rows[rows.length - 1].cushion : 0 };
+    }
+
+    function rbPyrRender(){
+      if (!pyrStock) return;
+      const plan = pyrBuildPlan();
+      document.getElementById('rb-pyr-rows').innerHTML = plan.rows.map(r => `
+        <tr class="${r.owned ? 'owned' : ''}">
+          <td>${r.owned ? `<span class="rb-pyr-ownedchip"><i></i>${r.label}</span>` : `<span class="rb-pyr-planchip">${r.label}</span>`}</td>
+          <td>${pyrFmtR(r.price)}</td>
+          <td>${r.shares}</td>
+          <td>${pyrFmtR(r.cost)}</td>
+          <td>${r.cumQty}</td>
+          <td>${pyrFmtR(r.avgBuy)}</td>
+          <td style="font-weight:600;color:var(--green,#4ade80)">${pyrFmtPct(r.cushion)}</td>
+        </tr>`).join('');
+
+      document.getElementById('rb-pyr-summary').innerHTML = `
+        <div class="s"><span class="l">Total deployed</span><span class="v">${pyrFmtR(plan.deployed)} <span style="color:var(--muted);font-weight:400">/ ${pyrFmtR(plan.deployTotal)}</span></span></div>
+        <div class="s"><span class="l">Final shares</span><span class="v">${plan.finalQty}</span></div>
+        <div class="s"><span class="l">Final avg cost</span><span class="v">${pyrFmtR(plan.finalAvg)}</span></div>
+        <div class="s"><span class="l">Cushion once fully deployed</span><span class="v accent">${pyrFmtPct(plan.finalCushion)}</span></div>
+      `;
+      document.getElementById('rb-pyr-summary').style.display   = 'flex';
+      document.getElementById('rb-pyr-tablewrap').style.display = 'block';
+      document.getElementById('rb-pyr-legend').style.display    = 'flex';
+    }
+    window.rbPyrRender = rbPyrRender;
+
     window.rbEnter = function(){
       rbWireOnce();
+      pyrWireOutsideClick();
       if (!rbCapLoaded) {
         rbCapLoaded = true;
         rbLoadCap().then(rbRender);
