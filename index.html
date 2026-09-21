@@ -1515,8 +1515,8 @@
         <button class="nav-btn" onclick="switchTab('screener', this)">⬡ Discovery</button>
         <button class="nav-btn" onclick="switchTab('rankhistory', this)">📈 Rank History</button>
         <button class="nav-btn" onclick="switchTab('rebalance', this)">⚖️ Rebalance</button>
-        <button class="nav-btn" onclick="switchTab('maintenance', this)">🛠️ Maintenance</button>
         <button class="nav-btn" onclick="switchTab('exitsignals', this)">🚪 Exit Signals</button>
+        <button class="nav-btn" onclick="switchTab('maintenance', this)">🛠️ Maintenance</button>
       </div>
 
       <div id="error-area"></div>
@@ -2016,6 +2016,85 @@
         </div>
       </div>
 
+      <!-- Exit Signals Tab — isolated feature; consolidates every exit rule across all holdings -->
+      <div id="tab-exitsignals" style="display:none">
+        <div class="ex-wrap">
+          <div>
+            <div class="ex-title">Exit Signals</div>
+            <div class="ex-head-sub">Every current holding against every exit rule, in one place — Hard Exit, Trend Break, 100-EMA Break, 50-DMA Break, Gain Lost, Sharp Drop, Near Floor, and Rank Decay. Read-only summary; nothing here changes Portfolio, WoW, or Rank History.</div>
+            <div class="ex-filterctrl" id="ex-filterctrl" style="margin-top:12px">
+              <button type="button" class="ex-filterbtn" data-exfilter="all" onclick="exSetFilter('all')">All</button>
+              <button type="button" class="ex-filterbtn on" data-exfilter="momentum" onclick="exSetFilter('momentum')">Momentum</button>
+            </div>
+          </div>
+
+          <div class="ex-section">
+            <h2>Settings</h2>
+            <div class="ex-psub">The Gain Lost threshold below feeds the "Gain Lost" flag in the table — a hard exit once a holding has given back this many points from its own peak P&amp;L%.</div>
+            <div class="ex-settings">
+              <label for="ex-gainlost-select">Gain Lost exit threshold</label>
+              <select id="ex-gainlost-select" class="ex-gl-select" onchange="exSaveGainLostPct(this.value)">
+                <option value="-5">-5%</option>
+                <option value="-10">-10%</option>
+                <option value="-15">-15%</option>
+                <option value="-20" selected>-20%</option>
+                <option value="-25">-25%</option>
+                <option value="-30">-30%</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ex-section">
+            <h2>Holdings</h2>
+            <div id="ex-table-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rebalance Tab — isolated feature; momentum sleeve tracked against a capital cap -->
+      <div id="tab-rebalance" style="display:none">
+        <div class="rb-wrap">
+          <div>
+            <div class="rb-title">Rebalance</div>
+            <div class="rb-head-sub">Your momentum sleeve, tracked against a capital cap you set — separate from the rest of the portfolio. Tag holdings as Momentum on the Portfolio tab.</div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Momentum capital</h2>
+            <div class="rb-psub">The ceiling you've set for this sleeve — updating it doesn't move any cash by itself, it's just how much you're willing to have deployed in total.</div>
+            <div class="rb-capcard" id="rb-capcard">Loading…</div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Momentum holdings</h2>
+            <div class="rb-psub">1W change, 3W trend and Gain lost come from the WoW tracker's saved weeks. vs 52W high is fetched from Yahoo, cached for a day.</div>
+            <div id="rb-holdings-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+
+          <div class="rb-section">
+            <h2>Rebalance for this week</h2>
+            <div class="rb-psub">Top-up only — no sells. Splits new money across your Momentum-tagged holdings by a composite of XIRR, proximity to 52W high, 3-week trend and Gain lost.</div>
+
+            <div class="rb-tagctrl" id="rb-splitmode" style="margin-bottom:14px">
+              <button type="button" class="rb-tagbtn on" data-rbsplitmode="weighted">Weighted</button>
+              <button type="button" class="rb-tagbtn" data-rbsplitmode="equal">Equal split</button>
+              <button type="button" class="rb-tagbtn" data-rbsplitmode="sidebyside">Side by side</button>
+            </div>
+
+            <div class="rb-capedit" style="margin-bottom:14px">
+              <label for="rb-split-amount">Amount to deploy</label>
+              <div class="row">
+                <input type="text" id="rb-split-amount" placeholder="e.g. 50000" inputmode="numeric">
+                <button class="rb-btn" data-rbaction="calcsplit">Calculate split</button>
+              </div>
+            </div>
+
+            <div id="rb-split-summary"></div>
+            <div id="rb-split-results"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- App Maintenance Tab — isolated feature; Universe panel first, Trade Logs/Portfolio to follow -->
       <div id="tab-maintenance" style="display:none">
         <div class="mnt-wrap">
@@ -2100,85 +2179,6 @@
         </div>
       </div>
 
-      <!-- Exit Signals Tab — isolated feature; consolidates every exit rule across all holdings -->
-      <div id="tab-exitsignals" style="display:none">
-        <div class="ex-wrap">
-          <div>
-            <div class="ex-title">Exit Signals</div>
-            <div class="ex-head-sub">Every current holding against every exit rule, in one place — Hard Exit, Trend Break, 100-EMA Break, 50-DMA Break, Gain Lost, Sharp Drop, Near Floor, and Rank Decay. Read-only summary; nothing here changes Portfolio, WoW, or Rank History.</div>
-            <div class="ex-filterctrl" id="ex-filterctrl" style="margin-top:12px">
-              <button type="button" class="ex-filterbtn on" data-exfilter="all" onclick="exSetFilter('all')">All</button>
-              <button type="button" class="ex-filterbtn" data-exfilter="momentum" onclick="exSetFilter('momentum')">Momentum</button>
-            </div>
-          </div>
-
-          <div class="ex-section">
-            <h2>Settings</h2>
-            <div class="ex-psub">The Gain Lost threshold below feeds the "Gain Lost" flag in the table — a hard exit once a holding has given back this many points from its own peak P&amp;L%.</div>
-            <div class="ex-settings">
-              <label for="ex-gainlost-select">Gain Lost exit threshold</label>
-              <select id="ex-gainlost-select" class="ex-gl-select" onchange="exSaveGainLostPct(this.value)">
-                <option value="-5">-5%</option>
-                <option value="-10">-10%</option>
-                <option value="-15">-15%</option>
-                <option value="-20" selected>-20%</option>
-                <option value="-25">-25%</option>
-                <option value="-30">-30%</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="ex-section">
-            <h2>Holdings</h2>
-            <div id="ex-table-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Rebalance Tab — isolated feature; momentum sleeve tracked against a capital cap -->
-      <div id="tab-rebalance" style="display:none">
-        <div class="rb-wrap">
-          <div>
-            <div class="rb-title">Rebalance</div>
-            <div class="rb-head-sub">Your momentum sleeve, tracked against a capital cap you set — separate from the rest of the portfolio. Tag holdings as Momentum on the Portfolio tab.</div>
-          </div>
-
-          <div class="rb-section">
-            <h2>Momentum capital</h2>
-            <div class="rb-psub">The ceiling you've set for this sleeve — updating it doesn't move any cash by itself, it's just how much you're willing to have deployed in total.</div>
-            <div class="rb-capcard" id="rb-capcard">Loading…</div>
-          </div>
-
-          <div class="rb-section">
-            <h2>Momentum holdings</h2>
-            <div class="rb-psub">1W change, 3W trend and Gain lost come from the WoW tracker's saved weeks. vs 52W high is fetched from Yahoo, cached for a day.</div>
-            <div id="rb-holdings-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
-          </div>
-
-          <div class="rb-section">
-            <h2>Rebalance for this week</h2>
-            <div class="rb-psub">Top-up only — no sells. Splits new money across your Momentum-tagged holdings by a composite of XIRR, proximity to 52W high, 3-week trend and Gain lost.</div>
-
-            <div class="rb-tagctrl" id="rb-splitmode" style="margin-bottom:14px">
-              <button type="button" class="rb-tagbtn on" data-rbsplitmode="weighted">Weighted</button>
-              <button type="button" class="rb-tagbtn" data-rbsplitmode="equal">Equal split</button>
-              <button type="button" class="rb-tagbtn" data-rbsplitmode="sidebyside">Side by side</button>
-            </div>
-
-            <div class="rb-capedit" style="margin-bottom:14px">
-              <label for="rb-split-amount">Amount to deploy</label>
-              <div class="row">
-                <input type="text" id="rb-split-amount" placeholder="e.g. 50000" inputmode="numeric">
-                <button class="rb-btn" data-rbaction="calcsplit">Calculate split</button>
-              </div>
-            </div>
-
-            <div id="rb-split-summary"></div>
-            <div id="rb-split-results"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- WoW Stock Detail Modal -->
       <div class="wow-modal-overlay" id="wow-modal-overlay" onclick="closeWowModal(event)">
         <div class="wow-modal" id="wow-modal">
@@ -2210,7 +2210,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260921.45'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260921.47'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -3630,7 +3630,7 @@
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio','trades','wow','screener','rankhistory','rebalance','maintenance','exitsignals'].forEach(t =>
+    ['portfolio','trades','wow','screener','rankhistory','rebalance','exitsignals','maintenance'].forEach(t =>
       document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
     );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -7690,7 +7690,7 @@
     let missingMonths = [];      // calendar gaps found in rank_history's captured months
     let wired = false;
     let exSort = { col: 'exitOrder', dir: 'asc' };  // default: most urgent exit signal first
-    let exFilter = 'all';  // 'all' | 'momentum' — momentum = holdingTags.has(ticker), same tag Rebalance uses
+    let exFilter = 'momentum';  // 'all' | 'momentum' — momentum = holdingTags.has(ticker), same tag Rebalance uses
 
     const el  = id => document.getElementById(id);
     const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[x]));
@@ -7856,7 +7856,7 @@
         const pnlCell = r.pnlPct != null ? '<span class="' + (r.pnlPct >= 0 ? 'positive-text' : 'negative-text') + '">' + fmtPct(r.pnlPct) + '</span>' : '—';
         const vsFloorCell = r.pnlPct != null ? fmtPct(r.pnlPct - pnlFloor) : '—';
         const gainLostCell = r.gainLost != null
-          ? '<span class="' + (r.gainLostBreach ? 'ex-decay-out' : (r.gainLost < -0.05 ? 'negative-text' : '')) + '">' + (r.gainLost < -0.05 ? fmtPct(r.gainLost) : '▲ at peak') + '</span>'
+          ? '<span class="' + (r.gainLostBreach ? 'ex-decay-out' : (r.gainLost < -0.05 ? 'negative-text' : '')) + '">' + (r.gainLostBreach ? '⛔ ' : '') + (r.gainLost < -0.05 ? fmtPct(r.gainLost) : '▲ at peak') + '</span>'
           : '—';
         const dma50Cell = !cacheOk ? '<span class="ex-decay-ok">n/a</span>'
           : r.dma50 == null ? '<span class="ex-decay-ok">n/a</span>'
