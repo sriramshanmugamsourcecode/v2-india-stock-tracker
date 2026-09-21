@@ -1384,6 +1384,30 @@
     .rb-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
     .rb-section .rb-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
 
+    /* ===== EXIT SIGNALS (isolated feature — all selectors .ex-*) ===== */
+    .ex-wrap { display:flex; flex-direction:column; gap:22px; }
+    .ex-title { font-family:var(--font-display); font-size:20px; font-weight:700; }
+    .ex-head-sub { font-size:12px; color:var(--muted); margin-top:4px; max-width:74ch; }
+    .ex-section h2 { font-family:var(--font-display); font-size:16px; font-weight:700; margin-bottom:4px; }
+    .ex-section .ex-psub { font-size:12px; color:var(--muted); max-width:70ch; margin-bottom:12px; }
+    .ex-settings { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .ex-settings label { font-size:11px; color:var(--muted); font-weight:500; }
+    .ex-gl-select { background:var(--bg3); border:0.5px solid var(--border2); border-radius:8px; color:var(--accent); font-family:var(--font-mono); font-size:13px; font-weight:500; padding:6px 10px; cursor:pointer; }
+    .ex-filterctrl { display:inline-flex; border:0.5px solid var(--border2); border-radius:7px; overflow:hidden; }
+    .ex-filterbtn { font-family:var(--font-body); font-size:11px; font-weight:600; padding:6px 14px; border:0; background:var(--bg3); color:var(--muted); cursor:pointer; }
+    .ex-filterbtn.on { background:var(--accent); color:#17131f; }
+    .ex-banner { background:rgba(251,191,36,0.08); border:0.5px solid rgba(251,191,36,0.3); border-radius:10px; padding:10px 16px; margin-bottom:14px; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:10px; }
+    .ex-empty { text-align:center; padding:40px 20px; color:var(--muted); }
+    .ex-decay-ok   { color:var(--muted); }
+    .ex-decay-drop { color:var(--amber); font-weight:600; }
+    .ex-decay-out  { color:var(--red); font-weight:600; }
+    .ex-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+    table.ex-t { width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card); border:0.5px solid var(--border); border-radius:12px; }
+    table.ex-t th { text-align:left; font-weight:400; color:var(--muted); font-family:var(--font-mono); font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; padding:9px 12px; background:var(--bg3); border-bottom:0.5px solid var(--border2); white-space:nowrap; }
+    table.ex-t td { padding:9px 12px; border-bottom:0.5px solid var(--border); vertical-align:middle; white-space:nowrap; }
+    table.ex-t tbody tr:last-child td { border-bottom:none; }
+    table.ex-t tbody tr:hover td { background:rgba(255,255,255,0.02); }
+
     .rb-capcard { display:grid; grid-template-columns:1.1fr 1.4fr auto; gap:24px; align-items:center; background:var(--card); border:0.5px solid var(--border2); border-radius:12px; padding:18px 20px; }
     @media (max-width: 820px) { .rb-capcard { grid-template-columns:1fr; } }
     .rb-capfig .l { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin-bottom:4px; font-family:var(--font-mono); }
@@ -1492,6 +1516,7 @@
         <button class="nav-btn" onclick="switchTab('rankhistory', this)">📈 Rank History</button>
         <button class="nav-btn" onclick="switchTab('rebalance', this)">⚖️ Rebalance</button>
         <button class="nav-btn" onclick="switchTab('maintenance', this)">🛠️ Maintenance</button>
+        <button class="nav-btn" onclick="switchTab('exitsignals', this)">🚪 Exit Signals</button>
       </div>
 
       <div id="error-area"></div>
@@ -2075,6 +2100,41 @@
         </div>
       </div>
 
+      <!-- Exit Signals Tab — isolated feature; consolidates every exit rule across all holdings -->
+      <div id="tab-exitsignals" style="display:none">
+        <div class="ex-wrap">
+          <div>
+            <div class="ex-title">Exit Signals</div>
+            <div class="ex-head-sub">Every current holding against every exit rule, in one place — Hard Exit, Trend Break, 100-EMA Break, 50-DMA Break, Gain Lost, Sharp Drop, Near Floor, and Rank Decay. Read-only summary; nothing here changes Portfolio, WoW, or Rank History.</div>
+            <div class="ex-filterctrl" id="ex-filterctrl" style="margin-top:12px">
+              <button type="button" class="ex-filterbtn on" data-exfilter="all" onclick="exSetFilter('all')">All</button>
+              <button type="button" class="ex-filterbtn" data-exfilter="momentum" onclick="exSetFilter('momentum')">Momentum</button>
+            </div>
+          </div>
+
+          <div class="ex-section">
+            <h2>Settings</h2>
+            <div class="ex-psub">The Gain Lost threshold below feeds the "Gain Lost" flag in the table — a hard exit once a holding has given back this many points from its own peak P&amp;L%.</div>
+            <div class="ex-settings">
+              <label for="ex-gainlost-select">Gain Lost exit threshold</label>
+              <select id="ex-gainlost-select" class="ex-gl-select" onchange="exSaveGainLostPct(this.value)">
+                <option value="-5">-5%</option>
+                <option value="-10">-10%</option>
+                <option value="-15">-15%</option>
+                <option value="-20" selected>-20%</option>
+                <option value="-25">-25%</option>
+                <option value="-30">-30%</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ex-section">
+            <h2>Holdings</h2>
+            <div id="ex-table-wrap"><div class="loading"><div class="spinner"></div>Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Rebalance Tab — isolated feature; momentum sleeve tracked against a capital cap -->
       <div id="tab-rebalance" style="display:none">
         <div class="rb-wrap">
@@ -2150,7 +2210,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260914.44'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260921.45'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -2991,7 +3051,9 @@
       // Accept cache up to 3 days old for EMA (weekly review tolerance)
       if (Date.now() - ts > 3 * 24 * 60 * 60 * 1000) return null;
       const want  = bareSym(ticker);
-      const stock = data.find(s => bareSym(s.ticker) === want || s.name === ticker);
+      // data is stored as an object keyed by ticker (scrSaveCache), not an array —
+      // Object.values() so this works regardless of which shape it's ever saved as.
+      const stock = Object.values(data).find(s => bareSym(s.ticker) === want || s.name === ticker);
       return stock ? (stock.ema100 ?? null) : null;
     } catch { return null; }
   }
@@ -3568,7 +3630,7 @@
   // TAB SWITCHING
   // ============================================================
   function switchTab(tab, btn) {
-    ['portfolio','trades','wow','screener','rankhistory','rebalance','maintenance'].forEach(t =>
+    ['portfolio','trades','wow','screener','rankhistory','rebalance','maintenance','exitsignals'].forEach(t =>
       document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none'
     );
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -3578,6 +3640,7 @@
     if (tab === 'screener') scrEnsureUniverseCount();
     if (tab === 'rebalance' && window.rbEnter) window.rbEnter();
     if (tab === 'maintenance' && window.mntEnter) window.mntEnter();
+    if (tab === 'exitsignals' && window.exEnter) window.exEnter();
   }
 
   // ============================================================
@@ -7608,6 +7671,243 @@
       } else {
         rbRender();
       }
+    };
+  })();
+
+  // ===================================================================
+  // EXIT SIGNALS (isolated feature — all selectors .ex-*)
+  //   reads : db, trades, wowEntries, calcPortfolio, getExitSignal, bareSym,
+  //           pnlFloor, getEmaFromCache, scrCacheIsFresh, SCR_CACHE_KEY, fmtPct, fmtPrice
+  //   writes: user_preferences.gain_lost_exit_pct only • mutates no shared state
+  //   Consolidates every exit rule (existing + new) into one full-holdings table.
+  //   Does NOT modify getExitSignal(), WoW, Portfolio, or any other existing tab.
+  // ===================================================================
+  (function(){
+    let gainLostExitPct = -20;   // default; loaded from user_preferences
+    let prefsLoaded = false;
+    let rankInfo = {};           // bareSym(ticker) -> { bestRank, currentRank, outsideStreak } | null
+    let rankLoaded = false;
+    let missingMonths = [];      // calendar gaps found in rank_history's captured months
+    let wired = false;
+    let exSort = { col: 'exitOrder', dir: 'asc' };  // default: most urgent exit signal first
+    let exFilter = 'all';  // 'all' | 'momentum' — momentum = holdingTags.has(ticker), same tag Rebalance uses
+
+    const el  = id => document.getElementById(id);
+    const esc = s => (s == null ? '' : ('' + s)).replace(/[<>&"]/g, x => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[x]));
+
+    // ---------- 50 DMA from screener cache (mirrors getEmaFromCache's 100 EMA lookup) ----------
+    function getDma50FromCache(ticker){
+      try {
+        const raw = localStorage.getItem(SCR_CACHE_KEY);
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts > 3 * 24 * 60 * 60 * 1000) return null;
+        const want  = bareSym(ticker);
+        const stock = Object.values(data).find(s => bareSym(s.ticker) === want || s.name === ticker);
+        return stock ? (stock.dma50 ?? null) : null;
+      } catch (e) { return null; }
+    }
+
+    // ---------- preferences: Gain Lost exit threshold ----------
+    async function loadPrefs(){
+      try {
+        const { data } = await db.from('user_preferences').select('gain_lost_exit_pct').single();
+        if (data && data.gain_lost_exit_pct != null) gainLostExitPct = data.gain_lost_exit_pct;
+      } catch (e) { /* no prefs row yet — use default */ }
+      const sel = el('ex-gainlost-select');
+      if (sel) sel.value = String(gainLostExitPct);
+    }
+    async function saveGainLostPct(val){
+      gainLostExitPct = parseInt(val, 10);
+      try {
+        const user = (await db.auth.getUser()).data.user;
+        if (user) {
+          await db.from('user_preferences').upsert({
+            user_id: user.id, gain_lost_exit_pct: gainLostExitPct, updated_at: new Date().toISOString()
+          });
+        }
+      } catch (e) { /* non-fatal — keeps the in-memory value for this session */ }
+      render();
+    }
+    window.exSaveGainLostPct = saveGainLostPct;
+
+    // ---------- Rank Decay: best-ever rank vs current, consecutive months outside top 50 ----------
+    async function loadRankDecay(tickers){
+      rankInfo = {}; missingMonths = [];
+      if (!tickers.length) { rankLoaded = true; return; }
+      try {
+        const res = await db.from('rank_history').select('month, rank, ticker').range(0, 99999);
+        if (res.error) throw res.error;
+        const rows = res.data || [];
+        const allMonths = Array.from(new Set(rows.map(r => r.month))).sort();
+
+        // Calendar gaps between the earliest and latest capture — months nobody ran Capture for.
+        if (allMonths.length >= 2) {
+          let [y, m] = allMonths[0].split('-').map(Number);
+          const [ly, lm] = allMonths[allMonths.length - 1].split('-').map(Number);
+          const have = new Set(allMonths);
+          while (y < ly || (y === ly && m <= lm)) {
+            const key = y + '-' + String(m).padStart(2, '0');
+            if (!have.has(key)) missingMonths.push(key);
+            m++; if (m > 12) { m = 1; y++; }
+          }
+        }
+
+        const byTicker = {};
+        rows.forEach(r => { const b = bareSym(r.ticker); (byTicker[b] = byTicker[b] || {})[r.month] = r.rank; });
+
+        tickers.forEach(tk => {
+          const b = bareSym(tk);
+          const m = byTicker[b];
+          if (!m) { rankInfo[b] = null; return; } // never captured in the top 50 at all
+          const bestRank = Math.min(...Object.values(m));
+
+          // Walk captured months newest→oldest. A month this ticker has no row for means it was
+          // outside the top 50 that month — keep counting until we hit a month it DOES have a row.
+          // Months rank_history never captured at all are simply skipped, not counted either way.
+          let outsideStreak = 0, currentRank = null;
+          for (let i = allMonths.length - 1; i >= 0; i--) {
+            const mo = allMonths[i];
+            if (m[mo] != null) { currentRank = m[mo]; break; }
+            outsideStreak++;
+          }
+          rankInfo[b] = { bestRank, currentRank, outsideStreak };
+        });
+      } catch (e) { rankInfo = {}; }
+      rankLoaded = true;
+    }
+
+    // ---------- main render ----------
+    async function render(){
+      const wrap = el('ex-table-wrap');
+      if (!wrap) return;
+      let { holdings } = calcPortfolio();
+      if (exFilter === 'momentum') holdings = holdings.filter(h => holdingTags.has(h.ticker));
+      if (!holdings.length) {
+        wrap.innerHTML = '<div class="ex-empty">' + (exFilter === 'momentum' ? 'No holdings tagged Momentum yet — tag some on the Portfolio tab.' : 'No current holdings.') + '</div>';
+        return;
+      }
+
+      if (!rankLoaded) { await loadRankDecay(holdings.map(h => h.ticker)); if (el('ex-table-wrap') !== wrap) return; }
+
+      // Per-ticker weekly close history — identical construction to the WoW tab, read-only.
+      const weekMap = {};
+      wowEntries.forEach(e => {
+        if (!weekMap[e.week_date]) weekMap[e.week_date] = {};
+        weekMap[e.week_date][bareSym(e.ticker)] = e.close_price;
+      });
+      const weeks    = Object.keys(weekMap).sort((a, b) => a.localeCompare(b));
+      const latestWk = weeks[weeks.length - 1], prevWk = weeks[weeks.length - 2];
+      const cacheOk  = scrCacheIsFresh();
+
+      const rows = holdings.map(h => {
+        const hist = weeks.map(w => ({ date: w, price: weekMap[w][h.ticker] })).filter(d => d.price != null);
+        const lastPrice = hist.length ? hist[hist.length - 1].price : null;
+        const pnlPct = (lastPrice != null && h.avgBuy > 0) ? ((lastPrice - h.avgBuy) / h.avgBuy) * 100 : null;
+
+        let wowChgPct = null;
+        if (latestWk && prevWk) {
+          const p1 = weekMap[latestWk][h.ticker], p0 = weekMap[prevWk][h.ticker];
+          if (p1 != null && p0 != null) wowChgPct = ((p1 - p0) / p0) * 100;
+        }
+
+        let gainLost = null;
+        if (hist.length && h.avgBuy > 0 && pnlPct != null) {
+          const peakPrice  = Math.max(...hist.map(d => d.price));
+          const peakPnlPct = ((peakPrice - h.avgBuy) / h.avgBuy) * 100;
+          gainLost = pnlPct - peakPnlPct;
+        }
+
+        const ema100 = cacheOk ? getEmaFromCache(h.ticker) : null;
+        const dma50  = cacheOk ? getDma50FromCache(h.ticker) : null;
+        const dma50Break = (dma50 != null && lastPrice != null && lastPrice < dma50);
+        const gainLostBreach = gainLost != null && gainLost <= gainLostExitPct;
+
+        // Existing, UNCHANGED exit signal — identical inputs to what WoW itself would show.
+        const exit = getExitSignal(pnlPct, wowChgPct, hist, pnlFloor, ema100);
+        const rd = Object.prototype.hasOwnProperty.call(rankInfo, bareSym(h.ticker)) ? rankInfo[bareSym(h.ticker)] : undefined;
+
+        // Flattened, sortable numeric/string keys — sortData() (shared with Portfolio/Trade Log)
+        // sorts nulls last automatically, so "no data yet" rows drop to the bottom either way.
+        const vsFloor   = pnlPct != null ? pnlPct - pnlFloor : null;
+        const dma50Sort = !cacheOk ? null : dma50Break ? 0 : (dma50 != null ? 1 : null);
+        const decaySort = (rd === undefined || rd === null) ? null
+          : rd.currentRank != null ? rd.currentRank
+          : 1000 + rd.outsideStreak; // outside top 50 always sorts after any in-top-50 rank
+
+        return { h, ticker: h.ticker, name: h.name, pnlPct, vsFloor, gainLost, dma50, dma50Break,
+                 gainLostBreach, dma50Sort, decaySort, ema100, exit, exitOrder: exit.order, rd };
+      });
+
+      let banner = '';
+      if (!cacheOk) banner += '<div class="ex-banner"><span style="font-size:16px">⚡</span><span>50-DMA and 100-EMA columns need a fresh Screener run to enable them — go to <b>Discovery → Run Screener</b>, then come back here. Other rules below are unaffected.</span></div>';
+      if (missingMonths.length) banner += '<div class="ex-banner"><span style="font-size:16px">⚠</span><span>Rank History has gaps — not captured: <b>' + missingMonths.map(esc).join(', ') + '</b>. Decay streaks below may be undercounted across those months.</span></div>';
+
+      const sorted = sortData(rows, exSort.col, exSort.dir);
+      const th = (col, label) => '<th class="sortable-th" onclick="exSetSort(\'' + col + '\')">' + label + sortIndicator(col, exSort.col, exSort.dir) + '</th>';
+
+      let h2 = banner + '<div class="ex-scroll"><table class="ex-t"><thead><tr>' +
+        th('name', 'Stock') + th('pnlPct', 'P&amp;L% (last WoW week)') + th('vsFloor', 'vs Floor') +
+        th('gainLost', 'Gain Lost') + th('dma50Sort', '&lt;50DMA') + th('decaySort', 'Rank Decay') + th('exitOrder', 'Exit Signal') +
+        '</tr></thead><tbody>';
+
+      sorted.forEach(r => {
+        const h = r.h;
+        const pnlCell = r.pnlPct != null ? '<span class="' + (r.pnlPct >= 0 ? 'positive-text' : 'negative-text') + '">' + fmtPct(r.pnlPct) + '</span>' : '—';
+        const vsFloorCell = r.pnlPct != null ? fmtPct(r.pnlPct - pnlFloor) : '—';
+        const gainLostCell = r.gainLost != null
+          ? '<span class="' + (r.gainLostBreach ? 'ex-decay-out' : (r.gainLost < -0.05 ? 'negative-text' : '')) + '">' + (r.gainLost < -0.05 ? fmtPct(r.gainLost) : '▲ at peak') + '</span>'
+          : '—';
+        const dma50Cell = !cacheOk ? '<span class="ex-decay-ok">n/a</span>'
+          : r.dma50 == null ? '<span class="ex-decay-ok">n/a</span>'
+          : r.dma50Break ? '<span class="ex-decay-out">Below (' + fmtPrice(r.dma50) + ')</span>'
+          : '<span class="positive-text">Above</span>';
+
+        let decayCell;
+        if (r.rd === undefined) decayCell = '<span class="ex-decay-ok">loading…</span>';
+        else if (r.rd === null) decayCell = '<span class="ex-decay-ok">never in top 50</span>';
+        else if (r.rd.currentRank != null) {
+          const dropped = r.rd.currentRank - r.rd.bestRank;
+          decayCell = '#' + r.rd.currentRank + (dropped > 0 ? ' <span class="ex-decay-drop">(▼' + dropped + ' from best #' + r.rd.bestRank + ')</span>' : ' <span class="ex-decay-ok">(at its best)</span>');
+        } else {
+          decayCell = '<span class="' + (r.rd.outsideStreak >= 3 ? 'ex-decay-out' : 'ex-decay-drop') + '">Outside top 50 (' + r.rd.outsideStreak + 'mo)</span>';
+        }
+
+        h2 += '<tr>' +
+          '<td>' + esc(h.name) + '<br><span style="color:var(--muted);font-family:var(--font-mono);font-size:10px">' + esc(h.ticker) + '</span></td>' +
+          '<td class="mono">' + pnlCell + '</td>' +
+          '<td class="mono">' + vsFloorCell + '</td>' +
+          '<td class="mono">' + gainLostCell + '</td>' +
+          '<td class="mono">' + dma50Cell + '</td>' +
+          '<td class="mono">' + decayCell + '</td>' +
+          '<td class="mono"><span class="' + esc(r.exit.cls) + '">' + esc(r.exit.label) + '</span></td>' +
+        '</tr>';
+      });
+      h2 += '</tbody></table></div>';
+      wrap.innerHTML = h2;
+    }
+
+    function setSort(col){
+      if (exSort.col === col) exSort.dir = exSort.dir === 'asc' ? 'desc' : 'asc';
+      else { exSort.col = col; exSort.dir = 'asc'; }
+      render();
+    }
+    window.exSetSort = setSort;
+
+    function setFilter(f){
+      exFilter = f;
+      document.querySelectorAll('#ex-filterctrl .ex-filterbtn').forEach(b =>
+        b.classList.toggle('on', b.dataset.exfilter === f));
+      render();
+    }
+    window.exSetFilter = setFilter;
+
+    function wireOnce(){ wired = true; }
+
+    window.exEnter = function(){
+      if (!wired) wireOnce();
+      if (!prefsLoaded) { prefsLoaded = true; loadPrefs().then(render); }
+      else render();
     };
   })();
 </script>
