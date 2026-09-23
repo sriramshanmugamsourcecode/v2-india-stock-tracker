@@ -2306,7 +2306,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260923.53'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260923.55'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -7326,8 +7326,8 @@
         }
 
         let capPct = null;
-        if (capAmount && h.currentValue != null) {
-          capPct = (h.currentValue / capAmount) * 100;
+        if (capAmount && h.invested != null) {
+          capPct = (h.invested / capAmount) * 100; // cost basis, not mark-to-market — see §6.2
           sumCapPct += capPct; anyCapPct = true;
         }
 
@@ -7373,7 +7373,7 @@
         const trendHtml = wowStreakArrows(r.hist, 3);
 
         const capPctHtml = r.capPct != null
-          ? `<span class="rb-share"><i style="width:${Math.max(0, Math.min(100, r.capPct * 5)).toFixed(0)}%"></i></span>${r.capPct.toFixed(1)}%`
+          ? `<span class="rb-share"><i style="width:${Math.max(0, Math.min(100, r.capPct * 5)).toFixed(0)}%"></i></span><span class="${r.capPct > 20 ? 'negative-text' : ''}">${r.capPct.toFixed(1)}%</span>`
           : '<span style="color:var(--muted)">—</span>';
 
         let hi52Html = '<span style="color:var(--muted)">…</span>';
@@ -7425,7 +7425,7 @@
             ${th('contribPct', 'Profit contrib %', "This stock's P&amp;L as a % of the whole momentum sleeve's P&amp;L")}
             ${th('unrealisedPct', 'Returns %', 'Simple return: P&amp;L &divide; total cost')}
             ${th('stockXirr', 'XIRR', 'Annualised, entry-timing aware')}
-            ${th('capPct', '% of cap')}
+            ${th('capPct', '% of Invest', "Invested cost &divide; momentum cap &mdash; not current value, so a winner doesn't look more concentrated just because it's up. Red above 20%.")}
             ${th('wowChgPct', '1W chg')}
             <th>3W trend</th>
             ${th('gainLostVal', 'Gain lost')}
@@ -7452,7 +7452,7 @@
     function rbRender(){
       const { holdings } = calcPortfolio();
       const momentum = holdings.filter(h => holdingTags.has(h.ticker));
-      const deployed = momentum.reduce((s, h) => s + (h.currentValue || 0), 0);
+      const deployed = momentum.reduce((s, h) => s + (h.invested || 0), 0); // cost basis, matches the % of Invest column
       const capAmount = rbCapRows[0] ? Number(rbCapRows[0].amount) : null;
       rbRenderCapCard(deployed);
       rbRenderHoldings(momentum, capAmount);
