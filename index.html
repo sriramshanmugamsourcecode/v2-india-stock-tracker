@@ -2306,7 +2306,7 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-  const APP_VERSION = 'v4.20260921.52'; // ← single source of truth — update here only
+  const APP_VERSION = 'v4.20260923.53'; // ← single source of truth — update here only
   const SUPA_URL = 'https://lixhqzzdutdjpdqfxmgn.supabase.co'; // v2 project — independent from v1's zlpejsixpycewmfpmwrz
   const SUPA_KEY = 'sb_publishable_oVf06qsbip0ms9JIGl4e3g_TIbyi5l_';
   const LAST_IMPORT_KEY = 'last_import_batch_v2'; // _v2 suffix: namespaced to avoid localStorage collision with v1 (same github.io origin)
@@ -7859,8 +7859,17 @@
       // you-already-hold — so an existing position's real cost counts against it from the start.
       let deployed = cost;
       if (t1Amount > 0 && deployed < deployTotal) {
+        // If already holding, today's buy is really just another tranche and must defend the
+        // same cushion floor as tranches 2+ — a fresh (not-yet-held) stock has no existing
+        // cushion to defend yet, so tranche 1 stays fully user-controlled in that case only.
+        let capByFloor = Infinity;
+        if (owned && owned.netQty > 0 && avgBuy > 0) {
+          capByFloor = (stock.price <= avgBuy * floorMult)
+            ? 0
+            : Math.max(0, Math.floor(qty * (stock.price - floorMult * avgBuy) / (stock.price * (floorMult - 1))));
+        }
         const amt = Math.min(t1Amount, deployTotal - deployed, maxTranche > 0 ? maxTranche : Infinity);
-        const sh  = Math.floor(amt / stock.price);
+        const sh  = Math.min(Math.floor(amt / stock.price), capByFloor);
         if (sh > 0) {
           const addCost = sh * stock.price;
           qty += sh; cost += addCost; avgBuy = cost / qty; deployed += addCost;
