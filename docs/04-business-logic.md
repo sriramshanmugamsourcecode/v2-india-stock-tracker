@@ -1,6 +1,6 @@
 # Business Logic — India Stock Tracker v2
 
-*Written fresh against `APP_VERSION = 'v4.20260912.35'`, verified directly against `index.html` rather than carried from the older spec files in this folder. Where a claim below corrects something those older specs got wrong (they were frozen months ago and missed at least one real behavior change), it's called out explicitly — see "Corrections vs. the old specs" at the end.*
+*Written fresh against `APP_VERSION = 'v4.20260912.35'`, verified directly against `index.html` rather than carried from the older spec files in this folder; updated for the Exit Signals tab and Pyramiding as of `v4.20260921.52`. Where a claim below corrects something those older specs got wrong (they were frozen months ago and missed at least one real behavior change), it's called out explicitly — see "Corrections vs. the old specs" at the end.*
 
 This document is organized by tab, in the order they appear in the nav, followed by cross-cutting conventions that apply everywhere.
 
@@ -100,6 +100,8 @@ A brand-new holding with no prior week (`wowChgPct == null`) counts as "up" — 
 5. **🟡 Sharp Drop** — single-week drop worse than −5%, independent of overall P&L.
 6. **✅ Holding** — none of the above.
 
+This exact function is also called **completely unchanged** by the Exit Signals tab (§9) — same inputs WoW itself would use, so its Exit Signal column always matches what WoW shows for that stock.
+
 ### 3.4 Buy-Qty Calculator
 
 Shown only on Strong Add rows. Solves for the additional quantity that brings the post-buy blended average cost exactly to `weekPrice / (1 + floor/100)` — i.e. exactly at the floor after buying. A sizing suggestion only; does not create a trade.
@@ -130,7 +132,11 @@ Test #1 (pure composite rank, no filters, 528 stocks, 11.2 years): CAGR 31.6% vs
 
 Independent of the ranking display: once per run, the top-30-by-pure-compositeRank (ADTV≥₹5Cr only, deliberately ignoring the user's active filter so a filter change doesn't reset streaks) is snapshotted to `localStorage`, keyed by calendar month, 24-month retention. A stock's streak = consecutive months present, rendered 🔥 (3+) / 🔥🔥 (6+). Entirely browser-local, not in Supabase.
 
-### 4.6 Pattern Lookup panel
+### 4.6 Invest / Watch / Don't invest tag
+
+Each Discovery row carries the same 3-button tag widget Rank History's Trend view uses (`rank_status` table, `go`/`wait`/`dont` values) — tagging a stock in one tab shows the same tag in the other, since both read/write the identical per-user `(ticker, status)` row. This **replaced** an earlier "+ Watch" button that upserted into a `watchlist` table with no unique constraint on `(ticker, user_id)` — the upsert's `onConflict` clause had no matching constraint to satisfy, so it errored on every click. Rather than add the missing constraint, the button and its `watchlist` write path were retired entirely in favour of reusing the already-working `rank_status` mechanism. `watchlist` still exists in the DB (nothing dropped it) but nothing in the app writes to it any more.
+
+### 4.7 Pattern Lookup panel
 
 A stocks-only input inside the Discovery tab: enter tickers, get a stacked card per stock with rule-based signal chips derived from the same indicators above, plus a **copy-to-clipboard prompt** formatted for pasting into a separate Claude conversation for a qualitative read. Deliberately **does not call any AI API from inside the app** — no Worker, no API cost, no automated response — the user explicitly chose the copy-prompt-only design over an earlier in-app AI-read prototype.
 
@@ -140,7 +146,7 @@ A stocks-only input inside the Discovery tab: enter tickers, get a stacked card 
 
 Monthly composite-rank snapshots, stored in the **shared** (not per-user) `rank_history` table, captured manually via a "Capture" button using the exact same composite formula as Discovery (§4.2) — top ~50 stocks, columns `month, rank, ticker, stock_name, composite, score52w, ret6m_skip, ret3m_skip, ret1m_skip, adj_ret, universe_size, source, captured_at`.
 
-Three views: **Grid** (spreadsheet-style month×rank), **Trajectory** (a stock's rank over time), **Trend** (sortable by streak-of-months-in-top-50, with a "Not in Top 50" box for recent dropouts and a "Holdings on top" toggle). Per-user **status tags** (Go / Wait / Don't, `rank_status` table) let the user annotate a ticker's actionability independent of its rank — this table's migration was found never to have actually been run when this documentation set was verified against the live database (2026-09-12), meaning the feature had silently never persisted a tag since it shipped; fixed the same day (see [`03-ai-rebuild-spec.md`](03-ai-rebuild-spec.md) §3 for the exact migration).
+Three views: **Grid** (spreadsheet-style month×rank table, §10.4 on its mobile-width fix), **Trajectory** (a stock's rank over time), **Trend** (sortable by streak-of-months-in-top-50, with a "Not in Top 50" box for recent dropouts and a "Holdings on top" toggle). Per-user **status tags** — labelled **Invest / Watch / Don't invest** (`rank_status` table, values `go`/`wait`/`dont`) — let the user annotate a ticker's actionability independent of its rank, and are **shared with Discovery** (§4.6): the same tag shows in both tabs. This table's migration was found never to have actually been run when this documentation set was first verified against the live database (2026-09-12), meaning the feature had silently never persisted a tag since it shipped; fixed the same day (see [`03-ai-rebuild-spec.md`](03-ai-rebuild-spec.md) §3 for the exact migration).
 
 ---
 
@@ -174,6 +180,14 @@ composite = 0.40×XIRR_pts + 0.25×vs52W_pts + 0.25×trend_pts + 0.10×GainLost_
 
 Deliberately **not built**: any sell/rotation logic (checkbox-gated, tax-aware, opt-in — designed in conversation, not implemented) and any historical validation of the 40/25/25/10 weighting itself (separate backlog item, to avoid overfitting a scheme to this account's own tiny, weeks-old momentum basket).
 
+### 6.4 Pyramiding
+
+A staged-entry planner living inside the Rebalance tab (own sub-namespace, `.rb-pyr-*`), self-contained: its own `universe` fetch (type-ahead search over the whole active universe, not just tagged/held stocks) and its own live-price fetch (`scrFetch1Y`, same path the 52W-high in §6.2 already uses) — reads `calcPortfolio()` for a real existing position, nothing else shared.
+
+Inputs: a stock (search), a **cushion target** (4/6/10/15/20/25%, default 6% — a **floor, not an exact target**: the guarantee is "never let a planned addition drop blended cushion below this," not "converge to exactly this"), an **amount to deploy** (default ₹3,00,000, explicitly **per stock**, not portfolio-wide — and **includes** any existing position's real cost, not new-money-on-top-of-it), a manually-typed **first tranche amount** (default ₹1,20,000, no formula — the cushion math only applies to tranches *after* some price gain already exists), and an optional **max tranche** cap (blank = uncapped) limiting every single tranche's size, including the first.
+
+If already held, the plan starts from the real `avgBuy`/`netQty` (shown as a highlighted "Already owned" row) and stages further tranches from there. Tranches 2+ trigger at round **+5% price bands** from today's live price (actual tradeable GTT/limit levels) — at each, the tool adds the **maximum** shares the cushion formula allows (same formula as `calcBuyQty`, §3.4, generalised) without dropping blended cushion below the floor, capped by whichever binds first: remaining deployment budget, or the max-tranche cap. A tranche is skipped entirely (no row) if either cap allows zero shares at that price. Built from a clickable Artifact mockup reviewed and approved before any production code was written, per this project's standing "mock before building" workflow.
+
 ---
 
 ## 7. App Maintenance
@@ -190,21 +204,39 @@ Saving in either Universe or Trade Logs auto-invalidates the relevant caches els
 
 ---
 
-## 8. Cross-cutting conventions
+## 9. Exit Signals
 
-### 8.1 Ticker grouping — `bareSym()`
+A dedicated tab (sits before Rebalance in the nav; Maintenance moved to the very end to make room) that consolidates every exit rule into one full-holdings table — read-only, changes nothing in WoW/Portfolio/Rank History. Defaults to a Momentum-only filter (toggle to All, reuses `holding_tags`).
+
+Reuses `getExitSignal()` (§3.3) completely unchanged for its Exit Signal column. Layered on top, three new independent checks, each its own column (not folded into `getExitSignal()`'s single-winner label):
+
+- **Gain Lost breach** — reuses WoW's own Gain Lost formula (§3.1: P&L points given back from a position's own weekly-tracked peak P&L%) against a user-configurable threshold — a dropdown (-5/-10/-15/-20/-25/-30%, default -20%) persisted to a new `user_preferences.gain_lost_exit_pct` column.
+- **50-DMA break** — price below the 50-day SMA, read from the same Discovery-screener cache the 100-EMA check already uses, via `dma50` (already computed by `scrCalc`, just not previously read anywhere).
+- **Rank Decay** — a holding's best-ever vs current composite rank from `rank_history`. Shown in amber while still inside the top 50 but sliding ("▼N from best #X"); flips red once outside the top 50 for **3+ consecutive captured months** (fixed, not user-tunable). Calendar gaps in capture history (months nobody ran Capture for) are detected and flagged separately, and **pause** rather than break or continue the streak count — a gap month counts neither for nor against a stock's "outside top 50" streak, since there's no data for it either way.
+
+**A real pre-existing bug found and fixed while wiring the 50-DMA lookup**: `getEmaFromCache()` called `.find()` — an array-only method — on the Screener's localStorage cache, which is actually stored as a **plain object keyed by ticker** (`scrSaveCache()`), not an array. The call always silently threw and was swallowed by a `catch`, returning `null` every time. This means the existing 100-EMA-Break exit rule in WoW (§3.3, item 3) had likely never actually fired in production since it shipped. Fixed with `Object.values(data).find(...)`, which works regardless of the cache's actual shape.
+
+---
+
+## 10. Cross-cutting conventions
+
+### 10.1 Ticker grouping — `bareSym()`
 
 Every feature that aggregates by "stock" strips the exchange prefix (`NSE:`/`BSE:`) before grouping, so a stock imported once with a prefix and once without still merges into one holding. This does **not** strip suffixes (`-IV`, `-RR` broker quirks) — several real bugs this project fixed (PGINVIT, BIRET-RR, INDUSINVIT) were exactly this: a suffixed and a bare version of the same underlying instrument silently living as two separate "holdings" until manually reconciled and renamed in `trades`/`universe`.
 
-### 8.2 Yahoo Finance symbol mapping — `SCR_YF_OVERRIDES` (screener/Rebalance) and `YF_OVERRIDES` (portfolio live-price fetch)
+### 10.2 Yahoo Finance symbol mapping — `SCR_YF_OVERRIDES` (screener/Rebalance) and `YF_OVERRIDES` (portfolio live-price fetch)
 
 Two separate override maps exist for the same underlying problem (NSE ticker ≠ Yahoo's symbol for that instrument) because they evolved independently — `scrToYF()`/`SCR_YF_OVERRIDES` is the actively-maintained one (dozens of entries, each commented with the reason and confirmation status). A `null` entry means "confirmed dead on Yahoo, skip rather than guess." New mismatches surface as fetch failures and get added by hand after manual verification — guessing a replacement symbol without confirming caused at least one real mislabeling bug this project fixed (KTIL pointed at the wrong company entirely).
 
-### 8.3 Isolated-feature convention
+### 10.3 Isolated-feature convention
 
-Every feature added since Rank History (Rank History itself, Pattern Lookup, App Maintenance, Rebalance) is a self-contained IIFE with its own CSS class prefix (`.rh-*`, `.lk-*`, `.mnt-*`, `.rb-*`), touching the rest of the app only via: one nav `<button>`, one entry in `switchTab()`'s tab-list array, and one hook line (`if (tab === 'x' && window.xEnter) window.xEnter();`). Cross-feature data access happens through JS closures (all IIFEs are nested in the same outer `<script>` block, so they read outer-scope globals like `trades`, `wowEntries`, `holdingTags`, and call outer functions like `calcPortfolio()`/`loadAll()` directly) rather than any event bus or shared store.
+Every feature added since Rank History (Rank History, Pattern Lookup, App Maintenance, Rebalance, Exit Signals, and Pyramiding as a sub-namespace inside Rebalance) is a self-contained IIFE (or sub-section within one) with its own CSS class prefix (`.rh-*`, `.lk-*`, `.mnt-*`, `.rb-*`, `.ex-*`, `.rb-pyr-*`), touching the rest of the app only via: one nav `<button>`, one entry in `switchTab()`'s tab-list array, and one hook line (`if (tab === 'x' && window.xEnter) window.xEnter();`). Cross-feature data access happens through JS closures (all IIFEs are nested in the same outer `<script>` block, so they read outer-scope globals like `trades`, `wowEntries`, `holdingTags`, and call outer functions like `calcPortfolio()`/`loadAll()` directly) rather than any event bus or shared store.
 
-### 8.4 Versioning
+### 10.4 Table width on mobile — `width:100%`, not `width:max-content; min-width:100%`
+
+Every scrollable table (`.table-wrap`, Discovery's results table, Rank History's Grid and Trend) originally used `width:max-content; min-width:100%` — the theoretically-correct CSS for "fill the container, but grow wider and trigger horizontal scroll if content needs more." In practice this doesn't reliably fill the container for `<table>` elements specifically (a `<div>` with the same rule behaves correctly) — on mobile, tables built this way visibly stopped short of full width while everything else on the page reached the edge. Fixed by switching every affected table to plain `width:100%`; cells already had `white-space:nowrap`, so a table can still grow past 100% and trigger the wrapper's `overflow-x:auto` when content genuinely needs more room — the fix only removes the under-fill case, not the intended overflow behavior.
+
+### 10.5 Versioning
 
 Single source of truth: `const APP_VERSION` near the top of the script, format `v<phase>.<YYYYMMDD>.<build>` — hand-incremented, no build tooling stamps it. Bumped on every shipped change in this project's history.
 
@@ -215,6 +247,6 @@ Single source of truth: `const APP_VERSION` near the top of the script, format `
 Two concrete, verified drifts found while writing this document — a demonstration of why the older `*.spec.md` files (frozen `v4.20260601.6`) shouldn't be trusted for current mechanics even where they look plausible:
 
 1. **Cost basis** — `portfolio.spec.md` describes a simple lifetime-average `avgBuy` where "selling some shares does not change avgBuy for the remainder." The actual current code (§1.1 above) is a chronological moving average where a sell *is* booked against the running average and a full exit resets the basis entirely. This was a real bug fix earlier in this project's history, and the old spec still describes the pre-fix behavior.
-2. **Theme/shell** — `ui-dashboard.spec.md` describes a green accent color and 4 tabs. Current code uses violet (deliberately, "distinct from v1's green, for side-by-side comparison") and has 7 tabs.
+2. **Theme/shell** — `ui-dashboard.spec.md` describes a green accent color and 4 tabs. Current code uses violet (deliberately, "distinct from v1's green, for side-by-side comparison") and has 8 tabs.
 
 Treat any other specific numeric claim in those files (thresholds, formulas not touched by this project's session history) as *plausible but unverified* rather than confirmed current.

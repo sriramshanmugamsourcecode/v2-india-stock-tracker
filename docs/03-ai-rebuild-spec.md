@@ -19,7 +19,7 @@ A personal, single-user (extensible to a handful of users) Indian-equities portf
 
 ## 3. Database schema — ready-to-run DDL
 
-Every table below is copied **exactly** from a live schema dump of the real v2 database (`information_schema.columns`, `table_constraints`, `check_constraints`, and `pg_policies`, queried directly on 2026-09-12) — not reconstructed from memory or old docs. Column types, defaults, nullability, constraints, and RLS policies all match what's actually running. Two genuine oddities surfaced by this dump are called out after the SQL, not smoothed over.
+Every table below is copied **exactly** from a live schema dump of the real v2 database (`information_schema.columns`, `table_constraints`, `check_constraints`, and `pg_policies`, queried directly on 2026-09-12; `user_preferences.gain_lost_exit_pct` added 2026-09-21) — not reconstructed from memory or old docs. Column types, defaults, nullability, constraints, and RLS policies all match what's actually running. Several genuine findings surfaced by this dump and later work are called out after the SQL, not smoothed over.
 
 ```sql
 -- ── trades — the source of truth. Everything else is computed from this. ──
@@ -58,10 +58,11 @@ create policy "users insert own wow_entries" on wow_entries for insert with chec
 create policy "users delete own wow_entries" on wow_entries for delete using (auth.uid() = user_id);
 -- no update policy exists — a week's price is deleted and re-inserted, never edited in place
 
--- ── user_preferences — currently just the WoW P&L floor ──
+-- ── user_preferences — WoW P&L floor + Exit Signals' Gain Lost threshold ──
 create table user_preferences (
   user_id uuid primary key,                  -- no FK
   pnl_floor integer default 40,
+  gain_lost_exit_pct integer default -20,    -- added 2026-09-21 for the Exit Signals tab
   created_at timestamp default now(),
   updated_at timestamp default now()
 );
@@ -71,7 +72,7 @@ create policy "users insert own prefs" on user_preferences for insert with check
 create policy "users update own prefs" on user_preferences for update using (auth.uid() = user_id);
 -- no delete policy
 
--- ── watchlist — exists, written to, no viewing UI yet — see the caveat below ──
+-- ── watchlist — RETIRED 2026-09-21 (see finding #2 below) — table still exists, nothing writes to it anymore ──
 create table watchlist (
   id uuid primary key default gen_random_uuid(),
   ticker text not null,
@@ -174,13 +175,15 @@ create policy "delete own capital" on momentum_capital for delete using (auth.ui
 
 **Auth**: Supabase email/password auth, no signup UI in the app itself — accounts are provisioned by hand (Studio → Authentication → Users → Invite). No social login, no magic link, nothing fancier.
 
-### Two real findings this schema dump surfaced (not smoothed over)
+### Real findings surfaced by this schema dump and later work (not smoothed over)
 
 1. **`rank_status` didn't exist at all until 2026-09-12.** The Rank History tab's Go/Wait/Don't status-tag feature was fully designed and shipped in code, but its migration was never actually run — the table was silently absent from the live database, meaning every attempt to set a status tag had been failing since the feature shipped. Confirmed via `information_schema.columns` returning zero rows for it, then fixed live during this documentation pass (the `create table rank_status` block above is exactly what was run). If you're building fresh from this spec, this is a non-issue — just don't skip actually running every migration you write.
 
-2. **`watchlist` is very likely broken for its one write path.** The application code does `db.from('watchlist').upsert({...}, { onConflict: 'ticker,user_id' })`, but the live table has **no unique or exclusion constraint on `(ticker, user_id)`** — Postgres requires one matching the `onConflict` columns for an upsert to work at all. It also has no `update` or `delete` RLS policy, meaning even a successful insert could never be edited or removed afterward through the app. This was never chased down further because `watchlist` has no viewing/management UI regardless (see [`04-business-logic.md`](04-business-logic.md) §2) — flagging it here rather than fixing it, since it's pre-existing and low-traffic, not something this session's work touched.
+2. **`watchlist`'s one write path was confirmed broken, then retired rather than fixed (2026-09-21).** The application code did `db.from('watchlist').upsert({...}, { onConflict: 'ticker,user_id' })`, but the live table had **no unique or exclusion constraint on `(ticker, user_id)`** — Postgres requires one matching the `onConflict` columns for an upsert to work at all, so the call errored on every single click (visible to the user as a "✗ Error" on the Discovery tab's "+ Watch" button). Rather than add the missing constraint, the button and its write path were removed entirely — Discovery already has a working, shared per-ticker tag mechanism (`rank_status`, the same Invest/Watch/Don't invest tag Rank History uses, see [`04-business-logic.md`](04-business-logic.md) §4.6) that made a second, broken tagging table redundant. `watchlist` itself was not dropped and still exists with its original (still-flawed) schema — nothing in the app writes to it any more, so the missing constraint is now moot rather than fixed.
 
-3. **Only the three newest tables (`holding_tags`, `momentum_capital`, `rank_status`) have a real foreign key from `user_id` to `auth.users(id)`.** Every older table (`trades`, `wow_entries`, `user_preferences`, `watchlist`) relies purely on RLS + application code for that relationship, with no DB-level enforcement. Worth being consistent about if you're building fresh — add the FK from the start.
+3. **A related bug in the *same* investigation: `getEmaFromCache()` always returned `null`.** Found while wiring a new 50-DMA lookup that copied its pattern — the function called `.find()` (an array-only method) on the Screener's localStorage cache, which `scrSaveCache()` actually stores as a **plain object keyed by ticker**, not an array. The call threw every time, silently caught, always returning `null`. This means WoW's existing "100 EMA Break" exit rule had likely never actually fired in production since it shipped. Fixed (`Object.values(data).find(...)`) alongside the new 50-DMA rule it was found while building — see [`04-business-logic.md`](04-business-logic.md) §9.
+
+4. **Only the three next-newest tables (`holding_tags`, `momentum_capital`, `rank_status`) have a real foreign key from `user_id` to `auth.users(id)`.** Every older table (`trades`, `wow_entries`, `user_preferences`, `watchlist`) relies purely on RLS + application code for that relationship, with no DB-level enforcement. Worth being consistent about if you're building fresh — add the FK from the start.
 
 ## 4. Recommended build order
 
@@ -191,7 +194,7 @@ This project was actually built in these phases, and each one is independently u
 3. **WoW tracker** — manual weekly snapshot capture, pyramiding buy signal, exit signal, Gain Lost, buy-qty calculator.
 4. **Discovery screener** — `universe` table (seed it — Nifty 500 or whatever index you're targeting), the indicator set and composite ranking formula (§4 of the business-logic doc), filters, presets.
 5. **Kite/broker import** — `.xlsx` parsing, `import_batch` tracking, undo window.
-6. Everything after this point (Rank History, Pattern Lookup, App Maintenance CRUD panels, the Rebalance tab and its split calculator) was added well after the core was stable and battle-tested — treat them as genuinely optional layers, not core requirements, unless you specifically want feature parity with this project's current state.
+6. Everything after this point (Rank History, Pattern Lookup, App Maintenance CRUD panels, the Rebalance tab and its split calculator, the Exit Signals tab, and Pyramiding inside Rebalance) was added well after the core was stable and battle-tested — treat them as genuinely optional layers, not core requirements, unless you specifically want feature parity with this project's current state.
 
 ## 5. Gotchas this project actually hit — build these in correctly the first time
 

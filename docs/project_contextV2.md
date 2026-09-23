@@ -2,7 +2,7 @@
 
 *This is the current, accurate snapshot of the project. If you're resuming work with a fresh AI session, this file plus `index.html` is what you hand it. Superseded content lives alongside it for history — see "Superseded documents" at the bottom — but this file, not those, is the source of truth as of the date below.*
 
-*Last verified against live code: `APP_VERSION = 'v4.20260912.35'`.*
+*Last verified against live code: `APP_VERSION = 'v4.20260921.52'`.*
 
 ## What this is
 
@@ -25,7 +25,7 @@ v1 was the original project. At some point development continued in a separate `
 
 ## Tech stack
 
-- **Frontend**: vanilla HTML/CSS/JS, single file (`index.html`, ~7,400 lines as of this version). No build step, no framework, no bundler.
+- **Frontend**: vanilla HTML/CSS/JS, single file (`index.html`, ~7,900 lines as of this version). No build step, no framework, no bundler.
 - **Backend**: Supabase — Postgres tables + Row Level Security + email/password auth. No custom server code anywhere.
 - **Market data**: Yahoo Finance's unofficial `query1.finance.yahoo.com` chart/quoteSummary endpoints, fetched client-side through the Cloudflare Worker above (adds CORS headers Yahoo doesn't send). Not an official or paid API — see Doc 1 §6 for the caveat.
 - **Broker import**: manual Zerodha Kite `.xlsx` export (tradebook or holdings statement), parsed client-side with SheetJS. No broker API integration anywhere.
@@ -38,10 +38,10 @@ v1 was the original project. At some point development continued in a separate `
 |---|---|---|
 | `trades` | Per-user (`user_id`) | Source of truth for every buy/sell. Portfolio, WoW, Rebalance are all derived from this at render time — nothing else stores a "current holding" row. |
 | `wow_entries` | Per-user | Weekly closing-price snapshots, captured manually via the WoW tracker's "Fetch & Save Week." Feeds the WoW tab, and (reused, not refetched) the Rebalance tab's 1W/3W/Gain-Lost columns. |
-| `user_preferences` | Per-user (PK `user_id`) | Currently just `pnl_floor` (the WoW target P&L floor, default 40). |
-| `watchlist` | Per-user | Exists, has RLS, is written to by Discovery's "+ Watch" button — but there is still no dedicated tab/UI to view or manage it. Legacy/lightly-used. |
+| `user_preferences` | Per-user (PK `user_id`) | `pnl_floor` (WoW target P&L floor, default 40) and `gain_lost_exit_pct` (Exit Signals' Gain Lost threshold, default -20, added 2026-09-21). |
+| `watchlist` | Per-user | **Retired 2026-09-21.** Still exists with its original schema (no unique constraint on `(ticker, user_id)`, which meant its one write path errored on every use), but nothing in the app writes to it any more — Discovery's old "+ Watch" button was replaced by the shared `rank_status` tag (see below). |
 | `universe` | **Shared across all users**, not per-user | The Nifty-500-ish stock list Discovery/Rank History screen against (722 rows, 717 active as of the last sync). Bare tickers (no exchange prefix), `exchange` in its own column. Editable via the App Maintenance → Universe panel. |
-| `rank_status` | Per-user | Go/Wait/Don't status tag per ticker, set from the Rank History tab. |
+| `rank_status` | Per-user | Invest/Watch/Don't invest status tag per ticker (values still `go`/`wait`/`dont`) — settable from **both** Rank History's Trend view and Discovery's rows; same tag shows in both. |
 | `rank_history` | **Shared** (no `user_id`) | Monthly composite-rank snapshots (top ~50 stocks) captured via Rank History's "Capture" button — columns: `month, rank, ticker, stock_name, composite, score52w, ret6m_skip, ret3m_skip, ret1m_skip, adj_ret, universe_size, source, captured_at`. |
 | `holding_tags` | Per-user | Long term / Momentum tagging for Rebalance. Only `'momentum'` rows are ever written — untagged = Long term by default, no row needed. |
 | `momentum_capital` | Per-user | Append-only log of the user-set momentum-sleeve capital cap — latest row = current, one before = previous week. |
@@ -57,19 +57,22 @@ RLS on every per-user table is `auth.uid() = user_id` for select/insert/(update)
 
 Clearing browser data wipes all of the above but never touches Supabase — it's all either a cache (refetches fine) or a convenience (undo window, backup history).
 
-## Current feature map (7 tabs)
+## Current feature map (8 tabs)
+
+Nav order: Portfolio → Trade Log → WoW Tracker → Discovery → Rank History → Exit Signals → Rebalance → Maintenance (Maintenance moved to the end on 2026-09-21 to make room for Exit Signals ahead of Rebalance).
 
 | Tab | Covers |
 |---|---|
 | Portfolio | Holdings, P&L, per-stock XIRR, Long term/Momentum tag toggle |
 | Trade Log | Manual entry, Kite import, delete/undo |
 | WoW Tracker | Weekly price capture, pyramiding buy signal, exit signal, buy-qty calculator |
-| Discovery (⬡) | Momentum + fundamentals screener over `universe`, Pattern Lookup panel (copy-prompt-to-Claude, no in-app AI call) |
-| Rank History (📈) | Grid/Trajectory/Trend views over `rank_history` snapshots, Go/Wait/Don't status tags |
-| Rebalance (⚖️) | Momentum capital cap, momentum-holdings table, "Rebalance for this week" split calculator (Weighted / Equal / Side-by-side) |
+| Discovery (⬡) | Momentum + fundamentals screener over `universe`, Invest/Watch/Don't invest tag per row (shared with Rank History), Pattern Lookup panel (copy-prompt-to-Claude, no in-app AI call) |
+| Rank History (📈) | Grid/Trajectory/Trend views over `rank_history` snapshots, Invest/Watch/Don't invest status tags |
+| Exit Signals (🚪) | Full-holdings table consolidating every exit rule — WoW's original 5 (unchanged) plus 3 new: Gain Lost breach (user-set threshold), 50-DMA break, Rank Decay (best-vs-current composite rank, red flag after 3+ consecutive months outside top 50). All/Momentum filter, sortable columns. |
+| Rebalance (⚖️) | Momentum capital cap, momentum-holdings table, "Rebalance for this week" split calculator (Weighted / Equal / Side-by-side), **Pyramiding** sub-section (staged per-stock entry planner with a cushion floor, deployment amount, and optional max-tranche cap) |
 | Maintenance (🛠️) | Universe / Trade Logs / Portfolio (Backups + Reset Portfolio) direct-edit panels |
 
-Each feature beyond the original Phase 1–4 core is built as an isolated IIFE with its own CSS class prefix (`.rh-*`, `.lk-*`, `.mnt-*`, `.rb-*`), touching shared code only via one nav button, one `switchTab` array entry, and one hook line. This convention has held for every feature added since Rank History.
+Each feature beyond the original Phase 1–4 core is built as an isolated IIFE (or sub-section within one) with its own CSS class prefix (`.rh-*`, `.lk-*`, `.mnt-*`, `.rb-*`, `.ex-*`, `.rb-pyr-*`), touching shared code only via one nav button, one `switchTab` array entry, and one hook line. This convention has held for every feature added since Rank History.
 
 ## Known-resolved items (carried forward from the retired spec files, now checked against current code)
 
@@ -79,11 +82,13 @@ Each feature beyond the original Phase 1–4 core is built as an isolated IIFE w
 ## Open items worth knowing about
 
 - The Cloudflare Worker's actual source isn't backed up in git anywhere (see Doc 1 §5) — only its behavior is documented.
-- `watchlist` table exists, has RLS, is written to, but has no viewing/management UI. Worse, verified via a live schema dump (2026-09-12): the table has no unique constraint on `(ticker, user_id)`, yet the app's write path does an upsert with `onConflict: 'ticker,user_id'` — Postgres needs a matching constraint for that to work at all, so this write is likely failing every time it's used. Also has no update/delete RLS policy. Not fixed — low-traffic, no UI depends on reading it back — but worth knowing if this table ever gets a real feature built on it.
-- `rank_status` — **fixed 2026-09-12**: its migration had never actually been run despite the Rank History status-tag feature being fully shipped in code; the table silently didn't exist. Created live (see `03-ai-rebuild-spec.md` §3 for the exact SQL) and verified via `pg_policies`. Status tags are now functional for the first time since shipping.
+- `watchlist` table — **retired 2026-09-21**, not fixed. Confirmed via live schema dump (no unique constraint on `(ticker, user_id)`, so the app's `onConflict: 'ticker,user_id'` upsert errored on every use). Rather than add the missing constraint, Discovery's "+ Watch" button was removed and replaced with the shared `rank_status` tag it already had working elsewhere. The table itself still exists, unfixed, unused.
+- `rank_status` — **fixed 2026-09-12**, and since 2026-09-21 also writable from Discovery, not just Rank History. Its migration had never actually been run despite the Rank History status-tag feature being fully shipped in code; the table silently didn't exist. Created live (see `03-ai-rebuild-spec.md` §3 for the exact SQL) and verified via `pg_policies`. Labels renamed Good-to-go/Wait-and-watch/Don't-venture → Invest/Watch/Don't-invest at the same time Discovery started using it.
+- `getEmaFromCache()` — **fixed 2026-09-21**: called `.find()` (array-only) on the Screener's localStorage cache, which is actually a plain object keyed by ticker — always silently threw, always returned `null`. Means WoW's "100 EMA Break" exit rule had likely never fired since it shipped. Fixed with `Object.values(data).find(...)`, found while wiring a new 50-DMA lookup that copied the same broken pattern.
 - The manual-entry stock-search dropdown defaults exchange to `'NSE'` based on ticker format rather than reading the `exchange` column — harmless for the ~717 NSE-listed universe rows, would mistag a manually-added BSE-only stock (flagged, not fixed, per the project's no-silent-logic-changes convention).
 - Sell/rotation logic for Rebalance (tax-aware, checkbox-gated) is designed but not built — see memory `feature_rebalance.md`.
 - A proper historical factor-validation study for the Rebalance composite weights is backlogged, not built — see memory `backlog_momentum_indicators_validation.md`.
+- Exit Signals' Rank Decay trigger (3 consecutive months outside top 50) and its tranche trigger-price spacing in Pyramiding (round +5% price bands) were both explicit, deliberate defaults, not backtested — worth keeping in mind alongside the existing composite-weights validation backlog item above.
 
 ## How to resume a session
 

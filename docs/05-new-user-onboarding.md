@@ -95,7 +95,7 @@ Alternatively, skip this step and add tickers by hand through the app's own **Ap
 Open your GitHub Pages URL, sign in with the email/password you created in Step 2. From here:
 
 - **Trade Log → Add Trade** to manually enter a holding, or **Import Kite Trades** if you export a `.xlsx` from Zerodha (or adapt the parser if you use a different broker — see [`04-business-logic.md`](04-business-logic.md) §2 for the exact expected format).
-- Everything else — Portfolio, WoW Tracker, Discovery, Rank History, Rebalance — becomes useful once you have at least one trade logged and (for Discovery/Rank History) a populated `universe`.
+- Everything else — Portfolio, WoW Tracker, Discovery, Rank History, Exit Signals, Rebalance (including its Pyramiding planner) — becomes useful once you have at least one trade logged and (for Discovery/Rank History/Exit Signals/Pyramiding) a populated `universe`.
 
 For what each feature actually does and how its numbers are calculated, see [`04-business-logic.md`](04-business-logic.md) — that document assumes the app is already running and focuses entirely on behavior, not setup.
 
